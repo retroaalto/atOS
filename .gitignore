@@ -1,4 +1,6 @@
-*.exe
+output/
 build/
-release_building/output/
-.AppImage
+NASM_BUILD/
+ISO_OUTPUT/
+*.iso
+WinPE/
