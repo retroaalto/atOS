@@ -1,6 +1,3 @@
-output/
-build/
-NASM_BUILD/
-ISO_OUTPUT/
+ISO_FILE/
 *.iso
-WinPE/
+build/
