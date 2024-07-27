@@ -18,7 +18,3 @@ make
 if [ "$1" = "rc" ]; then
     make run_cdrom
 fi
-if [ "$1" = "rf" ]; then
-    make run_floppy
-fi
-

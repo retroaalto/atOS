@@ -33,10 +33,8 @@ make
 
 # Run with qemu
 make run_cdrom
-make run_floppy
 # or
 qemu-system-x86_64 -cdrom ./atos_rt.iso -boot d
-qemu-system-x86_64 -fda ./atos_rt.img -boot a
 ```
 
 
