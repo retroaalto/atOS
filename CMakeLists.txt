@@ -9,7 +9,7 @@ message(STATUS "Status: ${CMAKE_SOURCE_DIR}")
 
 set(BUILD_DIR ${CMAKE_SOURCE_DIR}/build)
 set(ISO_DIR ${CMAKE_SOURCE_DIR}/iso)
-set(FLOPPY_IMG ${CMAKE_SOURCE_DIR}/floppy.img)
+set(FLOPPY_IMG ${CMAKE_SOURCE_DIR}/atos_rt.img)
 set(ISO_IMG ${CMAKE_SOURCE_DIR}/atos_rt.iso)
 
 file(MAKE_DIRECTORY ${BUILD_DIR})
@@ -49,7 +49,13 @@ add_custom_target(assemble ALL
 add_custom_command(
   OUTPUT ${FLOPPY_IMG}
   COMMAND dd if=/dev/zero of=${FLOPPY_IMG} bs=1024 count=1440
+  COMMAND mkfs.fat -F 12 -n "NBOS" ${FLOPPY_IMG}
   COMMAND dd if=${BUILD_DIR}/bootloader_1.bin of=${FLOPPY_IMG} seek=0 count=1 conv=notrunc
+
+  # ADD ENTRIES HERE
+  COMMAND mcopy -i ${FLOPPY_IMG} ${BUILD_DIR}/kernel.bin "::kernel.bin"
+  COMMAND mcopy -i ${FLOPPY_IMG} ${CMAKE_SOURCE_DIR}/test.txt "::test.txt"
+  
   DEPENDS assemble
   COMMENT "Creating 1.44mb floppy and adding bootloader_1"
 )
@@ -79,8 +85,30 @@ add_custom_target(iso ALL
 )
 
 # Run QEMU
-add_custom_target(run
+add_custom_target(run_cdrom
   COMMAND qemu-system-x86_64 -cdrom ${ISO_IMG} -boot d
   DEPENDS iso
   COMMENT "Running QEMU"
+)
+
+add_custom_target(run_floppy
+  COMMAND qemu-system-x86_64 -fda ${FLOPPY_IMG} -boot a
+  DEPENDS floppy
+  COMMENT "Running QEMU"
+)
+
+
+#~~~~~~~~~~~~~~~~
+# For tools
+#~~~~~~~~~~~~~~~~
+add_custom_command(
+  OUTPUT ${BUILD_DIR}/tools/fat
+  COMMAND mkdir -p ${BUILD_DIR}/tools/
+  COMMAND gcc -o ${BUILD_DIR}/tools/fat ${CMAKE_SOURCE_DIR}/tools/fat/fat.c
+  DEPENDS ${CMAKE_SOURCE_DIR}/tools/fat/fat.c
+  COMMENT "Compiling FAT tool"
+)
+
+add_custom_target(build_fat_tool ALL
+  DEPENDS ${BUILD_DIR}/tools/fat
 )
