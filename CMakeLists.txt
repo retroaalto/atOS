@@ -7,5 +7,4 @@ endif()
 message(STATUS "Debug status: ${DEBUG}")
 message(STATUS "Status: ${CMAKE_SOURCE_DIR}")
 
-# Define the source files for the kernel
 file(GLOB KERNEL_C_SOURCES "./source/kernel_1.c" "./source/kernel.h")

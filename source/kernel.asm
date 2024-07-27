@@ -1,5 +1,5 @@
 [BITS 16]
-[ORG 0x10000]
+ORG 0x10000
 
 kernel_main:
 

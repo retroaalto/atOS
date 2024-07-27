@@ -21,7 +21,7 @@ install these by running:
 sudo apt-get install nasm genisoimage cmake ninja-build gcc
 ```
 
-#### Linux
+### Linux
 
 .ISO file can be created on linux by running:
 
