@@ -2,14 +2,11 @@
 [ORG 0x10000]
 
 kernel_main:
-    ; Set up a simple video mode and print a character
 
-    mov ah, 0x0E                ; BIOS teletype output function
-    mov al, 'A'                 ; Character to print
-    int 0x10                    ; Call BIOS interrupt to print character
+    mov ah, 0x0E
+    mov al, 'A'
+    int 0x10
 
-    ; Halt the system (infinite loop)
-    cli                         ; Clear interrupts
+    cli
 halt:
-    hlt                         ; Halt CPU
-    jmp halt                    ; Infinite loop
+    jmp halt
