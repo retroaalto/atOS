@@ -12,9 +12,8 @@ qemu-system-x86_64 -cdrom ./atos_rt.iso -boot d
 ### Requirements
  - NASM
  - C compiler
- - CMake and Ninja
+ - CMake with Ninja
  - GENISOIMAGE
- - DD
 
 install these by running:
 ```bash
@@ -23,8 +22,16 @@ sudo apt-get install nasm genisoimage cmake ninja-build gcc
 
 ### Linux
 
-.ISO file can be created on linux by running:
 
 ```bash
-build_iso.sh
+# Create build files
+mkdir build && cd build && cmake ..
+
+# Create .img and .iso images
+make
+
+# Run with qemu
+make run
+# or
+qemu-system-x86_64 -cdrom ./atos_rt.iso -boot d
 ```
