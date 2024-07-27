@@ -25,12 +25,12 @@ endforeach()
 file(REMOVE_RECURSE ${BUILD_DIR})
 file(REMOVE_RECURSE ${ISO_DIR})
 
-# Assemble bootloader_1
+# Assemble bootloader_1_fat32
 add_custom_command(
-  OUTPUT ${BUILD_DIR}/bootloader_1.bin
-  COMMAND nasm -f bin -o ${BUILD_DIR}/bootloader_1.bin ${CMAKE_SOURCE_DIR}/source/bootloader_1.asm
-  DEPENDS ${CMAKE_SOURCE_DIR}/source/bootloader_1.asm
-  COMMENT "Assembling bootloader_1"
+  OUTPUT ${BUILD_DIR}/bootloader_1_fat32.bin
+  COMMAND nasm -f bin -o ${BUILD_DIR}/bootloader_1_fat32.bin ${CMAKE_SOURCE_DIR}/source/bootloader_1_fat32.asm
+  DEPENDS ${CMAKE_SOURCE_DIR}/source/bootloader_1_fat32.asm
+  COMMENT "Assembling bootloader_1_fat32"
 )
 
 # Assemble kernel
@@ -42,23 +42,20 @@ add_custom_command(
 )
 
 add_custom_target(assemble ALL
-  DEPENDS ${BUILD_DIR}/bootloader_1.bin ${BUILD_DIR}/kernel.bin
+  DEPENDS ${BUILD_DIR}/bootloader_1_fat32.bin ${BUILD_DIR}/kernel.bin
 )
 
 # Create floppy image
 add_custom_command(
   OUTPUT ${FLOPPY_IMG}
-  COMMAND dd if=/dev/zero of=${FLOPPY_IMG} bs=1024 count=1440
-  COMMAND mkfs.fat -F 12 -n "NBOS" ${FLOPPY_IMG}
-  COMMAND dd if=${BUILD_DIR}/bootloader_1.bin of=${FLOPPY_IMG} seek=0 count=1 conv=notrunc
-
-  # ADD ENTRIES HERE
-  COMMAND mcopy -i ${FLOPPY_IMG} ${BUILD_DIR}/kernel.bin "::kernel.bin"
-  COMMAND mcopy -i ${FLOPPY_IMG} ${CMAKE_SOURCE_DIR}/test.txt "::test.txt"
-  
+  COMMAND dd if=/dev/zero of=${FLOPPY_IMG} bs=512 count=2880
+  COMMAND mkfs.fat -F 32 -n "FAT32   " ${FLOPPY_IMG}
+  COMMAND dd if=${BUILD_DIR}/bootloader_1_fat32.bin of=${FLOPPY_IMG} conv=notrunc
+  COMMAND mcopy -i ${FLOPPY_IMG} ${BUILD_DIR}/kernel.bin "::/kernel.bin"
   DEPENDS assemble
-  COMMENT "Creating 1.44mb floppy and adding bootloader_1"
+  COMMENT "Creating 1.44mb floppy and adding bootloader_1_fat32"
 )
+
 
 add_custom_target(floppy ALL
   DEPENDS ${FLOPPY_IMG}
