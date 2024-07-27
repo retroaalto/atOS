@@ -1,14 +1,8 @@
 ENTRY(kernel_main)
 SECTIONS
 {
-    . = 1M;  /* Start the kernel code at 1MB */
-    .text : {
-        *(.text)
-    }
-    .data : {
-        *(.data)
-    }
-    .bss : {
-        *(.bss)
-    }
+    . = 0x10000; /* Start address */
+    .text : { *(.text) }
+    .data : { *(.data) }
+    .bss : { *(.bss) }
 }

@@ -1,31 +1,41 @@
 #!/bin/bash
-
-# Ensure we are in the correct directory
 cd "$(dirname "$0")"
+rm -f *.img
+rm -f *.iso
+rm -f *.bin
+rm -rf build
+rm -rf iso
 
-# Create build directory if it doesn't exist
-rm -rf ./build
-mkdir -p build
-cd build
+mkdir -p ./build
 
-# Run CMake to configure the project
-cmake .. -DUSEDEBUG=1
-
-# Build the project
-# make VERBOSE=1
-make
-
-# Create the ISO image
-make create_iso
-
-# Check if ISO creation was successful
-if [ -f ATOS.ISO ]; then
-    echo "ISO file created successfully."
-else
-    echo "ISO creation failed."
+echo Assembling bootloader
+nasm -f bin -o ./build/bootloader.bin ./source/bootloader.asm
+if [ $? -ne 0 ]; then
+    echo "NASM assembly failed"
     exit 1
 fi
-cd ..
-cp ./build/ATOS.ISO .
-echo ISO FILE COPIED TO PROJECT ROOT
 
+echo Creating 1.44mb floppy
+dd if=/dev/zero of=floppy.img bs=1024 count=1440
+if [ $? -ne 0 ]; then
+    echo "Floppy creation failed_1"
+    exit 1
+fi
+
+echo Adding bootloader to floppy
+dd if=./build/bootloader.bin of=floppy.img seek=0 count=1 conv=notrunc
+if [ $? -ne 0 ]; then
+    echo "Floppy creation failed_2"
+    exit 1
+fi
+
+mkdir -p iso
+cp floppy.img ./iso/
+
+echo Creating ISO image
+genisoimage -quiet -V 'ATOS' -input-charset iso8859-1 -o atos_rt.iso -b floppy.img \
+    -hide floppy.img ./iso/
+
+if [ "$1" = "r" ]; then
+    qemu-system-x86_64 -cdrom ./atos_rt.iso -boot d
+fi

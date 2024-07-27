@@ -1,33 +1,30 @@
 # atOS Renewed technology
 
+## Running
+
+Running with Qemu:
+```
+qemu-system-x86_64 -cdrom ./atos_rt.iso -boot d
+```
+
 ## Building
 
 ### Requirements
  - NASM
+ - C compiler
  - CMake and Ninja
  - GENISOIMAGE
- - Somekind of c compiler
+ - DD
 
 install these by running:
 ```bash
 sudo apt-get install nasm genisoimage cmake ninja-build gcc
 ```
 
-
 #### Linux
 
-.ISO file can only be created on linux. You can create it by running:
+.ISO file can be created on linux by running:
 
 ```bash
 build_iso.sh
-```
-## Running
-
-### Windows
-
-Download qemu binaries for [Windows](https://qemu.weilnetz.de/w64/)
-
-Run the ISO file:
-```
-qemu_start.bat
 ```

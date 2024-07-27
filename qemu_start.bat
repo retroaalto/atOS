@@ -12,5 +12,4 @@ if not exist "%ISOFILE%" (
     echo ISO file %ISOFILE% not found
     exit /b 1
 )
-
 "%QEMUPATH%\%QEMU_VM%" -cdrom %ISOFILE%

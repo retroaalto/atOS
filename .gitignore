@@ -1,3 +1,6 @@
 ISO_FILE/
 *.iso
+*.img
 build/
+*.bin
+iso/
