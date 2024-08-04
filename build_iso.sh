@@ -16,5 +16,10 @@ if [ "$1" = "fat_tool" ]; then
 fi
 make
 if [ "$1" = "rc" ]; then
+    echo no can do
+    exit 1
     make run_cdrom
+fi
+if [ "$1" = "rf" ]; then
+    make run_floppy
 fi

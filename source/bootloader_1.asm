@@ -44,7 +44,6 @@ boot0:
     push word .next
     retf
 .next:
-
     mov [ebr_drive_number], dl
 
     sti

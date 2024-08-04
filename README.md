@@ -3,7 +3,10 @@
 ## Running
 
 Running with Qemu:
-```
+```bash
+# install with
+sudo apt-get install qemu-system-x86
+
 qemu-system-x86_64 -cdrom ./atos_rt.iso -boot d
 ```
 
@@ -15,10 +18,12 @@ qemu-system-x86_64 -cdrom ./atos_rt.iso -boot d
  - CMake with Ninja
  - GENISOIMAGE
  - DOSFTOOLS
+ - MCOPY
 
 install these by running:
 ```bash
-sudo apt-get install nasm genisoimage cmake ninja-build gcc dosfstools 
+sudo apt-get update
+sudo apt-get install nasm genisoimage cmake ninja-build gcc dosfstools mtools
 ```
 
 ### Linux

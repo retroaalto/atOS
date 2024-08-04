@@ -29,7 +29,7 @@ bdb_hidden_sectors:     dd 0
 bdb_large_sector_count: dd 0
 
 
-;FAT32 ; extended boot record
+;FAT32 extended boot record
 ;FAT32 erb_sectors_per_fat:    dd 0
 ;FAT32 erb_flags:              dw 0
 ;FAT32 erb_fat_version_num:    dw 0
@@ -72,15 +72,32 @@ boot0:
     mov ss, ax
     mov sp, 0x7c00
 
+    ; set cs and ip
     push es
     push word .next
     retf
 .next:
+    ; dl has drive number. saved from bios
+    mov [ebr_drive_number], dl
 
     sti
-    mov si, msg_loading
+    mov si, msg_boot
     call print
 
+    ; read drive parameters
+    push es
+    mov ah, 0x08
+    int 13h
+    ; AH: Status of the operation. If AH = 0x00, the operation was successful.
+    ; CH: Low 8 bits of the number of cylinders.
+    ; CL: Bits 6 and 7 are high bits of the number of cylinders. Bits 0-5 are the number of sectors per track.
+    ; DH: Number of heads.
+    ; DL: Number of drives.
+    ; ES: Address of the drive parameter table (if applicable).
+    jc disk_read_error
+    pop es
+
+    
     jmp hang
     
     
@@ -94,30 +111,33 @@ hang:
 
 ; ds:si points to a string
 print:
-    ; save registers
-    push si
-    push ax
+    push si;
+    push ax;
 print_loop:
     lodsb ; load char to al
-    cmp al, 0
-    je .print_done
-    mov ah, 0x0e
-    mov bh, 0
-    int 0x10
-    jmp print_loop
+    cmp al, 0;
+    je .print_done;
+    mov ah, 0x0e;
+    mov bh, 0;
+    int 0x10;
+    jmp print_loop;
 .print_done:
-    pop ax
-    pop si
-    ret   
+    pop ax;
+    pop si;
+    ret;
 
 ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ;       DISK FUNCTIONS
 ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+disk_read_error:
+    mov si, msg_disk_read_error;
+    call print;
+    jmp hang;
 
-msg_loading:            db "Booting", 0
-msg_disk_read_failure:  db "Disk read error", 0
 
+msg_boot:            db "Booting", 0;
+msg_disk_read_error: db "Disk read error", 0;
 
-times 510-($-$$) db 0
-dw 0x0AA55
+times 510-($-$$) db 0;
+dw 0x0AA55;

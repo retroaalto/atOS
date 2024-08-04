@@ -7,24 +7,12 @@ endif()
 message(STATUS "Debug status: ${DEBUG}")
 message(STATUS "Status: ${CMAKE_SOURCE_DIR}")
 
-message(STATUS "TEMPORARY SET_FS SET")
-set(SET_FS "12") # TEMP
-
-if(SET_FS STREQUAL "32")
-  message(FATAL "FAT32 HAS NOT BEEN ADDED AS A PREPROCESSOR TO NASM FILE! EXITING...")
-  set(FS "32")
-elseif(SET_FS STREQUAL "16")
-  set(FS "16")
-else()
-  set(FS "12")
-endif()
-
-message(STATUS "Using FAT${FS}")
-
 set(BUILD_DIR ${CMAKE_SOURCE_DIR}/build)
 set(ISO_DIR ${CMAKE_SOURCE_DIR}/iso)
-set(DISK_IMG ${CMAKE_SOURCE_DIR}/atos_rt.img)
+set(FLOPPY_IMG ${CMAKE_SOURCE_DIR}/atos_rt.img)
 set(ISO_IMG ${CMAKE_SOURCE_DIR}/atos_rt.iso)
+set(BOOTLOADER1 bootloader_1_fat16-32)
+# set(BOOTLOADER1 bootloader_1)
 
 file(MAKE_DIRECTORY ${BUILD_DIR})
 file(MAKE_DIRECTORY ${ISO_DIR})
@@ -39,56 +27,58 @@ endforeach()
 file(REMOVE_RECURSE ${BUILD_DIR})
 file(REMOVE_RECURSE ${ISO_DIR})
 
-# Assemble bootloader
+# Assemble ${BOOTLOADER1}
 add_custom_command(
-  OUTPUT ${BUILD_DIR}/bootloader_1_fat16-32.bin
-  COMMAND nasm -f bin -o ${BUILD_DIR}/bootloader_1_fat16-32.bin ${CMAKE_SOURCE_DIR}/source/bootloader_1_fat16-32.asm
-  COMMAND mkdir -p ${ISO_DIR}
-  COMMAND cp ${BUILD_DIR}/bootloader_1_fat16-32.bin ${ISO_DIR}
-  DEPENDS ${CMAKE_SOURCE_DIR}/source/bootloader_1_fat16-32.asm
-  COMMENT "Assembling bootloader_1_fat16-32"
+  OUTPUT ${BUILD_DIR}/${BOOTLOADER1}.bin
+  COMMAND nasm -f bin -o ${BUILD_DIR}/${BOOTLOADER1}.bin ${CMAKE_SOURCE_DIR}/source/${BOOTLOADER1}.asm
+  DEPENDS ${CMAKE_SOURCE_DIR}/source/${BOOTLOADER1}.asm
+  COMMENT "Assembling ${BOOTLOADER1}"
 )
 
 # Assemble kernel
 add_custom_command(
   OUTPUT ${BUILD_DIR}/kernel.bin
   COMMAND nasm -f bin -o ${BUILD_DIR}/kernel.bin ${CMAKE_SOURCE_DIR}/source/kernel.asm
-  COMMAND mkdir -p ${ISO_DIR}
-  COMMAND cp ${BUILD_DIR}/kernel.bin ${ISO_DIR}
   DEPENDS ${CMAKE_SOURCE_DIR}/source/kernel.asm
   COMMENT "Assembling kernel"
 )
 
 add_custom_target(assemble ALL
-  DEPENDS ${BUILD_DIR}/bootloader_1_fat16-32.bin ${BUILD_DIR}/kernel.bin
+  DEPENDS ${BUILD_DIR}/${BOOTLOADER1}.bin ${BUILD_DIR}/kernel.bin
 )
 
-# Create and format the disk image
+# Create floppy image
 add_custom_command(
-  OUTPUT ${DISK_IMG}
-  # if(FS STREQUAL "12")
-    COMMAND dd if=/dev/zero of=${DISK_IMG} bs=512 count=8192
-  # elseif(FS STREQUAL "16")
-    # COMMAND dd if=/dev/zero of=${DISK_IMG} bs=512 count=16384
-  # else()
-  #   COMMAND dd if=/dev/zero of=${DISK_IMG} bs=512 count=#TODO
-  # endif()
-  COMMAND mkfs.fat -v -v -F ${FS} ${DISK_IMG}
-  COMMAND mcopy -i ${DISK_IMG} ${BUILD_DIR}/bootloader_1_fat16-32.bin ::/bootloader_1_fat16-32.bin
-  COMMAND mcopy -i ${DISK_IMG} ${BUILD_DIR}/kernel.bin ::/kernel.bin
-  DEPENDS ${BUILD_DIR}/bootloader_1_fat16-32.bin ${BUILD_DIR}/kernel.bin
-  COMMENT "Creating and formatting disk image with FAT16 and copying bootloader and kernel"
+  OUTPUT ${FLOPPY_IMG}
+  COMMAND dd if=/dev/zero of=${FLOPPY_IMG} bs=1024 count=2880
+  COMMAND mkfs.fat -F 12 -n "NBOS" ${FLOPPY_IMG}
+  COMMAND dd if=${BUILD_DIR}/${BOOTLOADER1}.bin of=${FLOPPY_IMG} seek=0 count=1 conv=notrunc
+
+  # ADD ENTRIES HERE
+  COMMAND mcopy -i ${FLOPPY_IMG} ${BUILD_DIR}/kernel.bin "::kernel.bin"
+  COMMAND mcopy -i ${FLOPPY_IMG} ${CMAKE_SOURCE_DIR}/test.txt "::test.txt"
+  
+  DEPENDS assemble
+  COMMENT "Creating 1.44mb floppy and adding ${BOOTLOADER1}"
 )
 
-add_custom_target(disk_image ALL
-  DEPENDS ${DISK_IMG}
+add_custom_target(floppy ALL
+  DEPENDS ${FLOPPY_IMG}
+)
+
+# Copy floppy image to ISO directory
+add_custom_command(
+  OUTPUT ${ISO_DIR}/floppy.img
+  COMMAND ${CMAKE_COMMAND} -E copy ${FLOPPY_IMG} ${ISO_DIR}/floppy.img
+  DEPENDS floppy
+  COMMENT "Copying floppy image to ISO directory"
 )
 
 # Create ISO image
 add_custom_command(
   OUTPUT ${ISO_IMG}
-  COMMAND genisoimage -V 'ATOS' -input-charset iso8859-1 -o ${ISO_IMG} -b bootloader_1_fat16-32.bin -no-emul-boot -boot-load-size 4 -boot-info-table ${ISO_DIR}
-  DEPENDS ${DISK_IMG}
+  COMMAND genisoimage -quiet -V 'ATOS' -input-charset iso8859-1 -o ${ISO_IMG} -b floppy.img -hide floppy.img ${ISO_DIR}
+  DEPENDS ${ISO_DIR}/floppy.img
   COMMENT "Creating ISO image"
 )
 
@@ -103,7 +93,16 @@ add_custom_target(run_cdrom
   COMMENT "Running QEMU"
 )
 
-# Compile FAT tool
+add_custom_target(run_floppy
+  COMMAND qemu-system-x86_64 -fda ${FLOPPY_IMG} -boot a
+  DEPENDS floppy
+  COMMENT "Running QEMU"
+)
+
+
+#~~~~~~~~~~~~~~~~
+# For tools
+#~~~~~~~~~~~~~~~~
 add_custom_command(
   OUTPUT ${BUILD_DIR}/tools/fat
   COMMAND mkdir -p ${BUILD_DIR}/tools/
