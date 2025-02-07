@@ -1,17 +1,7 @@
 :: MAKE_ISO.bat
 :: Build an ISO image from the contents of the ISO directory.
-::
-:: Usage: MAKE_ISO.bat [/M:mode] [/R]
-::   /M:
-::   mode: Optional. The mode to use when creating the ISO image. Any combination of:
-::         B - Compile bootloader
-::         K - Compile kernel
-::         A - Compile all files
-::         N - Compile no files
-::         Default: A. /M:A is thosen if no mode or flag is specified.
-::   /R: Optional. Run the ISO after compilation.
-::   Example: /M:BK  (Compiles Bootloader and Kernel)
-::
+:: Usage: MAKE_ISO.bat [options]
+:: For help, use MAKE_ISO.bat /?
 :: Outputs to root\%OUTPUT_ISO_DIR% -> See .\SCRIPTS\GLOBALS.bat for more information
 
 @echo off
@@ -38,6 +28,9 @@ SET "COMPILE_KERNEL=0"
 SET "COMPILE_ALL=0"
 SET "SKIP_COMPILATION=0"
 SET "RUN_ISO=0"
+SET "HELP_MESSAGE=0"
+
+IF "%~1"=="/?" GOTO :SHOW_HELP
 
 FOR %%A IN (%*) DO (
     IF /I "%%A"=="/M:B" SET "COMPILE_BOOTLOADER=1"
@@ -45,6 +38,8 @@ FOR %%A IN (%*) DO (
     IF /I "%%A"=="/M:A" SET "COMPILE_ALL=1"
     IF /I "%%A"=="/M:N" SET "SKIP_COMPILATION=1"
     IF /I "%%A"=="/R" SET "RUN_ISO=1"
+    IF /I "%%A"=="/?" SET "HELP_MESSAGE=1"
+    IF /I "%%A"=="/H" SET "HELP_MESSAGE=1"
 
     :: Handle combined modes like /M:BKAN
     IF /I "%%A"=="B" SET "COMPILE_BOOTLOADER=1"
@@ -52,6 +47,31 @@ FOR %%A IN (%*) DO (
     IF /I "%%A"=="A" SET "COMPILE_ALL=1"
     IF /I "%%A"=="N" SET "SKIP_COMPILATION=1"
 )
+echo aa %1
+ECHO HELP_MESSAGE is: %HELP_MESSAGE%?
+
+:: Display help message
+IF "%HELP_MESSAGE%"=="1" (
+:SHOW_HELP
+    ECHO Usage: MAKE_ISO.bat ^[/M:^[B^]^[K^]^[A^]^[B^]^] ^[/R^] ^[/? ^| /H^]
+    ECHO   /M: Optional. Compile mode. Any combination of:
+    ECHO       mode: Optional. The mode to use when creating the ISO image. Any combination of:
+    ECHO             B - Compile bootloader
+    ECHO             K - Compile kernel
+    ECHO             A - Compile all files
+    ECHO             N - Compile no files
+    ECHO             Default: A. /M:A is thosen if no mode or flag is specified.
+    ECHO       Example: /M:BK  ^(Compiles Bootloader and Kernel^)
+    ECHO.
+    ECHO   /R: Optional. Run the ISO after compilation.
+    ECHO.
+    ECHO   /^{H^|?^}: Optional. Display this help message.
+    endlocal
+    exit /b 0
+)
+
+endlocal
+exit /b 0
 
 :: If no mode is specified, use default
 IF "%COMPILE_BOOTLOADER%%COMPILE_KERNEL%%COMPILE_ALL%%SKIP_COMPILATION%"=="0000" SET "COMPILE_ALL=1"

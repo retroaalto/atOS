@@ -22,8 +22,8 @@ Build parts of the OS or ISO
 :: Build kernel
 .\BUILD\MAKE_KERNEL.bat
 
-:: Build ISO. See the file for argument information
-.\BUILD\MAKE_ISO.bat
+:: Build ISO. Use /H or /? for help
+.\BUILD\MAKE_ISO.bat [/M:[B][K][A][B]] [/R] [/H | /?]
 ```
 
 Run the ISO
