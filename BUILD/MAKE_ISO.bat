@@ -47,8 +47,6 @@ FOR %%A IN (%*) DO (
     IF /I "%%A"=="A" SET "COMPILE_ALL=1"
     IF /I "%%A"=="N" SET "SKIP_COMPILATION=1"
 )
-echo aa %1
-ECHO HELP_MESSAGE is: %HELP_MESSAGE%?
 
 :: Display help message
 IF "%HELP_MESSAGE%"=="1" (
@@ -69,9 +67,6 @@ IF "%HELP_MESSAGE%"=="1" (
     endlocal
     exit /b 0
 )
-
-endlocal
-exit /b 0
 
 :: If no mode is specified, use default
 IF "%COMPILE_BOOTLOADER%%COMPILE_KERNEL%%COMPILE_ALL%%SKIP_COMPILATION%"=="0000" SET "COMPILE_ALL=1"
@@ -113,6 +108,8 @@ ECHO ISO Input Dir: %INPUT_ISO_DIR%
 ECHO Copying files to ISO directory...
 COPY /Y/B "%OUTPUT_BOOTLOADER_DIR%\BOOTLOADER.bin" "%INPUT_ISO_DIR%\BOOTLOADER.bin"
 
+COPY /Y %SOURCE_DIR%\BASE.txt %INPUT_ISO_DIR%\BASE.txt
+
 :: Build ISO
 echo Creating ISO...
 set "ISO_ROOT=%INPUT_ISO_DIR%"
@@ -121,12 +118,13 @@ SET "ISO_ROOT=%ISO_ROOT:\=/%"
 set "ISO_OUTPUT=%OUTPUT_ISO_DIR%\%ISO_NAME%"
 IF EXIST "%ISO_OUTPUT%" del "%ISO_OUTPUT%"
 set "ISO_OUTPUT=%ISO_OUTPUT:\=/%"
-call %WSL_CMD% run mkisofs -o "%ISO_OUTPUT%" -r -J -b BOOTLOADER.bin -no-emul-boot %ISO_ROOT%
+call %WSL_CMD% run genisoimage -o "%ISO_OUTPUT%" -r -J -b BOOTLOADER.bin -no-emul-boot %ISO_ROOT% 
 IF %ERRORLEVEL% NEQ 0 (
     echo ERROR: Failed to create ISO image.
     endlocal
     exit /b 1
 )
+
 
 echo ISO image created successfully.
 
