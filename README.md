@@ -1,68 +1,32 @@
-# atOS Renewed technology
+# atOS Revised technology
 
-## Running
+32-bit operating system
 
-Running with Qemu:
-```bash
-# install with
-sudo apt-get install qemu-system-x86
+## Building & Requirements
 
-qemu-system-x86_64 -cdrom ./atos_rt.iso -boot d
+### Windows w/ WSL
+
+#### Requirements
+ - Any WSL distribution, change it inside .\SCRIPTS\GLOBALS.bat. default: debian. 
+ - WSL: genisoimage. For .ISO image creation
+ - WSL: qemu-system. For running the .ISO image
+ - Windows: NASM, GCC
+
+#### Building
+
+Build parts of the OS or ISO
+```sh
+:: Build bootloader
+.\BUILD\MAKE_BOOTLOADER.bat
+
+:: Build kernel
+.\BUILD\MAKE_KERNEL.bat
+
+:: Build ISO. See the file for argument information
+.\BUILD\MAKE_ISO.bat
 ```
 
-## Building
-
-### Requirements
- - NASM
- - C compiler
- - CMake with Ninja
- - GENISOIMAGE
- - DOSFTOOLS
- - MCOPY
-
-install these by running:
-```bash
-sudo apt-get update
-sudo apt-get install nasm genisoimage cmake ninja-build gcc dosfstools mtools
+Run the ISO
 ```
-
-### Linux
-
-
-```bash
-# Create build files
-mkdir build && cd build && cmake ..
-
-# Create .img and .iso images
-make
-
-# Run with qemu
-make run_cdrom
-# or
-qemu-system-x86_64 -cdrom ./atos_rt.iso -boot d
-```
-
-
-## Debugging
-
-### Windows
-
-Install [Bochs binaries](https://github.com/bochs-emu/Bochs/releases/tag/REL_2_8_FINAL)
-
-Load bochs_win.bxrc config file. Make sure that the paths are correct inside the file
-
-Make sure to run ```bochsdbg.exe``` and not ```bochs.exe```
-### Linux
-
-Install Bochs by running:
-
-```bash
-sudo apt install bochs bochs-sdl bochsbios vgabios
-```
-
-Start debugging with:
-```bash
-debug.sh
-# or
-bochs -f bochs_config.bxrc
+.\SCRIPTS\RUN_ISO.bat
 ```
