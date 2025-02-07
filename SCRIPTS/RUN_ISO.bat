@@ -1,7 +1,5 @@
 :: RUN_ISO.bat
-:: Boots and runs the ISO in DISM
-:: Usage: RUN_ISO.bat
-:: Requires: WSL installed and in PATH with qemu x86_64 installed
+:: Boots and runs the ISO in the virtual machine
 
 @echo off
 setlocal EnableDelayedExpansion
