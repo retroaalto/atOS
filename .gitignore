@@ -1,6 +1,5 @@
-ISO_FILE/
+/INPUT
+/OUTPUT
 *.iso
 *.img
-build/
 *.bin
-iso/
