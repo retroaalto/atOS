@@ -7,6 +7,31 @@ cd /d %~dp0
 cd ..
 call .\SCRIPTS\GLOBALS.bat
 
+if "%1"=="/?" (
+    echo Usage: RUN_ISO.bat [/?] [NOTE]
+    echo   Runs the ISO in the virtual machine.
+    echo   If the ISO does not exist, it will be compiled first.
+    echo.
+    echo   /?
+    echo     Displays this help message.
+    echo.
+    echo   NOTE
+    echo     Any additional arguments provided will be passed for the MAKE_ISO.bat script.
+    endlocal
+    exit /b 0
+)
+
+if "%1" neq "" (
+    ECHO Compiling ISO with additional arguments: %*
+    call .\BUILD\MAKE_ISO.bat %*
+    echo %ERRORLEVEL%
+    if not exist "%OUTPUT_ISO_DIR%\%ISO_NAME%" (
+        ECHO Compilation unsuccesfull. Exiting...
+        endlocal
+        exit /b 1
+    )
+)
+
 :: Ensure the ISO exists
 if not exist "%OUTPUT_ISO_DIR%\%ISO_NAME%" (
     echo ERROR: %ISO_NAME% not found. Please compile the ISO first.

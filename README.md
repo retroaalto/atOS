@@ -27,6 +27,7 @@ Build parts of the OS or ISO
 ```
 
 Run the ISO
-```
+```sh
+:: Use /? for help
 .\SCRIPTS\RUN_ISO.bat
 ```
