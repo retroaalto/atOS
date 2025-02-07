@@ -46,6 +46,9 @@ SET "SCRIPT_DIR=%~dp0"
 :: ROOT_DIR: The root directory of the project. _ALL_
 SET "ROOT_DIR=%SCRIPT_DIR%.."
 
+:: SOURCE_DIR: The directory where source files are stored. _ALL_
+SET "SOURCE_DIR=%ROOT_DIR%\SOURCE"
+
 :: OUTPUT_DIR: The directory where the build output is stored. _ALL_
 SET "OUTPUT_DIR=OUTPUT"
 SET "OUTPUT_ISO_DIR=%OUTPUT_DIR%\ISO"
