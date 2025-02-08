@@ -38,9 +38,9 @@ REMARKS
 ```
 
 ```ini
-;     <PATH> - <ABOUT>
+; <PATH> - <ABOUT>
 ;      
-;     Licensed under the MIT License. See LICENSE file in the project root for full license information.
+; Licensed under the MIT License. See LICENSE file in the project root for full license information.
 ;
 ; DESCRIPTION
 ;     Describe
@@ -60,7 +60,7 @@ REMARKS
 
 ```c
 /*+++
-    Function definition
+Function definition
 
 DESCRIPTION
     Description of the function
@@ -85,7 +85,7 @@ REMARKS
 ```
 
 ```ini
-;     Function definition
+; Function definition
 ; 
 ; DESCRIPTION
 ;     Description of the function
