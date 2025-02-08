@@ -10,7 +10,7 @@
 #pragma pack(push, 1)
 #endif
 
-typedef struct {
+typedef struct _IsoPrimaryVolumeDescriptor {
     char volumeDescriptorType;
     char standardIdentifier[5];
     char version;
@@ -30,26 +30,22 @@ typedef struct {
     uint32_t optionalTypeMPathTable;
     char rootDirectoryRecord[34];
 } 
-#ifdef __linux__
+#if defined(__linux__) || defined(__GNUC__) 
 __attribute__((packed)) 
 #endif
 IsoPrimaryVolumeDescriptor;
+
 #ifdef MSVC
 #pragma pack(pop)
 #endif
 
-void read_primary_volume_descriptor(FILE *iso) {
+void read_primary_volume_descriptor(FILE *iso, IsoPrimaryVolumeDescriptor *pvd) {
     fseek(iso, 16 * 2048, SEEK_SET);
-    IsoPrimaryVolumeDescriptor pvd;
-    fread(&pvd, sizeof(IsoPrimaryVolumeDescriptor), 1, iso);
-    
-    if (strncmp(pvd.standardIdentifier, "CD001", 5) != 0) {
+    fread(pvd, sizeof(IsoPrimaryVolumeDescriptor), 1, iso);
+    if (strncmp(pvd->standardIdentifier, "CD001", 5) != 0) {
         printf("Not a valid ISO 9660 image.\n");
         return;
     }
-    
-    printf("Volume Identifier: %.32s\n", pvd.volumeIdentifier);
-    printf("Volume Space Size: %u sectors\n", pvd.volumeSpaceSize);
 }
 
 #endif // _ISO9660_H
