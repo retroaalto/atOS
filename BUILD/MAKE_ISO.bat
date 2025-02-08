@@ -106,9 +106,9 @@ IF NOT EXIST "%INPUT_ISO_DIR%" mkdir "%INPUT_ISO_DIR%"
 ECHO ISO Input Dir: %INPUT_ISO_DIR%
 
 ECHO Copying files to ISO directory...
-COPY /Y/B "%OUTPUT_BOOTLOADER_DIR%\BOOTLOADER.bin" "%INPUT_ISO_DIR%\BOOTLOADER.bin"
-
 COPY /Y %SOURCE_DIR%\BASE.txt %INPUT_ISO_DIR%\BASE.txt
+COPY /Y/B %OUTPUT_KERNEL_DIR%\KERNEL.BIN %INPUT_ISO_DIR%\KERNEL.BIN
+COPY /Y/B %OUTPUT_BOOTLOADER_DIR%\BOOTLOADER.BIN %INPUT_ISO_DIR%\BOOTLOADER.BIN
 
 :: Build ISO
 echo Creating ISO...
@@ -118,7 +118,7 @@ SET "ISO_ROOT=%ISO_ROOT:\=/%"
 set "ISO_OUTPUT=%OUTPUT_ISO_DIR%\%ISO_NAME%"
 IF EXIST "%ISO_OUTPUT%" del "%ISO_OUTPUT%"
 set "ISO_OUTPUT=%ISO_OUTPUT:\=/%"
-call %WSL_CMD% run genisoimage -o "%ISO_OUTPUT%" -r -J -b BOOTLOADER.bin -no-emul-boot %ISO_ROOT% 
+call %WSL_CMD% run genisoimage -o "%ISO_OUTPUT%" -r -J -b BOOTLOADER.BIN -no-emul-boot %ISO_ROOT% 
 IF %ERRORLEVEL% NEQ 0 (
     echo ERROR: Failed to create ISO image.
     endlocal
