@@ -10,11 +10,6 @@
 
 @echo off
 
-CHCP 65001 >nul
-
-
-
-
 :: %%%%%%%%%%%%%%%%%%%%%%%%%%%
 :: General settings
 :: %%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -53,6 +48,7 @@ SET "SOURCE_DIR=%ROOT_DIR%\SOURCE"
 SET "OUTPUT_DIR=OUTPUT"
 SET "OUTPUT_ISO_DIR=%OUTPUT_DIR%\ISO"
 SET "OUTPUT_BOOTLOADER_DIR=%OUTPUT_DIR%\BOOTLOADER"
+SET "OUTPUT_KERNEL_DIR=%OUTPUT_DIR%\KERNEL"
 
 :: INPUT_DIR: The directory where files are stored for the ISO compilation. _ALL_
 SET "INPUT_DIR=INPUT"
@@ -61,7 +57,7 @@ set "INPUT_ISO_DIR=%INPUT_DIR%\ISO"
 :: SOURCE_DIR: The directory where source files are stored. _ALL_
 SET "SOURCE_DIR=SOURCE"
 SET "SOURCE_BOOTLOADER_DIR=%SOURCE_DIR%\BOOTLOADER"
-
+SET "SOURCE_KERNEL_DIR=%SOURCE_DIR%\KERNEL"
 
 
 
