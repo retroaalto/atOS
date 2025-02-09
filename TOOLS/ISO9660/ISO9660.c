@@ -262,8 +262,8 @@ int main(int argc, char *argv[]) {
     printf("SIZE: %llu\n", sizeof(PrimaryVolumeDescriptor));
     printf("SIZE2: %llu\n", sizeof(DateTime));
     printf("SIZE3: %llu\n", sizeof(IsoDirectoryRecord));
-    #endif
     printf("Date and Time of Creation: " DATE_TIME_PATTERN "\n", DATE_TIME_FIELDS(pvd.creationDateAndTime));
+    #endif
     if (argc < 3) {
         printf("No file name specified, exiting...\n");
         fclose(iso);
