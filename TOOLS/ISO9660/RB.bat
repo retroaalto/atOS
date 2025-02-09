@@ -8,22 +8,9 @@ call d:\build_tools_x64\devcmd.bat > nul 2>&1
 call gcc ISO9660.c -I. -Wall -Wextra -o ISO9660
 del *.obj > nul 2>&1
 Copy /Y/B ..\..\OUTPUT\ISO\atOS.iso .\atOS.iso
-echo "Testing BASE.txt"
-echo.
-echo.
-
 call ISO9660 atOS.iso BASE.txt
 echo.
-echo.
-echo "Testing INNER/INSIDE_1.txt"
-echo.
-echo.
 call ISO9660 atOS.iso "INNER/INSIDE_1.txt"
-
-echo.
-echo.
-echo "Testing INNER/INNER2/INSIDE_1.txt"
-echo.
 echo.
 call ISO9660 atOS.iso "INNER/INNER2/INSIDE_1.txt"
 endlocal
