@@ -185,10 +185,6 @@ bool read_directory(FILE *iso, uint32_t lba, uint32_t size, char *target, char *
     fseek(iso, lba * size, SEEK_SET);
     char buffer[SECTOR_SIZE];
     fread(buffer, SECTOR_SIZE, 1, iso);
-    #if DEBUG
-    printf("Reading directory at LBA %d\n", lba);
-    printf("Directory size: %d\n", size);
-    #endif
     printf("Target: '%s'\n", target);
     uint32_t offset = 0;
     while (offset < size) {
@@ -205,6 +201,8 @@ bool read_directory(FILE *iso, uint32_t lba, uint32_t size, char *target, char *
         if (record->fileFlags & 0b00000010) {
             if (strcmp(name, target) == 0) {
                 printf("Directory found: %s\n", name);
+
+                // path/to/file.txt -> to/file.txt
                 char *slash = strchr(original_target, '/');
                 if(!slash) {
                     printf("File not found\n");
@@ -221,6 +219,7 @@ bool read_directory(FILE *iso, uint32_t lba, uint32_t size, char *target, char *
                 } else {
                     target[strlen(original_target)] = '\0';
                 }
+                
                 return read_directory(iso, record->extentLocationLE_LBA, record->extentLengthLE, target, original_target);
             }
         } else {
@@ -229,9 +228,6 @@ bool read_directory(FILE *iso, uint32_t lba, uint32_t size, char *target, char *
                 char buffer[1024];
                 fseek(iso, record->extentLocationLE_LBA * size, SEEK_SET);
                 fread(buffer, 1024, 1, iso);
-                #if DEBUG
-                printf("First 1024 bytes of the file:\n");
-                #endif
                 printf("'%.*s'\n", 1024, buffer);
                 return true;
             }
@@ -258,38 +254,11 @@ int main(int argc, char *argv[]) {
 
     PrimaryVolumeDescriptor pvd;
     read_primary_volume_descriptor(iso, &pvd);
-    #if DEBUG
-    printf("SIZE: %llu\n", sizeof(PrimaryVolumeDescriptor));
-    printf("SIZE2: %llu\n", sizeof(DateTime));
-    printf("SIZE3: %llu\n", sizeof(IsoDirectoryRecord));
-    printf("Date and Time of Creation: " DATE_TIME_PATTERN "\n", DATE_TIME_FIELDS(pvd.creationDateAndTime));
-    #endif
     if (argc < 3) {
         printf("No file name specified, exiting...\n");
         fclose(iso);
         return 0;
     }
-
-    #if DEBUG
-    printf("\nInfo of root directory\n");
-    {
-        IsoDirectoryRecord root = pvd.rootDirectoryRecord;
-        printf("Length: %d\n", root.length);
-        printf("Extended Attribute Record Length: %d\n", root.extendedAttributeRecordLength);
-        printf("Extent Location LE LBA: %d\n", root.extentLocationLE_LBA);
-        printf("Extent Location BE LBA: %d\n", root.extentLocationBE_LBA);
-        printf("Extent Length LE: %d\n", root.extentLengthLE);
-        printf("Extent Length BE: %d\n", root.extentLengthBE);
-        printf("Recording Date and Time: " DIR_ENTRY_DATE_TIME_PATTERN "\n", DIR_ENTRY_DATE_TIME_FIELDS(root.recordingDateAndTime));
-        printf("File Flags: " BYTE_TO_BINARY_PATTERN "\n", BYTE_TO_BINARY(root.fileFlags));
-        printf("File Unit Size: %d\n", root.fileUnitSize);
-        printf("Interleave Gap Size: %d\n", root.interleaveGapSize);
-        printf("Volume Sequence Number LE: %d\n", root.volumeSequenceNumberLE);
-        printf("Volume Sequence Number BE: %d\n", root.volumeSequenceNumberBE);
-        printf("File Name Length: %d\n", root.fileNameLength);
-        printf("File identifier: %.*s\n", root.fileNameLength, root.fileIdentifier);
-    }
-    #endif
 
     // Search for the file in the root directory
     char *filename = (char*)malloc(MAX_PATH);
@@ -300,6 +269,7 @@ int main(int argc, char *argv[]) {
     strncpy(original_filename, argv[2], MAX_PATH);
     normalize_path(original_filename);
 
+    // path/to/file.txt -> path
     char *slash = strchr(filename, '/');
     if (slash) {
         *slash = '\0';
