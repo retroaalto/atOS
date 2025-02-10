@@ -70,8 +70,7 @@ SET "VIRTUAL_MACHINE=qemu-system-i386"
 :: VIRTUAL_MACHINE_ARGS: Arguments to pass to the virtual machine. _WSL_
 SET "VM_PATHIFIED=%OUTPUT_ISO_DIR%\%ISO_NAME%"
 SET "VM_PATHIFIED=%VM_PATHIFIED:\=/%"
-:: -monitor stdio
-SET "VIRTUAL_MACHINE_ARGS=-boot d -cdrom %VM_PATHIFIED% -m 512 -s  -display sdl"
+SET "VIRTUAL_MACHINE_ARGS=-boot d -cdrom %VM_PATHIFIED% -m 512 -s
 
 
 
