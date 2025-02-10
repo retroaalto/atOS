@@ -238,17 +238,17 @@ bool read_directory(FILE *iso, uint32_t lba, uint32_t size, char *target, char *
     return false;
 }
 
-void path_table_search(FILE *iso, PrimaryVolumeDescriptor *pvd, char *target){
-    printf("Path Table Size: %d\n", pvd->pathTableSizeLE);
-    printf("Path Table Location: %d\n", pvd->pathTableLocationLE);
-    printf("Logical Block Size: %d\n", pvd->logicalBlockSizeLE);
+// void path_table_search(FILE *iso, PrimaryVolumeDescriptor *pvd, char *target){
+//     printf("Path Table Size: %d\n", pvd->pathTableSizeLE);
+//     printf("Path Table Location: %d\n", pvd->pathTableLocationLE);
+//     printf("Logical Block Size: %d\n", pvd->logicalBlockSizeLE);
 
-    fseek(iso, pvd->pathTableLocationLE * pvd->logicalBlockSizeLE, SEEK_SET);
-    char buffer[SECTOR_SIZE];
-    fread(buffer, SECTOR_SIZE, 1, iso);
-    uint32_t offset = 0;
+//     fseek(iso, pvd->pathTableLocationLE * pvd->logicalBlockSizeLE, SEEK_SET);
+//     char buffer[SECTOR_SIZE];
+//     fread(buffer, SECTOR_SIZE, 1, iso);
+//     uint32_t offset = 0;
     
-}
+// }
 
 int main(int argc, char *argv[]) {
     if (argc < 2) {
