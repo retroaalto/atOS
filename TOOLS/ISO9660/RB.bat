@@ -9,6 +9,7 @@ call gcc ISO9660.c -I. -Wall -Wextra -o ISO9660
 del *.obj > nul 2>&1
 Copy /Y/B ..\..\OUTPUT\ISO\atOS.iso .\atOS.iso
 call ISO9660 atOS.iso BASE.txt
+exit /b 0
 echo.
 call ISO9660 atOS.iso "INNER/INSIDE_1.txt"
 echo.

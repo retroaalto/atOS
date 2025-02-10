@@ -219,7 +219,7 @@ bool read_directory(FILE *iso, uint32_t lba, uint32_t size, char *target, char *
                 } else {
                     target[strlen(original_target)] = '\0';
                 }
-                
+
                 return read_directory(iso, record->extentLocationLE_LBA, record->extentLengthLE, target, original_target);
             }
         } else {
@@ -236,6 +236,18 @@ bool read_directory(FILE *iso, uint32_t lba, uint32_t size, char *target, char *
         offset += record->length;
     }
     return false;
+}
+
+void path_table_search(FILE *iso, PrimaryVolumeDescriptor *pvd, char *target){
+    printf("Path Table Size: %d\n", pvd->pathTableSizeLE);
+    printf("Path Table Location: %d\n", pvd->pathTableLocationLE);
+    printf("Logical Block Size: %d\n", pvd->logicalBlockSizeLE);
+
+    fseek(iso, pvd->pathTableLocationLE * pvd->logicalBlockSizeLE, SEEK_SET);
+    char buffer[SECTOR_SIZE];
+    fread(buffer, SECTOR_SIZE, 1, iso);
+    uint32_t offset = 0;
+    
 }
 
 int main(int argc, char *argv[]) {
@@ -275,6 +287,9 @@ int main(int argc, char *argv[]) {
         *slash = '\0';
     }
     read_directory(iso, pvd.rootDirectoryRecord.extentLocationLE_LBA, pvd.rootDirectoryRecord.extentLengthLE, filename, original_filename);
+
+    // path_table_search(iso, &pvd, filename);
+    
     free(filename);
 
     fclose(iso);
