@@ -263,7 +263,7 @@ int main(int argc, char *argv[]) {
     }
 
     printf("Reading ISO 9660 image: %s\n", argv[1]);
-
+    printf("%llu\n", sizeof(PrimaryVolumeDescriptor));
     PrimaryVolumeDescriptor pvd;
     read_primary_volume_descriptor(iso, &pvd);
     if (argc < 3) {
