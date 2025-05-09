@@ -31,11 +31,11 @@ bootloader: $(OUTPUT_BOOTLOADER_DIR)/BOOTLOADER.BIN
 iso: bootloader kernel
 	@echo "Creating ISO directory structure..."
 	mkdir -p $(INPUT_ISO_DIR)/INNER/INNER2
+	cp -f $(OUTPUT_BOOTLOADER_DIR)/BOOTLOADER.BIN $(INPUT_ISO_DIR)/BOOTLOADER.BIN
 	cp -f $(SOURCE_DIR)/INSIDE_1.txt $(INPUT_ISO_DIR)/INNER/INSIDE_1.txt
 	cp -f $(SOURCE_DIR)/BASE.txt $(INPUT_ISO_DIR)/INNER/INNER2/INSIDE_1.txt
 	cp -f $(SOURCE_DIR)/BASE.txt $(INPUT_ISO_DIR)/BASE.txt
 	cp -f $(OUTPUT_KERNEL_DIR)/KERNEL.BIN $(INPUT_ISO_DIR)/KERNEL.BIN
-	cp -f $(OUTPUT_BOOTLOADER_DIR)/BOOTLOADER.BIN $(INPUT_ISO_DIR)/BOOTLOADER.BIN
 	@echo "Building ISO..."
 	mkdir -p $(OUTPUT_ISO_DIR)
 	genisoimage -o $(OUTPUT_ISO_DIR)/$(ISO_NAME) -r -J -b BOOTLOADER.BIN -no-emul-boot $(INPUT_ISO_DIR)
@@ -44,13 +44,13 @@ iso: bootloader kernel
 # Debugging target (running with GDB for troubleshooting)
 debug:
 	@echo "Debugging ISO..."
-	qemu-system-i386 -boot d -cdrom $(OUTPUT_ISO_DIR)/$(ISO_NAME) -m 512 -s -S
+	qemu-system-i386 -boot d -cdrom $(OUTPUT_ISO_DIR)/$(ISO_NAME) -m 512 -S -gdb tcp::1234 -d int,cpu -D qemu.log
 	@echo "Connected GDB server, use 'gdb' to attach."
 
 # Run the ISO in QEMU
 run:
 	@echo "Running ISO..."
-	qemu-system-i386 -boot d -cdrom $(OUTPUT_ISO_DIR)/$(ISO_NAME) -m 512
+	qemu-system-i386 -boot d -cdrom $(OUTPUT_ISO_DIR)/$(ISO_NAME) -m 512 
 
 # Kernel build rule
 $(OUTPUT_KERNEL_DIR)/KERNEL.BIN: $(SOURCE_KERNEL_DIR)/KERNEL_ENTRY.asm

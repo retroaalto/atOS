@@ -111,6 +111,8 @@ __attribute__((packed))
 #endif
 IsoDirectoryRecord;
 
+#define IDR_SIZE sizeof(_IsoDirectoryRecord)
+
 typedef struct _PrimaryVolumeDescriptor {
     uint8_t TypeCode;
     strA standardIdentifier[5];
@@ -183,6 +185,7 @@ void normalize_path(char *path) {
 
 bool read_directory(FILE *iso, uint32_t lba, uint32_t size, char *target, char *original_target) {
     fseek(iso, lba * size, SEEK_SET);
+    printf("READ_DIR_SIZE: %u*%u=%u\n", lba,size,lba*size);
     char buffer[SECTOR_SIZE];
     fread(buffer, SECTOR_SIZE, 1, iso);
     printf("Target: '%s'\n", target);
@@ -190,10 +193,11 @@ bool read_directory(FILE *iso, uint32_t lba, uint32_t size, char *target, char *
     while (offset < size) {
         IsoDirectoryRecord *record = (IsoDirectoryRecord *)(buffer + offset);
         if (record->length == 0) break;
-
+        
         char name[256];
         strncpy(name, record->fileIdentifier, record->fileNameLength);
         name[record->fileNameLength] = '\0';
+        printf("%s!\n", name);
         normalize_path(name);
         #if DEBUG
         printf("File name: '%s', "BYTE_TO_BINARY_PATTERN"\n", name, BYTE_TO_BINARY(record->fileFlags));
@@ -225,6 +229,7 @@ bool read_directory(FILE *iso, uint32_t lba, uint32_t size, char *target, char *
         } else {
             if (strcmp(name, target) == 0) {
                 printf("File found: %s\n", name);
+                printf("LEN: %u... %lu... %lu\n", record->length, record->extentLocationLE_LBA, record->extentLengthLE);
                 char buffer[1024];
                 fseek(iso, record->extentLocationLE_LBA * size, SEEK_SET);
                 fread(buffer, 1024, 1, iso);
@@ -263,7 +268,8 @@ int main(int argc, char *argv[]) {
     }
 
     printf("Reading ISO 9660 image: %s\n", argv[1]);
-    printf("%llu\n", sizeof(PrimaryVolumeDescriptor));
+    printf("%lu\n", sizeof(PrimaryVolumeDescriptor));
+    printf("%lu\n", sizeof(IsoDirectoryRecord));
     PrimaryVolumeDescriptor pvd;
     read_primary_volume_descriptor(iso, &pvd);
     if (argc < 3) {
@@ -271,6 +277,7 @@ int main(int argc, char *argv[]) {
         fclose(iso);
         return 0;
     }
+    printf("extent: %u\n", pvd.rootDirectoryRecord.extentLengthLE);
 
     // Search for the file in the root directory
     char *filename = (char*)malloc(MAX_PATH);

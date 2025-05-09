@@ -24,6 +24,7 @@ iso: $(ISO_DIR)/$(TOOL_ISO)
 	./$(TOOL_ISO) $(ISOFILE) BASE.txt
 	./$(TOOL_ISO) $(ISOFILE) "INNER/INSIDE_1.txt"
 	./$(TOOL_ISO) $(ISOFILE) "INNER/INNER2/INSIDE_1.txt"
+	./$(TOOL_ISO) $(ISOFILE) KERNEL.BIN
 
 # FAT Tool (currently just a placeholder)
 fat: $(FAT_DIR)/$(TOOL_FAT)

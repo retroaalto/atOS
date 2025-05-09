@@ -15,26 +15,35 @@
 ; REMARKS
 ;     None
 
+
+[BITS 16]
 [ORG 0x1000]
 
-jmp short kernel_entry
-
-kernel_entry:
-    mov si, kernelEntryMessage1
-    call print_string
-
-    ; halt
-    jmp $
-
-print_string:
-    lodsb
-    or al, al
-    jz done
-    mov ah, 0x0E
+start:
+    sti
+    mov sp, 0x1000
+    mov si, msg_greeting_1
+    call print
+    jmp .hang
+.hang:
+    cli
+    hlt
+print:
+    ; save registers
+    push si
+    push ax
+print_loop:
+    lodsb ; load char to al
+    cmp al, 0
+    je .print_done
+    mov ah, 0x0e
+    mov bh, 0
     int 0x10
-    jmp print_string
+    jmp print_loop
+.print_done:
+    pop ax
+    pop si
+    ret   
 
-done:
-    ret
-
-kernelEntryMessage1 db "Welcome to the OS kernel!", 0
+;DATA
+msg_greeting_1:  db "Greetings from kernel!", 0

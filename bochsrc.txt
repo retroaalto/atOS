@@ -1,0 +1,28 @@
+# bochsrc.txt
+
+# Use the default processor
+cpu: count=1, model=bx_generic
+
+# RAM size (at least 32 MB for a kernel)
+memory: guest=512, host=256
+
+# Boot from CD-ROM
+boot: cdrom
+
+# CD-ROM drive with your ISO
+ata0-master: type=cdrom, path="OUTPUT/ISO/atOS.iso", status=inserted
+
+# BIOS ROMs
+romimage: file=/usr/share/bochs/BIOS-bochs-latest, address=0xf0000
+vgaromimage: file=/usr/share/bochs/VGABIOS-lgpl-latest
+
+# Enable debugger
+debugger_log: bochsdbg.log
+log: bochsout.txt
+panic: action=ask
+error: action=report
+info: action=report
+
+# Optional: show text-based Bochs debugger
+display_library: x
+# debugger: enabled

@@ -4,5 +4,5 @@
 
 
 ```sh
-qemu-system-x86 nasm make gcc genisoimage
+qemu-system-x86 nasm make gcc genisoimage gdb bochs bochs-x
 ```
