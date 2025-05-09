@@ -70,14 +70,6 @@ start:
     int 0x13
     jc disk_error
 
-    
-    mov ax, BUFFER_SEGMENT
-    mov ds, ax
-    mov si, BUFFER_OFFSET     ; Volume Identifier (32 bytes into PVD)
-    add si, 1
-    mov cx, 5
-    call bios_print
-
     mov ax, BUFFER_SEGMENT
     mov ds, ax
     mov si, BUFFER_OFFSET
@@ -103,25 +95,11 @@ ISO_ERROR:
     call print_string
     jmp $
 
-print_string_n:
-    push cx
-.next:
-    lodsb
-    cmp al, ' '
-    jb .next_char       ; Skip control characters
-    mov ah, 0x0E
-    int 0x10
-.next_char:
-    loop .next
-    pop cx
-    ret
-
 
 ; Prints a string with given length using BIOS interrupt 0x10
 ; Inputs:
 ;   DS:SI - pointer to the string
 ;   CX    - length of the string
-
 bios_print:
     pusha                   ; Save all general-purpose registers
 
