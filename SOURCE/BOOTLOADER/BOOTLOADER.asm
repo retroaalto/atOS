@@ -12,12 +12,14 @@
 ;     2025/02/06 - Antonako1
 ;         FAT16 Boot Sector Header and welcome message
 ;     2025/02/09 - Antonako1
-;         Removed FAT16 Boot sector for ISO9660 header
+;         Removed FAT16 Boot sector and replaced it with ISO9660 header
 ;     2025/05/9 - Antonako1
-;         Kernel loads and runs
+;         Kernel loads
+;     2025/05/10 - Antonako1
+;         Bootloader jumps to kernel entry point
 ; REMARKS
 ;     None
-BITS 16
+[BITS 16]
 [ORG 0x7C00]
 
 %define SECTOR_SIZE             2048        ; 2KB per sector
@@ -31,7 +33,8 @@ BITS 16
 %define MAX_PATH                256         ; Maximum path length
 %define KERNEL_OUTPUT_VAR 0xE800
 
-; KERNEL_LOAD_ADDRESS equ 0x1000
+KERNEL_LOAD_SEGMENT equ 0x0000
+KERNEL_LOAD_OFFSET  equ 0x1000
 
 %define BUFFER_SEGMENT 0x0000
 %define BUFFER_OFFSET  0x1000
@@ -129,7 +132,7 @@ start:
     ;
     ;
     ; TOOLS\ISO9660\ISO9660.c
-    ;   read_directory() logic cut down, only goal is to read KERNE.BIN.
+    ;   read_directory() logic cut down, only goal is to read KERNEL.BIN;1
     ;
     ;1.     read extentLengthLE*extentLocationLE_LBA into buffer_var. Output should be 0xE800, 59392
     ; AB * CD = (A*C << 32) + ((B*C + A*D) << 16) + B*D
@@ -258,15 +261,15 @@ bootend:
 
     ; Load kernel
     mov ax, [extentLocationLE_LBA]  ; Load LBA into ax
-    mov dx, 0x0000                  ; Set segment register
+    mov dx, KERNEL_LOAD_SEGMENT                  ; Set segment register
     call READ_DISK                  ; Read the kernel into memory
 
     mov dl, [drive_number]
-    mov ax, 0x1000
+    mov ax, KERNEL_LOAD_OFFSET
     mov es, ax
     mov bx, ax
     mov dl, [drive_number]
-    jmp 0x0000:0x1000    ; Jump to kernel
+    jmp KERNEL_LOAD_SEGMENT:KERNEL_LOAD_OFFSET    ; Jump to kernel
 
 
 disk_error:
@@ -381,8 +384,11 @@ READ_DISK:
     mov word [si+2], cx                 ; Number of sectors to read
     mov word [si+4], BUFFER_OFFSET      ; Offset
     mov word [si+6], dx                 ; Segment
-    mov dword [si+8], eax               ; Full 32-bit LBA
-    
+
+    ; DWORD LBA divided into 2 words. No LBA larger than 0xFFFF will ever be used in 16-bit mode
+    mov word [si+8], ax                 ; 2-byte LBA
+    mov word [si+10], 0                 
+
     mov ah, 0x42
     mov dl, [drive_number]              ; Drive number
     int 0x13
@@ -392,9 +398,9 @@ READ_DISK:
 
 
 ; Messages
-bootMessage         db "", 0
-diskErrorMessage    db "e", 0
-ISOErrorMessage     db "i", 0
+;bootMessage         db "", 0
+diskErrorMessage    db "diskERROR", 0
+ISOErrorMessage     db "isoERROR", 0
 KERNEL_FILENAME     db "KERNEL.BIN;1", KERNEL_LEN
 result0             dw 0
 result1             dw 0
