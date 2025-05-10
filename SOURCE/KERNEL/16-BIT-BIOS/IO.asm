@@ -15,7 +15,8 @@
 ; REMARKS
 ;     None
 
-
+%ifndef BIOS_IO
+%define BIOS_IO
 
 ; void PRINTN(DS:SI str, cx len);
 ; 
@@ -89,8 +90,11 @@ print_loop:
 ;   PRINT_DEC   - Prints input as decimal
 ;   PRINT_DECN  - Prints input as decimal as long as CX
 ;
-;   PRINT_HEX   - Prints input as hexadecimal
-;   PRINT_HEXN  - Prints input as hexadecimal as long as CX
 ;
 ;   PRINT_BIN   - Prints input as binary
 ;   PRINT_BINN  - Prints input as binary as long as CX
+;
+;   PRINT_HEX   - Prints input as hexadecimal
+;   PRINT_HEXN  - Prints input as hexadecimal as long as CX
+
+%endif ; BIOS_IO

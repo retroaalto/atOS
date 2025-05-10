@@ -24,29 +24,17 @@
 
 start:
     mov [drive_number], dl
+    ; mov si, [boot_drive]
+    ; mov cx, 1
+    ; call PRINT_HEXN
+
     mov si, msg_greeting_1
-    call print
+    call PRINT
     jmp .hang
 .hang:
     cli
     hlt
-print:
-    ; save registers
-    pusha
-print_loop:
-    lodsb ; load char to al
-    cmp al, 0
-    je .print_done
-    mov ah, 0x0e
-    mov bh, 0
-    int 0x10
-    jmp print_loop
-.print_done:
-    popa
-    ret   
 
-;DATA
-msg_greeting_1:  db "Greetings from kernel!", 0
-drive_number: db 0
 
-;%include "SOURCE/KERNEL/16-BIT-BIOS/BIOS.inc"
+%include "SOURCE/KERNEL/KERNEL_ENTRY_DATA.inc"
+%include "SOURCE/KERNEL/16-BIT-BIOS/BIOS.inc"

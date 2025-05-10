@@ -14,7 +14,8 @@
 ; 
 ; REMARKS
 ;     None
-
+%ifndef BIOS_STR
+%define BIOS_STR
 ; ax strncmp(DS:SI src, ES:DI dest, CX src_length)
 ; 
 ; DESCRIPTION
@@ -90,3 +91,5 @@ strncpy:
 .done:
     popa                    ; Restore all general-purpose registers
     ret
+
+%endif ; BIOS_STR

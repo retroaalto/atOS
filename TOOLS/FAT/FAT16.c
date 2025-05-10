@@ -12,7 +12,6 @@ Run with:
     FAT16 <iso_image> <file_name>
 ---*/
 
-#include "../ISO9660/ISO9660.h"
 
 int main(int argc, char *argv[]){
     if(argc < 3){

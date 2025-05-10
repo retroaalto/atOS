@@ -14,16 +14,10 @@
 ; 
 ; REMARKS
 ;     None
+[BITS 16]
+%ifndef BIOS_ISO
+%define BIOS_ISO
 
+%include "SOURCE/KERNEL/16-BIT-BIOS/DATA.inc"
 
-; DAP - Disk Access Protocol
-;     This protocol is used to access the disk in 16-bit mode.
-;     It is used to read and write sectors from the disk.
-;     The protocol is defined in the BIOS.
-DAP:
-    db 0x10     ; Size of the DAP structure
-    db 0        ; Reserved
-    dw 4        ; Number of sectors to read/write
-    dw 0x1000   ; Segment to load
-    dw 0x0000   ; Offset to load (0x1000:0000 = 0x100000)
-    dq 1        ; Logical block address (LBA)
+%endif ; BIOS_ISO

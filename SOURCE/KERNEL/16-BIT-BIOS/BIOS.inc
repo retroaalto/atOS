@@ -14,7 +14,12 @@
 ; 
 ; REMARKS
 ;     None
+%ifndef BIOS_INC
+%define BIOS_INC
 
+%include "SOURCE/KERNEL/16-BIT-BIOS/DATA.inc"
 %include "SOURCE/KERNEL/16-BIT-BIOS/IO.asm"
 %include "SOURCE/KERNEL/16-BIT-BIOS/ISO.asm"
 %include "SOURCE/KERNEL/16-BIT-BIOS/STR.asm"
+
+%endif ; BIOS_INC
