@@ -17,7 +17,20 @@
 %ifndef KERNEL_ENTRY_DATA
 %define KERNEL_ENTRY_DATA
 
-msg_greeting_1:  db "Greetings from kernel!", 0
+%define _MAX_PATH 255   ; Maximum path length
+%define _MAX_DRIVE 3   ; Maximum drive length
+%define _MAX_DIR  255   ; Maximum directory length
+%define _MAX_FNAME 255 ; Maximum file name length
+%define _MAX_EXT  255   ; Maximum file extension length
+
 drive_number: db 0
+
+cur_path: db _MAX_PATH dup(0)   ; Current path
+cur_drive: db _MAX_DRIVE dup(0) ; Current drive
+
+
+; String constants
+msg_greeting_1: db "atOS-RT 16-bit BIOS kernel loaded...", 0
+msg_kernel_end: db "atOS-RT 16-bit BIOS kernel ended, going into 32-bit protected mode...", 0
 
 %endif ;KERNEL_ENTRY_DATA
