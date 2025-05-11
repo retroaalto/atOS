@@ -29,4 +29,38 @@ DAP:
     dw 0x0000   ; Offset to load (0x1000:0000 = 0x100000)
     dq 1        ; Logical block address (LBA)
 
+
+; ----------------------------------------
+; GDT structure: 3 entries (8 bytes each)
+; ----------------------------------------
+gdt_start:
+gdt_null:                      ; Null descriptor (must be all 0)
+    dq 0x0000000000000000
+
+gdt_code:                      ; Code segment descriptor
+    dw 0xFFFF                  ; Limit (bits 0–15)
+    dw 0x0000                  ; Base (bits 0–15)
+    db 0x00                    ; Base (bits 16–23)
+    db 10011010b               ; Access byte: Present, Ring 0, Executable, Readable
+    db 11001111b               ; Flags and Limit (bits 16–19): 4KB granularity, 32-bit
+    db 0x00                    ; Base (bits 24–31)
+
+gdt_data:                      ; Data segment descriptor
+    dw 0xFFFF
+    dw 0x0000
+    db 0x00
+    db 10010010b               ; Access byte: Present, Ring 0, Data, Writable
+    db 11001111b
+    db 0x00
+
+gdt_end:
+
+; ----------------------------------------
+; GDTR structure: limit (2 bytes), base (4 bytes)
+; ----------------------------------------
+GDTR:
+    dw gdt_end - gdt_start - 1    ; Size (GDT limit)
+    dd gdt_start                  ; Address of the GDT base
+
+
 %endif ; BIOS_DATA_SEGMENT
