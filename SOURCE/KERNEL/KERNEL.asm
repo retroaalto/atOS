@@ -16,7 +16,7 @@
 ;     Additional remarks, if any.
 
 [BITS 32]
-[ORG 0x100000]
+[ORG 0x100000:0x0000]
 global _start
 _start:
     xor eax, eax
