@@ -235,21 +235,72 @@ PUTCHARLN:
 ; TODO:
 ;   PRINT_DEC   - Prints input as decimal
 ;   PRINT_DECN  - Prints input as decimal as long as CX
-    ;
+
+;   void PRINT_DEC(AX);
+;
+; DESCRIPTION
+;     Prints the value in AX as decimal using BIOS interrupt 0x21
+;     and INT 0x10.
+;     The value is printed in 8 digits (32 bits).
+; PARAMETERS
+;     EAX - value to print
+; RETURN
+;     None
+PRINT_DEC:
+    pusha
+
+    add eax, 0x30
+    call PUTCHAR
+
+    popa
+    ret
+
+
 ;   PRINT_BIN   - Prints input as binary
 ;   PRINT_BINN  - Prints input as binary as long as CX
-;
-;   PRINT_HEX   - Prints input as hexadecimal
-;   PRINT_HEXN  - Prints input as hexadecimal as long as CX
 
-;  PRINT_HEX8  - Prints input as hexadecimal (8-bit)
-;  PRINT_HEXN8 - Prints input as hexadecimal (8-bit) as long as CX
-;  PRINT_HEX16 - Prints input as hexadecimal (16-bit)
-;  PRINT_HEXN16 - Prints input as hexadecimal (16-bit) as long as CX
-;  PRINT_HEX32 - Prints input as hexadecimal (32-bit)
-;  PRINT_HEXN32 - Prints input as hexadecimal (32-bit) as long as CX
-;  PRINT_HEX64 - Prints input as hexadecimal (64-bit)
-;  PRINT_HEXN64 - Prints input as hexadecimal (64-bit) as long as CX
+
+; void PRINT_HEXN(EAX, CX)
+;
+; DESCRIPTION
+;     Prints the value in EAX as hexadecimal using BIOS interrupt 0x21
+;     and INT 0x10.
+;     The value is printed as CX digits (2,4,8,16,32 bits).
+; PARAMETERS
+;     EAX - value to print
+;     CX  - number of digits to print
+; RETURN
+;     None
+PRINT_HEXN:
+    pusha
+
+    push eax
+    mov al, '0'
+    call PUTCHAR
+    mov al, 'x'
+    call PUTCHAR
+    pop eax
+
+    ; Move AX to a working register so we don't destroy it
+    mov ebx, eax            ; Copy AX into BX
+.print_hex_loop:
+    rol ebx, 4             ; Rotate left 4 bits to bring next nibble into low nibble
+    mov dl, bl            ; Get low 8 bits
+    and dl, 0x0F          ; Isolate the lowest nibble
+    cmp dl, 9
+    jbe .print_digit
+    add dl, 7             ; Adjust for 'A'-'F'
+.print_digit:
+    add dl, '0'
+    push eax
+    mov al, dl
+    call PUTCHAR
+    pop eax
+    dec cx
+    jnz .print_hex_loop
+
+    popa
+    ret
 
 ;  void PRINT_HEX(AX);
 ;
@@ -264,19 +315,19 @@ PUTCHARLN:
 PRINT_HEX:
     pusha
 
-    push ax
+    push eax
     mov al, '0'
     call PUTCHAR
     mov al, 'x'
     call PUTCHAR
-    pop ax
+    pop eax
 
     ; Move AX to a working register so we don't destroy it
-    mov cx, 4             ; 4 nibbles (16 bits)
-    mov bx, ax            ; Copy AX into BX
+    mov cx, 8             ; 4 nibbles (16 bits)
+    mov ebx, eax            ; Copy AX into BX
 
 .print_hex_loop:
-    rol bx, 4             ; Rotate left 4 bits to bring next nibble into low nibble
+    rol ebx, 4             ; Rotate left 4 bits to bring next nibble into low nibble
     mov dl, bl            ; Get low 8 bits
     and dl, 0x0F          ; Isolate the lowest nibble
     cmp dl, 9
@@ -285,11 +336,10 @@ PRINT_HEX:
 
 .print_digit:
     add dl, '0'
-    push ax
-    xor ax, ax
+    push eax
     mov al, dl
     call PUTCHAR
-    pop ax
+    pop eax
     loop .print_hex_loop
 
     popa

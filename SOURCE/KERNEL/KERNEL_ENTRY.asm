@@ -44,67 +44,46 @@ start:
     
     cli
 
-    mov ax, 0
-    mov [E820_present], ax
-    xor ebx, ebx
-    
     ;%%%%%%%%%%%%%%%%%%%%%%%%%
     ; Set up memory
     ;%%%%%%%%%%%%%%%%%%%%%%%%%
+    mov byte [E820_present], 0
+    xor ebx, ebx
+    
 .do_mem:
     mov eax, 0xE820
-    mov ebx, 0
-    lea esi, mem_buf
-    mov ecx, MEM_BUF_LEN
+    lea esi, [mem_buf]
+    mov ecx, 20
     mov edx, SMAP
     int 15h
     jc MEM_ERROR1
 
+    ; prints EBX
+    push eax
+    push ebx
+    mov eax, ebx
+    call PRINT_Q
+    call PRINT_DEC
+    call PRINT_Q
+    call PRINT_LINEFEED
+    pop ebx
+    pop eax
+
 
     ; Print F-chars of EAX: 0x0000FFFF     
-    pusha                   ;1    
-        call PRINT_Q
-        call PRINT_HEX
-        call PRINT_Q
-        call PRINT_LINEFEED
-        ; Print F-chars of EAX: 0xFFFF0000
-        shr eax, 16
-        call PRINT_Q
-        call PRINT_HEX
-        call PRINT_Q
-        call PRINT_LINEFEED
-        ;%%%%%%%%%%%%%%%%%%%%%%%%
-        ; Outputs:
-        ;   0x4150
-        ;   0x534D
-        ; SMAP: 0x534D4150
-        ;%%%%%%%%%%%%%%%%%%%%%%%%
-
-        pusha                   ;2
-            call PRINT_Q
-            mov si, word [eax]
-            mov cx, 2
-            call PRINTN
-            shr eax, 16
-            mov si, word [eax]
-            mov cx, 2
-            call PRINTN
-            call PRINT_Q
-            call PRINT_LINEFEED
-        popa                    ;2
-
-    popa                    ;1
-
+    pusha
+    call PRINT_Q
+    mov cx, 8
+    call PRINT_HEXN
+    call PRINT_Q
+    call PRINT_LINEFEED
+    popa
 
     ; Compares "SMAP" to EAX
-    lea di, SMAP_STR
-    mov cx, 4
-    mov si, [eax]
-    call strncmp
-    cmp ax, 1
-    je MEM_ERROR2
-
-
+    cmp eax, SMAP
+    jne MEM_ERROR2
+    
+    ; Print ecx
     pusha
     mov eax, ecx
     call PRINT_Q
@@ -115,21 +94,20 @@ start:
     
     ; if ecx < 20 goto: MEM_ERROR3
     cmp ecx, 20
-    jng MEM_ERROR3
+    jb MEM_ERROR3
 
     ; IF ecx > MEM_BUF_LEN goto: MEM_ERROR4
     cmp ecx, MEM_BUF_LEN
-    jg MEM_ERROR4
+    ja MEM_ERROR4
     
-    push eax
-    mov eax, 1
-    mov [E820_present], ax
-    pop eax
+    mov byte [E820_present], 1
 
 
-    ; Add address range Descriptor.BaseAddress through
-    ; Descriptor.BaseAddress + Descriptor.Length
-    ; as type Descriptor.Type
+    ; You can parse mem_buf here. Sample:
+    ; Assume: struct is at mem_buf (20 bytes)
+    ; BaseAddress = [mem_buf + 0]
+    ; Length      = [mem_buf + 8]
+    ; Type        = [mem_buf + 16]
 
     ; while ebx != 0 goto: .do_mem
     cmp ebx, 0
@@ -176,7 +154,7 @@ hang:
     je .no_questions
     mov si, msg_hng_1
     call PRINTLN
-    
+
 .no_questions:
     jmp $
 

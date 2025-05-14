@@ -24,6 +24,9 @@
 %define _MAX_FNAME 255 ; Maximum file name length
 %define _MAX_EXT  255   ; Maximum file extension length
 
+%define BIT_TO_BYTE(x) (x/2)
+%define BYTE_TO_BIT(x) (x*8)
+
 drive_number: db 0
 _32_bit_on: BOOLEAN 0
 
@@ -61,10 +64,10 @@ E820_present: BOOLEAN 0
 msg_greeting_1: db "atOS-RT 16-bit BIOS kernel loaded...", 0
 msg_kernel_end: db "atOS-RT 16-bit BIOS kernel ended, going into 32-bit protected mode...", 0
 msg_test_1: db "MSG_TEST_1", 0
-msg_mem_err1: db 'Error "int 15h", "ax E820h"', 0
-msg_mem_err2: db 'Error "int 15h", "ax E820h", EAX != 0x534D4150', 0
-msg_mem_err3: db 'Error "int 15h", "ax E820h", ECX < 20', 0
-msg_mem_err4: db 'Error "int 15h", "ax E820h", ECX > MEM_BUF_LEN', 0
+msg_mem_err1: db 'Error INT 15h, AX E820h.', 0
+msg_mem_err2: db 'Error INT 15h, AX E820h. EAX != 0x534D4150', 0
+msg_mem_err3: db 'Error INT 15h, AX E820h. ECX < 20', 0
+msg_mem_err4: db 'Error INT 15h, AX E820h. ECX > MEM_BUF_LEN', 0
 msg_hng_1: db "__HANG__", 0
 
 ;%%%%%%%%%%%%%%%%%%%%%%%
