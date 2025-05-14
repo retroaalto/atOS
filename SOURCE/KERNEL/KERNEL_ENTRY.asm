@@ -4,7 +4,7 @@
 ;
 ; DESCRIPTION
 ;     16-bit kernel entry point. 
-;     This file will switch to 32-bit protected mode and load the master kernel file.
+;     This file will load KRNL.BIN to memory, switch to 32-bit protected mode and jump to KRNL.BIN
 ;
 ; AUTHORS
 ;     Antonako1
@@ -14,7 +14,9 @@
 ;         Initial version. Prints a welcome message.
 ;     2025/5/11  - Antonako1
 ;         Transforms into 32-bit mode, sets up memory, idt and gdtr
-; 
+;     2025/5/14  - Antonako1
+;         Jumps to 32-bit kernel
+;
 ; REMARKS
 ;     None
 
@@ -43,11 +45,12 @@ start:
     cli
     ; Set up memory
     ; INT 0x15, AX=0xE820
+
+    ; Read KRNL.BIN from disk, load it into memory and jump to it
+    ; The kernel is loaded at 0x100000:0x0000
+    ;
+    ; Logic copied from bootloader
     
-    ; Set up IDT to use BIOS calls
-
-
-
     mov si, msg_kernel_end
     call PRINTLN
 
@@ -57,29 +60,27 @@ start:
     or al, 1       ; set PE (Protection Enable) bit in CR0 (Control Register 0)
     mov cr0, eax
 
+    lidt [IDTR]
+
     ; Perform far jump to selector 08h (offset into GDT, pointing at a 32bit PM code segment descriptor) 
     ; to load CS with proper PM32 descriptor)
     jmp 08h:PModeMain
 
 PModeMain:
-    ; load DS, ES, FS, GS, SS, ESP
-    mov ax, 0x10    ; data segment selector
+    mov ax, 0x10
     mov ds, ax
     mov es, ax
     mov fs, ax
     mov gs, ax
     mov ss, ax
-    mov eax, 0x7c00
-    mov esp, eax
-    
+    mov esp, 0x90000     ; Setup 32-bit stack somewhere safe in high memory
+
+
 KRNL_JMP:
-    ; Read KRNL.BIN from disk, load it into memory and jump to it
-    ; The kernel is loaded at 0x100000:0x0000
 
     jmp hang
 hang:
-    cli
-    hlt
+    jmp $
 
 
 %include "SOURCE/KERNEL/KERNEL_ENTRY_DATA.inc"

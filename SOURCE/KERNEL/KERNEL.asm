@@ -3,7 +3,7 @@
 ; Licensed under the MIT License. See LICENSE file in the project root for full license information.
 ;
 ; DESCRIPTION
-;     32-bit kernel entry point.
+;     32-bit kernel entry point
 ; 
 ; AUTHORS
 ;     Antonako1
@@ -17,6 +17,7 @@
 
 [BITS 32]
 [ORG 0x100000:0x0000]
+
 global _start
 _start:
     xor eax, eax

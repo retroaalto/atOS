@@ -235,7 +235,6 @@ PUTCHARLN:
 ;   PRINT_DEC   - Prints input as decimal
 ;   PRINT_DECN  - Prints input as decimal as long as CX
 ;
-;
 ;   PRINT_BIN   - Prints input as binary
 ;   PRINT_BINN  - Prints input as binary as long as CX
 ;

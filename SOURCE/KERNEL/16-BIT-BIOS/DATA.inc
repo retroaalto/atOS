@@ -3,7 +3,7 @@
 ; Licensed under the MIT License. See LICENSE file in the project root for full license information.
 ;
 ; DESCRIPTION
-;     Data for the BIOS segment.
+;     Contains IDT, DAP and GDT.
 ;
 ; AUTHORS
 ;     Antonako1
@@ -61,6 +61,19 @@ gdt_end:
 GDTR:
     dw gdt_end - gdt_start - 1    ; Size (GDT limit)
     dd gdt_start                  ; Address of the GDT base
+
+; ---------------------------------------
+; IDT structure
+; ---------------------------------------
+IDT:
+    times 256 dq 0        ; 256 null descriptors (8 bytes each)
+
+IDTR:
+    dw IDT_end - IDT - 1
+    dd IDT
+
+IDT_end:
+
 
 
 %endif ; BIOS_DATA_SEGMENT
