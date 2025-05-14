@@ -27,8 +27,8 @@
 ;     CX       src_length - maximum number of characters to compare
 ;     
 ; RETURN
-;     ax = 1 if strings are equal up to CX characters
-;     ax = 0 if strings are not equal
+;     ax = 1 if strings are equal up to CX characters. cmp ax, 1 ; je not_equal
+;     ax = 0 if strings are not equal. cmp ax, 0 ; je equal
 ; 
 ; AUTHORS
 ;     Antonako1

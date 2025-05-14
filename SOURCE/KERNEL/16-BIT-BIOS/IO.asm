@@ -116,32 +116,28 @@ print_loop:
 ; AUTHORS
 ;     Antonako1
 PRINTN_Q:
-   pusha                   ; Save all general-purpose registers
+    pusha                   ; Save all general-purpose registers
+
+    pusha
+    mov al, '"'
+    mov ah, 0x0E
+    int 0x10
+    popa 
+    
 .next_char:
    cmp cx, 0               ; Check if we've printed enough characters
-   ; je .close_quote          ; If CX is 0, jump to print closing quote
-   je .done          ; If CX is 0, jump to print closing quote
+   je .close_quote          ; If CX is 0, jump to print closing quote
    lodsb                   ; Load byte at [SI] into AL and increment SI    
    mov ah, 0x0E            ; BIOS teletype output function
    int 0x10                ; Call BIOS interrupt to print character in AL
    dec cx                  ; Decrement remaining character count
    jmp .next_char          ; Continue printing the next character
-
+   
 .close_quote:
     ; Print closing single quote
     mov al, '"'
     mov ah, 0x0E
     int 0x10
-
-    ; Print line break (CR + LF)
-    mov al, 0x0D            ; Carriage return
-    mov ah, 0x0E
-    int 0x10
-    mov al, 0x0A            ; Line feed
-    mov ah, 0x0E
-    int 0x10
-
-.done:
     popa                    ; Restore all general-purpose registers
     ret
 
@@ -197,6 +193,11 @@ PRINTLN:
     call PRINT_LINEFEED ; Call PRINT_LINEFEED to print CR + LF
     ret
 
+PRINTNLN_Q:
+    call PRINTN_Q
+    call PRINT_LINEFEED
+    ret
+
 ; void PUTCHAR(AL char);
 ;
 ; DESCRIPTION
@@ -234,11 +235,80 @@ PUTCHARLN:
 ; TODO:
 ;   PRINT_DEC   - Prints input as decimal
 ;   PRINT_DECN  - Prints input as decimal as long as CX
-;
+    ;
 ;   PRINT_BIN   - Prints input as binary
 ;   PRINT_BINN  - Prints input as binary as long as CX
 ;
 ;   PRINT_HEX   - Prints input as hexadecimal
 ;   PRINT_HEXN  - Prints input as hexadecimal as long as CX
+
+;  PRINT_HEX8  - Prints input as hexadecimal (8-bit)
+;  PRINT_HEXN8 - Prints input as hexadecimal (8-bit) as long as CX
+;  PRINT_HEX16 - Prints input as hexadecimal (16-bit)
+;  PRINT_HEXN16 - Prints input as hexadecimal (16-bit) as long as CX
+;  PRINT_HEX32 - Prints input as hexadecimal (32-bit)
+;  PRINT_HEXN32 - Prints input as hexadecimal (32-bit) as long as CX
+;  PRINT_HEX64 - Prints input as hexadecimal (64-bit)
+;  PRINT_HEXN64 - Prints input as hexadecimal (64-bit) as long as CX
+
+;  void PRINT_HEX(AX);
+;
+; DESCRIPTION
+;     Prints the value in AX as hexadecimal using BIOS interrupt 0x21
+;     and INT 0x10.
+;     The value is printed in 8 digits (32 bits).
+; PARAMETERS
+;     EAX - value to print
+; RETURN
+;     None
+PRINT_HEX:
+    pusha
+
+    push ax
+    mov al, '0'
+    call PUTCHAR
+    mov al, 'x'
+    call PUTCHAR
+    pop ax
+
+    ; Move AX to a working register so we don't destroy it
+    mov cx, 4             ; 4 nibbles (16 bits)
+    mov bx, ax            ; Copy AX into BX
+
+.print_hex_loop:
+    rol bx, 4             ; Rotate left 4 bits to bring next nibble into low nibble
+    mov dl, bl            ; Get low 8 bits
+    and dl, 0x0F          ; Isolate the lowest nibble
+    cmp dl, 9
+    jbe .print_digit
+    add dl, 7             ; Adjust for 'A'-'F'
+
+.print_digit:
+    add dl, '0'
+    push ax
+    xor ax, ax
+    mov al, dl
+    call PUTCHAR
+    pop ax
+    loop .print_hex_loop
+
+    popa
+    ret
+
+; void PRINT_Q(void)
+;
+; DESCRIPTION
+;     Prints a double quote character using BIOS interrupt 0x10
+;
+; PARAMETERS
+;     None
+; RETURN
+;     None
+PRINT_Q:
+    pusha
+    mov al, '"'
+    call PUTCHAR
+    popa
+    ret
 
 %endif ; BIOS_IO
