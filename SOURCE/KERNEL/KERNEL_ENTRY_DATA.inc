@@ -27,7 +27,6 @@
 %define BIT_TO_BYTE(x) (x/2)
 %define BYTE_TO_BIT(x) (x*8)
 
-drive_number: db 0
 _32_bit_on: BOOLEAN 0
 
 
@@ -121,24 +120,14 @@ DEBUG_PRINT_VALUE equ 0
 
 
 
-;%%%%%%%%%%%%%%%%%%%%%%%
-; String constants
-;%%%%%%%%%%%%%%%%%%%%%%%
-msg_greeting_1: db "atOS-RT 16-bit BIOS kernel loaded...", 0
-msg_kernel_end: db "atOS-RT 16-bit BIOS kernel ended, going into 32-bit protected mode...", 0
-msg_test_1: db "MSG_TEST_1", 0
-msg_mem_err1: db 'Error INT 15h, AX E820h.', 0
-msg_mem_err2: db 'Error INT 15h, AX E820h. EAX != 0x534D4150', 0
-msg_mem_err3: db 'Error INT 15h, AX E820h. ECX < 20', 0
-msg_mem_err4: db 'Error INT 15h, AX E820h. ECX > MEM_BUF_LEN', 0
-msg_hng_1: db "__HANG__", 0
-msg_e820_done: db "E820 done", 0
+
+
 ;%%%%%%%%%%%%%%%%%%%%%%%
 ; KRNL reading
 ;%%%%%%%%%%%%%%%%%%%%%%%
 krnl_status: BOOLEAN 0
-krnl_str: db "KRNL.BIN;1", 10
 KRNL_STR_LEN equ 10
+krnl_str: db "KRNL.BIN;1", KRNL_STR_LEN
 KERNEL_LOAD_SEGMENT equ 0x000000
 KERNEL_LOAD_OFFSET  equ 0x100000
 
@@ -153,7 +142,7 @@ extentLocationLE_LBA: dd 0
 extentLengthLE: dd 0
 offset_var: dd 0
 buffer_var: dd 0
-name_buf: db 10
+name_buf: db KRNL_STR_LEN
 
 
 %endif ;KERNEL_ENTRY_DATA

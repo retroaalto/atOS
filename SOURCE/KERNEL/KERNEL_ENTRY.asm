@@ -226,8 +226,12 @@ start:
     loop .loop_print_e820              ; dec cx / jnz loop
 
     ; reset E820 entry pointer
-    mov [e820_entries_ptr], ax
-    mov [e820_entries_ptr+2], dx
+    mov word [e820_entries_ptr], E820_ENTRY_OFFSET
+    mov word [e820_entries_ptr+2], E820_ENTRY_SEGMENT
+
+    mov si, msg_e820_done
+    call PRINTLN
+    
     jmp .FIND_KERNEL
 
 .TRY_E801h:

@@ -74,6 +74,19 @@ IDTR:
 
 IDT_end:
 
+;%%%%%%%%%%%%%%%%%%%%%%%
+; String constants
+;%%%%%%%%%%%%%%%%%%%%%%%
+msg_greeting_1: db "atOS-RT 16-bit BIOS kernel loaded...", 0
+msg_kernel_end: db "atOS-RT 16-bit BIOS kernel ended, going into 32-bit protected mode...", 0
+msg_test_1: db "MSG_TEST_1", 0
+msg_mem_err1: db 'Error INT 15h, AX E820h.', 0
+msg_mem_err2: db 'Error INT 15h, AX E820h. EAX != 0x534D4150', 0
+msg_mem_err3: db 'Error INT 15h, AX E820h. ECX < 20', 0
+msg_mem_err4: db 'Error INT 15h, AX E820h. ECX > MEM_BUF_LEN', 0
+msg_hng_1: db "__HANG__", 0
+msg_e820_done: db "E820h done...", 0
+drive_number: db 0
 
 
 %endif ; BIOS_DATA_SEGMENT
