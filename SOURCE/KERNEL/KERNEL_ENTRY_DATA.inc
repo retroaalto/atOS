@@ -32,15 +32,70 @@ _32_bit_on: BOOLEAN 0
 
 
 ;%%%%%%%%%%%%%%%%%%%%%%%
-; INT 15h, AX E820h
+; INT 15h, AX E820h, AX E801h
 ;%%%%%%%%%%%%%%%%%%%%%%%
-MEM_BUF_LEN equ 256
-mem_buf:
-    times MEM_BUF_LEN db 0
 SMAP equ 0x534D4150
 SMAP_STR: db "SMAP", 4
 E820_present: BOOLEAN 0
+E801_present: BOOLEAN 0
 
+num_of_e820_entries: dw 0   ; Number of entries in the E820 table. 
+e820_entries_ptr: dd 0      ; Pointer to the E820 table in memory.
+
+; E820 table entry structure
+;
+; Offset in Bytes		Name		Description
+; 	 0	    BaseAddrLow		Low 32 Bits of Base Address
+; 	 4	    BaseAddrHigh	High 32 Bits of Base Address
+; 	 8	    LengthLow		Low 32 Bits of Length in Bytes
+; 	 12	    LengthHigh		High 32 Bits of Length in Bytes
+; 	 16	    Type		Address type of  this range.
+;    20     ACPI        ACPI information. Only present if E820_ACPI is defined.
+E820_start:
+E820:
+    BaseAddressLow: dd 0        ; Low 32 Bits of Base Address
+    BaseAddressHigh: dd 0       ; High 32 Bits of Base Address 
+    LengthLow: dd 0             ; Low 32 Bits of Length in Bytes
+    LengthHigh: dd 0            ; High 32 Bits of Length in Bytes
+    Type: dd 0                  ; Address type of this range.
+%ifdef E820_ACPI
+    ACPI: dd 0
+%endif
+E820_end:
+
+%ifdef E820_ACPI
+MEM_STRUCT_SIZE equ 24
+%else
+MEM_STRUCT_SIZE equ 20
+%endif
+MEM_STRUCT_SIZE_MAX equ 24
+
+E820R: times MEM_STRUCT_SIZE_MAX db 0
+
+
+
+; Type values. Any other value is undefined.
+E820_TYPE_ADDRESS_RANGE_MEMORY equ 1        ; ARM-memory
+E820_TYPE_ARM equ E820_TYPE_ADDRESS_RANGE_MEMORY
+
+E820_TYPE_ADDRESS_RANGE_RESERVED equ 2      ; ARR-memory
+E820_TYPE_ARR equ E820_TYPE_ADDRESS_RANGE_RESERVED
+
+E820_TYPE_ADDRESS_RANGE_ACPI equ 3          ; ACPI
+E820_TYPE_ACPI equ E820_TYPE_ADDRESS_RANGE_ACPI
+
+E820_TYPE_ADDRESS_RANGE_NVS equ 4           ; NVS
+E820_TYPE_NVS equ E820_TYPE_ADDRESS_RANGE_NVS
+
+E820_TYPE_ADDRESS_RANGE_UNUSABLE equ 5
+E820_TYPE_ARU equ E820_TYPE_ADDRESS_RANGE_UNUSABLE
+    
+; E820 entry structure in memory
+E820_ENTRY_SEGMENT equ 0x0000
+E820_ENTRY_OFFSET equ 0x3000
+
+
+DEBUG_PRINT_VALUE equ 0
 ; Address Range Descriptor Structure
 ; 
 ; Offset in Bytes		Name		Description
@@ -50,6 +105,14 @@ E820_present: BOOLEAN 0
 ; 	 12	    LengthHigh		High 32 Bits of Length in Bytes
 ; 	 16	    Type		Address type of  this range.
 ; 
+;
+;   {
+;       uint32_t BaseAddrLow;	    Low 32 Bits of Base Address
+;       uint32_t BaseAddrHigh;	    High 32 Bits of Base Address
+;       uint32_t LengthLow;	        Low 32 Bits of Length in Bytes
+;       uint32_t LengthHigh;	    High 32 Bits of Length in Bytes
+;       uint32_t Type;		        Address type of  this range.
+;   }
 ; The BaseAddrLow and BaseAddrHigh together are the 64 bit BaseAddress of this range. The BaseAddress is the physical address of the start of the range being specified.
 ; 
 ; The LengthLow and LengthHigh together are the 64 bit Length of this range. The Length is the physical contiguous length in bytes of a range being specified.
@@ -69,10 +132,11 @@ msg_mem_err2: db 'Error INT 15h, AX E820h. EAX != 0x534D4150', 0
 msg_mem_err3: db 'Error INT 15h, AX E820h. ECX < 20', 0
 msg_mem_err4: db 'Error INT 15h, AX E820h. ECX > MEM_BUF_LEN', 0
 msg_hng_1: db "__HANG__", 0
-
+msg_e820_done: db "E820 done", 0
 ;%%%%%%%%%%%%%%%%%%%%%%%
 ; KRNL reading
 ;%%%%%%%%%%%%%%%%%%%%%%%
+krnl_status: BOOLEAN 0
 krnl_str: db "KRNL.BIN;1", 10
 KRNL_STR_LEN equ 10
 KERNEL_LOAD_SEGMENT equ 0x000000
@@ -90,5 +154,6 @@ extentLengthLE: dd 0
 offset_var: dd 0
 buffer_var: dd 0
 name_buf: db 10
+
 
 %endif ;KERNEL_ENTRY_DATA
