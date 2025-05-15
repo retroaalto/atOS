@@ -16,10 +16,18 @@
 ;     Additional remarks, if any.
 
 [BITS 32]
-[ORG 0x100000:0x0000]
+[ORG 0x8000:0x0000]
 
 global _start
 _start:
     xor eax, eax
     mov esp, 0x100000
 
+    mov ebx,0xb8000    ; The video address
+    mov al,'!'         ; The character to be print
+    mov ah,0x0F        ; The color: white(F) on black(0)
+    mov [ebx],ax        ; Put the character into the video memory
+
+
+HANG:
+    jmp $

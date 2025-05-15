@@ -21,13 +21,13 @@
 ;     This protocol is used to access the disk in 16-bit mode.
 ;     It is used to read and write sectors from the disk.
 ;     The protocol is defined in the BIOS.
-DAP:
-    db 0x10     ; Size of the DAP structure
-    db 0        ; Reserved
-    dw 4        ; Number of sectors to read/write
-    dw 0x1000   ; Segment to load
-    dw 0x0000   ; Offset to load (0x1000:0000 = 0x100000)
-    dq 1        ; Logical block address (LBA)
+DAP: times 0x10 db 0 ; DAP structure
+;    db 0x10     ; Size of the DAP structure
+;    db 0        ; Reserved
+;    dw 4        ; Number of sectors to read/write
+;    dw 0x1000   ; Segment to load
+;    dw 0x0000   ; Offset to load (0x1000:0000 = 0x100000)
+;    dq 1        ; Logical block address (LBA)
 
 
 ; ----------------------------------------
@@ -77,15 +77,21 @@ IDT_end:
 ;%%%%%%%%%%%%%%%%%%%%%%%
 ; String constants
 ;%%%%%%%%%%%%%%%%%%%%%%%
-msg_greeting_1: db "atOS-RT 16-bit BIOS kernel loaded...", 0
-msg_kernel_end: db "atOS-RT 16-bit BIOS kernel ended, going into 32-bit protected mode...", 0
+msg_greeting_1: db "atOS-RT 16-bit kernel loaded...", 0
+msg_kernel_end: db "atOS-RT 16-bit kernel ended, going into 32-bit protected mode...", 0
 msg_test_1: db "MSG_TEST_1", 0
-msg_mem_err1: db 'Error INT 15h, AX E820h.', 0
-msg_mem_err2: db 'Error INT 15h, AX E820h. EAX != 0x534D4150', 0
-msg_mem_err3: db 'Error INT 15h, AX E820h. ECX < 20', 0
-msg_mem_err4: db 'Error INT 15h, AX E820h. ECX > MEM_BUF_LEN', 0
+msg_mem_err1: db 'INT 15h, AX E820h.', 0
+msg_mem_err2: db 'INT 15h, AX E820h. EAX != 0x534D4150', 0
+msg_mem_err3: db 'INT 15h, AX E820h. ECX < 20', 0
+msg_mem_err4: db 'INT 15h, AX E820h. ECX > MEM_BUF_LEN', 0
+msg_mem_err5: db 'No free memory for KRNL.BIN', 0
+msg_mem_err6: db '', 0
 msg_hng_1: db "__HANG__", 0
 msg_e820_done: db "E820h done...", 0
+msg_disk_err1: db "Error reading from disk...", 0
+msg_iso_err1: db "ISO9660 error... Invalid volume descriptor", 0
+msg_iso_err2: db "ISO9660 error... Invalid extent length", 0
+msg_iso_errg: db "ISO9660 general error", 0
 drive_number: db 0
 
 

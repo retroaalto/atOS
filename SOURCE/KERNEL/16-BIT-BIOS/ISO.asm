@@ -21,43 +21,73 @@
 %include "SOURCE/KERNEL/16-BIT-BIOS/DATA.inc"
 %include "SOURCE/KERNEL/16-BIT-BIOS/BIOS.inc"
 
+
+; eax CALCULATE_KRNL_SEGMENT(ebx amount of sectors, ecx sector size, edx buffer_value)
+;
+; Description:
+;     This function calculates the offset for the kernel segment.
+;
+; Parameters:
+;     ebx - amount of sectors
+;     ecx - sector size
+;     edx - value of the buffer segment
+;
+; Return:
+;     eax - segment of the first free memory after the E820h memory map
+;     cf - 0 if there is free memory, 1 if there is no free memory.
+CALCULATE_KRNL_SEGMENT:
+    xor eax, eax ; Clear eax
+    ; eax = edx + ebx * ecx
+    mov eax, edx ; eax = edx
+    mul ebx ; eax = eax * ebx
+    ; eax = eax * ebx
+
+    add eax, edx ; eax = eax + edx
+    ; eax = edx + ebx * ecx
+
+    ; Check if eax is less than 0x0000
+    cmp eax, 0x0000 ; Compare eax with 0x0000
+    jz .no_memory ; If eax is 0, there is no free memory
+    ret ; Return eax
+.no_memory:
+    stc ; Set carry flag
+    ret
+    
+
 ; eax READ_DISK(eax LBA, cx sectors, bx:dx buffer)
 ;
 ; Descrition:
 ;     Reads sectors from the disk into the buffer.
-;     The buffer must be 512-byte aligned (or 2048 for ISO9660).
-;     The LBA must be 32-bit aligned.
-;     The function will read the sectors from the disk and return the number of sectors read in eax.
 ;     The function will return 0 if the read was successful, or an error code if it failed.
 ;
 ; Parameters:
 ;     eax - LBA of the first sector to read
 ;     cx - number of sectors to read
-;     bx - pointer to the buffer to read the sectors into.
-;     dx - pointer to the buffer to read the sectors into.
+;     bx - pointer to the buffer to read the sectors into. Buffer offset
+;     dx - pointer to the buffer to read the sectors into. Buffer segment
 ;
 ; Return:
-;     eax - number of sectors read
-;     cf - 0 if the read was successful, 1 if it failed.
-;     If cf = 1, then eax will contain the error code.
-;     If cf = 0, then eax will contain the number of sectors read.
+;     eax - 0 if the read was successful, or an error code if it failed.
 READ_DISK:
-    lea si, DAP
+    pusha
+    mov si, DAP
+    mov byte [si], 0x10 ; Drive number
+    mov byte [si+1], 0                  ; Reserved
     mov word [si+2], cx ; Number of sectors to read
-    mov word [si+4], bx ; Pointer to the buffer to read the sectors into
-    mov word [si+6], dx ; Pointer to the buffer to read the sectors into
+    mov word [si+4], bx ; Pointer to the buffer to read the sectors into. Buffer offset
+    mov word [si+6], dx ; Pointer to the buffer to read the sectors into. Buffer segment
     mov dword [si+8], eax ; LBA of the first sector to read
 
+    mov dl, [drive_number] ; Drive number
     mov ah, 0x42 ; Read disk sectors
     int 0x13 ; Call BIOS interrupt
     jc .error ; If carry flag is set, there was an error
-    xor eax, eax ; Clear ax
-    mov eax, [si+2] ; Number of sectors read
-    clc ;clear carry flag
+    popa
+    xor eax, eax ; Clear eax
     ret
 .error:
-    mov ax, 0xFFFF ; Set ax to error code
-    stc ; Set carry flag
+    popa
+    mov eax, 0xFFFF ; Set ax to error code
     ret
 
 %endif ; BIOS_ISO

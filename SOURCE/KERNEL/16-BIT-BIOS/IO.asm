@@ -380,52 +380,52 @@ PRINT_Q:
 ;   EAX = pointer to memory
 ;   CX  = number of bytes to print
 ;
-PRINT_HEX_N_RANGE:
-    pusha
+; PRINT_HEX_N_RANGE:
+;     pusha
 
-    ; Print "0x" prefix
-    mov al, '0'
-    call PUTCHAR
-    mov al, 'x'
-    call PUTCHAR
+;     ; Print "0x" prefix
+;     mov al, '0'
+;     call PUTCHAR
+;     mov al, 'x'
+;     call PUTCHAR
 
-    ; Print each byte from memory
-    mov esi, eax        ; ESI = pointer to memory
+;     ; Print each byte from memory
+;     mov esi, eax        ; ESI = pointer to memory
 
-.next_byte:
-    mov al, [esi]       ; Load byte from memory
-    call PRINT_BYTE_HEX
-    inc esi
-    loop .next_byte     ; CX is already our counter
+; .next_byte:
+;     mov al, [esi]       ; Load byte from memory
+;     call PRINT_BYTE_HEX
+;     inc esi
+;     loop .next_byte     ; CX is already our counter
 
-    popa
-    ret
+;     popa
+;     ret
 
-; Helper function: Print AL as 2-digit hex (e.g., AL=0xAB -> prints "AB")
-PRINT_BYTE_HEX:
-    push ax
-    push bx
+; ; Helper function: Print AL as 2-digit hex (e.g., AL=0xAB -> prints "AB")
+; PRINT_BYTE_HEX:
+;     push ax
+;     push bx
 
-    mov ah, al
-    shr ah, 4
-    and ah, 0x0F
-    call HEX_NIBBLE_PRINT
+;     mov ah, al
+;     shr ah, 4
+;     and ah, 0x0F
+;     call HEX_NIBBLE_PRINT
 
-    and al, 0x0F
-    call HEX_NIBBLE_PRINT
+;     and al, 0x0F
+;     call HEX_NIBBLE_PRINT
 
-    pop bx
-    pop ax
-    ret
+;     pop bx
+;     pop ax
+;     ret
 
-; Print nibble in AL (must be 0-15)
-HEX_NIBBLE_PRINT:
-    cmp al, 9
-    jbe .digit
-    add al, 7
-.digit:
-    add al, '0'
-    call PUTCHAR
-    ret
+; ; Print nibble in AL (must be 0-15)
+; HEX_NIBBLE_PRINT:
+;     cmp al, 9
+;     jbe .digit
+;     add al, 7
+; .digit:
+;     add al, '0'
+;     call PUTCHAR
+;     ret
 
 %endif ; BIOS_IO
