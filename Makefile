@@ -30,7 +30,7 @@ shell:
 compiler:
 	@echo "Compiling ATLC compiler..."
 	mkdir -p $(OUTPUT_DIR)/ATLC
-	$(ASSEMBLER) -f bin $(SOURCE_DIR)/COMPILER/COMPILEr.asm -o $(OUTPUT_DIR)/ATLC/ATLC.BIN
+	$(ASSEMBLER) -f bin $(SOURCE_DIR)/COMPILER/COMPILER.asm -o $(OUTPUT_DIR)/ATLC/ATLC.BIN
 	@echo "ATLC compiler compiled successfully."
 
 # Kernel build target
@@ -50,6 +50,10 @@ kernel: $(OUTPUT_KERNEL_DIR)/KERNEL.BIN $(OUTPUT_KERNEL_DIR)/KRNL.BIN $(OUTPUT_K
 	mkdir -p $(OUTPUT_KERNEL_DIR)
 	$(ASSEMBLER) -f bin $(SOURCE_KERNEL_DIR)/KERNEL.asm -o $(OUTPUT_KERNEL_DIR)/KRNL.BIN
 	@echo "32-bit kernel entry compiled successfully."
+	@size=$$(stat -c%s "$(OUTPUT_KERNEL_DIR)/KRNL.BIN"); \
+	if [ $$size -gt 24000 ]; then \
+		echo "\033[1;33mWARNING: KRNL.BIN size is $$size bytes, which exceeds 24000 bytes!\033[0m"; \
+	fi
 
 	@echo "Compiling kernel..."
 	mkdir -p $(OUTPUT_KERNEL_DIR)
