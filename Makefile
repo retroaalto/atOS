@@ -1,7 +1,4 @@
-# Makefile
-
-# Include global configuration variables from a separate file if needed
-include config.mk
+# Makefile for atOS-RT
 
 # Configurable paths
 ASSEMBLER     ?= nasm
