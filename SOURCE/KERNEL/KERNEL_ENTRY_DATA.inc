@@ -130,13 +130,6 @@
     krnl_str: db "KRNL.BIN;1", KRNL_STR_LEN
 
 
-    ; Since real mode gives us 1MB of address space, of which 640KB is available for use.
-    ; Range is: 0x00000-0x9FFFF
-    ; Memory table is loaded at 0x3000-0x3FFF
-    ; This gives us 638975 bytes (638kb) of space for the kernel.
-    ; Since the kernel could reach sizes of over 638KB, we need to load it at 
-    ; a higher address, into the 32-bit address space (at 0x00200000 = 2MB).
-
     ; record is at (buffer+offset)
     ;  uint8_t length;                (buffer+offset+0). Record length
     ;  uint32_t extentLocationLE_LBA  (buffer+offset+2). LBA of data
