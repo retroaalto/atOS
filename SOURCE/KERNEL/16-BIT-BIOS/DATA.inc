@@ -131,7 +131,7 @@ msg_mem_err2:       db "INT 15h, AX E820h. EAX != 0x534D4150", 0
 msg_mem_err3:       db "INT 15h, AX E820h. ECX < 20", 0
 msg_mem_err4:       db "INT 15h, AX E820h. ECX > MEM_BUF_LEN", 0
 msg_mem_err5:       db "No free memory for KRNL.BIN", 0
-msg_mem_err6:       db "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", 0
+msg_mem_err6:       db "", 0
 msg_hng_1:          db "__HANG__", 0
 msg_e820_done:      db "E820h done...", 0
 msg_disk_err1:      db "Error reading from disk...", 0

@@ -13,4 +13,9 @@
 ;         Created this file
 ;
 ; REMARKS
-;     
+;     None
+%ifndef RTOSKRNL_ASM
+%define RTOSKRNL_ASM
+%include "SOURCE/KERNEL/32RTOSKRNL/RTOSKRNL.inc"
+
+%endif ; RTOSKRNL_ASM

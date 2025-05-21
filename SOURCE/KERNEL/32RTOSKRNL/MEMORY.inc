@@ -1,19 +1,19 @@
-; <PATH> - <ABOUT>
+; SOURCE\KERNEL\32RTOSKRNL\MEMORY.inc - Master memory include file for the 32RTOSKRNL
 ;      
 ; Licensed under the MIT License. See LICENSE file in the project root for full license information.
 ;
 ; DESCRIPTION
-;     Describe
+;     Master memory include file for the 32RTOSKRNL.
 ; 
 ; AUTHORS
-;     Name(s)
+;     Antonako1
 ; 
 ; REVISION HISTORY
-;     yyyy/mm/dd - Name(s)
-;         Description
+;     2025/05/21 - Antonako1
+;         Created this file with memory regions for 32RTOSKRNL.
 ; 
 ; REMARKS
-;     Additional remarks, if any.
+;     See .\MEMORY.txt for a description of the memory regions.
 %ifndef MEMORY_INC
 %define MEMORY_INC
 
