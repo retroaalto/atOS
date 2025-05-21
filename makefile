@@ -23,7 +23,7 @@ IMG_NAME      ?= output.img
 all: iso
 
 # Kernel build target
-kernel: $(OUTPUT_KERNEL_DIR)/KERNEL.BIN $(OUTPUT_KERNEL_DIR)/KRNL.BIN
+kernel: $(OUTPUT_KERNEL_DIR)/KERNEL.BIN $(OUTPUT_KERNEL_DIR)/KRNL.BIN $(OUTPUT_KERNEL_DIR)/32RTOSKRNL.BIN
 
 # Bootloader build target
 bootloader: $(OUTPUT_BOOTLOADER_DIR)/BOOTLOADER.BIN
@@ -40,7 +40,7 @@ iso: bootloader kernel
 	cp -f $(OUTPUT_KERNEL_DIR)/KERNEL.BIN $(INPUT_ISO_DIR)/KERNEL.BIN
 	cp -f $(OUTPUT_KERNEL_DIR)/KRNL.BIN $(INPUT_ISO_DIR)/KRNL.BIN
 # 	NOTE: Add any additional files into $(INPUT_ISO_DIR_M)
-	
+	cp -f $(OUTPUT_KERNEL_DIR)/32RTOSKRNL.BIN $(INPUT_ISO_DIR_M)/32RTOSKRNL.BIN
 	@echo "Building ISO..."
 	mkdir -p $(OUTPUT_ISO_DIR)
 	genisoimage -o $(OUTPUT_ISO_DIR)/$(ISO_NAME) -r -J -b BOOTLOADER.BIN -no-emul-boot $(INPUT_ISO_DIR)
@@ -68,7 +68,11 @@ $(OUTPUT_KERNEL_DIR)/KRNL.BIN: $(SOURCE_KERNEL_DIR)/KERNEL.asm
 	mkdir -p $(OUTPUT_KERNEL_DIR)
 	$(ASSEMBLER) -f bin $< -o $@
 	@echo "Kernel compiled successfully."
-
+$(OUTPUT_KERNEL_DIR)/32RTOSKRNL.BIN: $(SOURCE_KERNEL_DIR)/RTOSKRNL.asm
+	@echo "Compiling kernel..."
+	mkdir -p $(OUTPUT_KERNEL_DIR)
+	$(ASSEMBLER) -f bin $< -o $@
+	@echo "Kernel compiled successfully."
 
 # Bootloader build rule
 $(OUTPUT_BOOTLOADER_DIR)/BOOTLOADER.BIN: $(SOURCE_BOOTLOADER_DIR)/BOOTLOADER.asm

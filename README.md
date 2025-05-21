@@ -19,8 +19,7 @@ A 32-bit operating system.
 
 ## Overview
 
-**atOS-RT** is a 32-bit operating system project aimed at providing a platform for exploring low-level system programming concepts. It includes a custom bootloader, kernel, and tools for ISO and FAT file system manipulation.
-
+**atOS-RT** is a 32-bit operating system project aimed at providing a platform for exploring low-level system programming concepts.
 ---
 
 ## Running the ISO
@@ -101,37 +100,6 @@ To debug the project using GDB:
 
 ---
 
-## Tools
-
-A set of tools is provided to simplify development and testing. These tools are located in the `TOOLS` directory.
-
-### Usage
-
-Navigate to the `TOOLS` directory:
-
-```bash
-cd ./TOOLS
-```
-
-#### View Available Commands
-
-```bash
-make help
-```
-
-#### Run ISO Test File
-
-```bash
-make iso run
-```
-
-#### Run FAT Test File
-
-```bash
-make fat run
-```
-
----
 
 ## License
 
