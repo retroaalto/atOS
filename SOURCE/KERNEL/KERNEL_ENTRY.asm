@@ -52,11 +52,15 @@ start:
     mov ax, VESA_LOAD_SEGMENT
     mov es, ax
     mov di, VESA_LOAD_OFFSET
-    mov ax, 0x4F01
-    mov cx, 0x118
-    int 0x10
-    cmp ax, 0x4F
-    jne VESA_ERROR
+    mov ax, 4f01h
+    mov cx, 117h
+    int 10h
+    cmp al, 4fh
+    jne VESA_ERROR2
+    cmp ah, 0
+    jne VESA_ERROR1
+
+    
 
     ;%%%%%%%%%%%%%%%%%%%%%%%%%
     ; Set up memory
@@ -513,8 +517,12 @@ KRNL_NOT_FOUND:
     mov si, msg_krnl_not_found
     call PRINTLN
     jmp hang
-VESA_ERROR:
+VESA_ERROR1:
     mov si, msg_vesa_err1
+    call PRINTLN
+    jmp hang
+VESA_ERROR2:
+    mov si, msg_vesa_err2
     call PRINTLN
     jmp hang
 
