@@ -3,7 +3,9 @@
 ; Licensed under the MIT License. See LICENSE file in the project root for full license information.
 ;
 ; DESCRIPTION
-;     32-bit kernel entry point
+;     32-bit kernel entry point.
+;     This file will read the kernel into 0x00200000 and jump to it.
+;     Before that, disk driver will be initialized for reading that binary.
 ; 
 ; AUTHORS
 ;     Antonako1
@@ -21,6 +23,8 @@
 
 [BITS 32]
 [org 0x2000]
+
+
 
 start:
     mov esi, msg
@@ -46,3 +50,8 @@ print_string:
     ret
 
 msg db "Kernel is running!", 0
+
+
+
+%include "SOURCE/KERNEL/32RTOSKRNL/DRIVERS/DISK/DISK_DRIVER.inc"
+%include "SOURCE/KERNEL/32RTOSKRNL/KERNEL.inc"

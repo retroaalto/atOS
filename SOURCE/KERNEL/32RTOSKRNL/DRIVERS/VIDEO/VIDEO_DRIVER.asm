@@ -18,7 +18,30 @@
 ;     None
 %ifndef SCREEN_DRIVER_ASM
 %define SCREEN_DRIVER_ASM
-%include "SOURCE/KERNEL/32RTOSKRNL/KERNEL.inc"
+%include "SOURCE/KERNEL/32RTOSKRNL/DRIVERS/VIDEO/DEFINES.inc"
 %include "SOURCE/KERNEL/32RTOSKRNL/DRIVERS/VIDEO/VIDEO_DRIVER.inc"
+%include "SOURCE/KERNEL/32RTOSKRNL/MEMORY/MEMORY.inc"
+
+; -----------------------------------------------------------------------------
+; INITIALIZE_VESA_STRUCTURE
+; Copies VESA mode information from the memory location defined in VESA_MODE_INFO_ADDRESS
+; to the internal VESAR structure.
+; -----------------------------------------------------------------------------
+INITIALIZE_VESA_STRUCTURE:
+    pushad
+    
+    xor ax, ax
+    mov ds, ax
+    mov esi, VESA_MODE_INFO_ADDRESS
+    
+    cld
+
+    lea edi, VESAR
+    mov ecx, VESA_MODE_INFO_SIZE
+    rep movsb
+    
+    popad
+    
+    ret
 
 %endif 

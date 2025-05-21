@@ -67,5 +67,5 @@ VESAR:
     dw VESA_END - VESA_START - 1  ; Limit (size - 1)
     dd VESA_START                  ; Base address (pointer to VESA structure)
 
-%include "SOURCE/KERNEL/32RTOSKRNL/DRIVERS/VIDEO/VIDEO_DRIVER.asm"
+VESA_SIGNATURE db 'VESA' ; VESA signature
 %endif ; SCREEN_DRIVER_INC

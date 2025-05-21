@@ -1,4 +1,4 @@
-; SOURCE\KERNEL\32RTOSKRNL\MEMORY.inc - Master memory include file for the 32RTOSKRNL
+; SOURCE\KERNEL\32RTOSKRNL\MEMORY\MEMORY.inc - Master memory include file for the 32RTOSKRNL
 ;      
 ; Licensed under the MIT License. See LICENSE file in the project root for full license information.
 ;
@@ -53,9 +53,9 @@ E820_SIZE           equ     0x00001000         ; 4 KiB
 E820_END            equ     (E820_ADDRESS + E820_SIZE - 1)
 
 ; VESA BIOS Extensions (VBE) Mode Info block
-VBE_MODE_INFO_ADDRESS equ   0x00009000
-VBE_MODE_INFO_SIZE  equ     0x00000101         ; 257 bytes (0x9100 - 0x9000 + 1)
-VBE_MODE_INFO_END   equ     (VBE_MODE_INFO_ADDRESS + VBE_MODE_INFO_SIZE - 1)
+VESA_MODE_INFO_ADDRESS equ   0x00009000
+VESA_MODE_INFO_SIZE  equ     0x00000101         ; 257 bytes (0x9100 - 0x9000 + 1)
+VESA_MODE_INFO_END   equ     (VESA_MODE_INFO_ADDRESS + VESA_MODE_INFO_SIZE - 1)
 
 ; VBE Optional controller block
 VBE_CONTROLLER_INFO_ADDRESS equ 0x00009100

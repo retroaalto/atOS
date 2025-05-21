@@ -18,7 +18,7 @@
 %define KERNEL_INC
 
 drive_number:       db 0
-%include "SOURCE/KERNEL/32RTOSKRNL/MEMORY.inc"
+%include "SOURCE/KERNEL/32RTOSKRNL/MEMORY/MEMORY.inc"
 %include "SOURCE/KERNEL/32RTOSKRNL/DRIVERS/VIDEO/VIDEO_DRIVER.inc"
 
 %endif
