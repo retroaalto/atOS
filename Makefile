@@ -24,6 +24,29 @@ all: iso
 
 # Kernel build target
 kernel: $(OUTPUT_KERNEL_DIR)/KERNEL.BIN $(OUTPUT_KERNEL_DIR)/KRNL.BIN $(OUTPUT_KERNEL_DIR)/32RTOSKRNL.BIN
+	@echo "Compiling KERNEL.BIN (real mode second stage)..."
+	mkdir -p $(OUTPUT_KERNEL_DIR)
+	$(ASSEMBLER) -f bin $(SOURCE_KERNEL_DIR)/KERNEL_ENTRY.asm -o $(OUTPUT_KERNEL_DIR)/KERNEL.BIN
+	@echo "KERNEL.BIN compiled successfully."
+	@size=$$(stat -c%s "$(OUTPUT_KERNEL_DIR)/KERNEL.BIN"); \
+	if [ $$size -gt 4095 ]; then \
+		echo "\033[1;33mWARNING: KERNEL.BIN size is $$size bytes, which exceeds 4095 bytes!\033[0m"; \
+	fi
+
+
+
+	@echo "Compiling 32-bit kernel entry..."
+	mkdir -p $(OUTPUT_KERNEL_DIR)
+	$(ASSEMBLER) -f bin $(SOURCE_KERNEL_DIR)/KERNEL.asm -o $(OUTPUT_KERNEL_DIR)/KRNL.BIN
+	@echo "32-bit kernel entry compiled successfully."
+
+	@echo "Compiling kernel..."
+	mkdir -p $(OUTPUT_KERNEL_DIR)
+	$(ASSEMBLER) -f bin $(SOURCE_KERNEL_DIR)/RTOSKRNL.asm -o $(OUTPUT_KERNEL_DIR)/32RTOSKRNL.BIN
+	@echo "Kernel compiled successfully."
+
+	@echo "All kernel components compiled successfully."
+
 
 # Bootloader build target
 bootloader: $(OUTPUT_BOOTLOADER_DIR)/BOOTLOADER.BIN
@@ -57,22 +80,6 @@ run:
 	@echo "Running ISO..."
 	qemu-system-i386 -boot d -cdrom $(OUTPUT_ISO_DIR)/$(ISO_NAME) -m 512 
 
-# Kernel build rule
-$(OUTPUT_KERNEL_DIR)/KERNEL.BIN: $(SOURCE_KERNEL_DIR)/KERNEL_ENTRY.asm
-	@echo "Compiling kernel..."
-	mkdir -p $(OUTPUT_KERNEL_DIR)
-	$(ASSEMBLER) -f bin $< -o $@
-	@echo "Kernel compiled successfully."
-$(OUTPUT_KERNEL_DIR)/KRNL.BIN: $(SOURCE_KERNEL_DIR)/KERNEL.asm
-	@echo "Compiling kernel..."
-	mkdir -p $(OUTPUT_KERNEL_DIR)
-	$(ASSEMBLER) -f bin $< -o $@
-	@echo "Kernel compiled successfully."
-$(OUTPUT_KERNEL_DIR)/32RTOSKRNL.BIN: $(SOURCE_KERNEL_DIR)/RTOSKRNL.asm
-	@echo "Compiling kernel..."
-	mkdir -p $(OUTPUT_KERNEL_DIR)
-	$(ASSEMBLER) -f bin $< -o $@
-	@echo "Kernel compiled successfully."
 
 # Bootloader build rule
 $(OUTPUT_BOOTLOADER_DIR)/BOOTLOADER.BIN: $(SOURCE_BOOTLOADER_DIR)/BOOTLOADER.asm
