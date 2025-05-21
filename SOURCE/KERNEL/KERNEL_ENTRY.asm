@@ -46,6 +46,18 @@ start:
     
     cli
 
+    ; %%%%%%%%%%%%%%%%%%%%%%%%%%%
+    ; VESA/VBE initialization
+    ; %%%%%%%%%%%%%%%%%%%%%%%%%%%
+    mov ax, VESA_LOAD_SEGMENT
+    mov es, ax
+    mov di, VESA_LOAD_OFFSET
+    mov ax, 0x4F01
+    mov cx, 0x118
+    int 0x10
+    cmp ax, 0x4F
+    jne VESA_ERROR
+
     ;%%%%%%%%%%%%%%%%%%%%%%%%%
     ; Set up memory
     ;%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -501,7 +513,12 @@ KRNL_NOT_FOUND:
     mov si, msg_krnl_not_found
     call PRINTLN
     jmp hang
-%include "SOURCE/KERNEL/KERNEL_ENTRY_DATA.inc"
+VESA_ERROR:
+    mov si, msg_vesa_err1
+    call PRINTLN
+    jmp hang
+
+%include "SOURCE/KERNEL/16-BIT-BIOS/KERNEL_ENTRY_DATA.inc"
 %include "SOURCE/KERNEL/16-BIT-BIOS/BIOS.inc"
 
 ; Protected mode main 
