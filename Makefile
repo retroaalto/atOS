@@ -14,10 +14,24 @@ INPUT_ISO_DIR_M ?= $(INPUT_ISO_DIR)/ATOS
 ISO_NAME      ?= atOS.iso
 IMG_NAME      ?= output.img
 
-.PHONY: all kernel bootloader iso clean run debug help
+.PHONY: all kernel bootloader iso clean run debug help compiler shell
 
 # Default target is to build the ISO
 all: iso
+
+# For ATOS shell
+shell:
+	@echo "Compiling ATOS shell..."
+	mkdir -p $(OUTPUT_DIR)/SHELL
+	$(ASSEMBLER) -f bin $(SOURCE_DIR)/SHELL/SHELL.asm -o $(OUTPUT_DIR)/SHELL/ATSH.BIN
+	@echo "ATOS shell compiled successfully."
+
+# Compiler for ATL
+compiler:
+	@echo "Compiling ATLC compiler..."
+	mkdir -p $(OUTPUT_DIR)/ATLC
+	$(ASSEMBLER) -f bin $(SOURCE_DIR)/COMPILER/COMPILEr.asm -o $(OUTPUT_DIR)/ATLC/ATLC.BIN
+	@echo "ATLC compiler compiled successfully."
 
 # Kernel build target
 kernel: $(OUTPUT_KERNEL_DIR)/KERNEL.BIN $(OUTPUT_KERNEL_DIR)/KRNL.BIN $(OUTPUT_KERNEL_DIR)/32RTOSKRNL.BIN
@@ -49,7 +63,7 @@ kernel: $(OUTPUT_KERNEL_DIR)/KERNEL.BIN $(OUTPUT_KERNEL_DIR)/KRNL.BIN $(OUTPUT_K
 bootloader: $(OUTPUT_BOOTLOADER_DIR)/BOOTLOADER.BIN
 
 # Build the ISO
-iso: bootloader kernel
+iso: bootloader kernel shell compiler
 	@echo "Creating ISO directory structure..."
 	mkdir -p $(INPUT_ISO_DIR)/INNER/INNER2
 	mkdir -p $(INPUT_ISO_DIR_M)
@@ -99,3 +113,4 @@ help:
 	@echo "  make run          - Run the ISO"
 	@echo "  make debug        - Debug the ISO with QEMU and GDB"
 	@echo "  make clean        - Clean all output files"
+	@echo "  make compiler     - Compiles ATLC compiler"
