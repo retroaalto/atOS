@@ -38,8 +38,8 @@ iso: bootloader kernel
 	cp -f $(SOURCE_DIR)/BASE.txt $(INPUT_ISO_DIR)/INNER/INNER2/INSIDE_1.txt
 	cp -f $(SOURCE_DIR)/BASE.txt $(INPUT_ISO_DIR)/BASE.txt
 	cp -f $(OUTPUT_KERNEL_DIR)/KERNEL.BIN $(INPUT_ISO_DIR)/KERNEL.BIN
+	cp -f $(OUTPUT_KERNEL_DIR)/KRNL.BIN $(INPUT_ISO_DIR)/KRNL.BIN
 # 	NOTE: Add any additional files into $(INPUT_ISO_DIR_M)
-	cp -f $(OUTPUT_KERNEL_DIR)/KRNL.BIN $(INPUT_ISO_DIR_M)/KRNL.BIN
 	
 	@echo "Building ISO..."
 	mkdir -p $(OUTPUT_ISO_DIR)

@@ -77,7 +77,7 @@ strncmp:
 ; 
 ; REMARKS
 ;     None
-strncpy:
+strncopy:
     pusha                   ; Save all general-purpose registers
 .copy_loop:
     cmp cx, 0               ; Check if we've reached the maximum length

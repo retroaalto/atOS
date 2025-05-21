@@ -16,7 +16,7 @@
 ;         Transforms into 32-bit mode, sets up idt and gdtr
 ;     2025/5/15  - Antonako1
 ;         Sets up memory using E820h
-;     2025/5/xx  - Antonako1
+;     2025/5/21  - Antonako1
 ;         Jumps to KRNL.BIN;1
 ;
 ; REMARKS
@@ -242,9 +242,12 @@ start:
 .TRY_AH88h:
     ;TODO.
 
+.A20_LINE:
+    in al, 0x92
+    or al, 2
+    out 0x92, al
 .FIND_KERNEL:
     ; Read KRNL.BIN from disk, load it into memory and jump to it
-    ; The kernel is loaded at 0x100000:0x0000
     ;
     ; Logic copied from bootloader. Status saved in krnl_status
 
@@ -256,47 +259,42 @@ start:
     ;call PRINT_HEX
     ;call PRINT_LINEFEED
 
-    mov eax, PVD_OFFSET
+    mov byte [krnl_status], 0
+
+    mov ax, PVD_OFFSET
     mov cx, 1
     mov bx, BUFFER_OFFSET
     mov dx, BUFFER_SEGMENT
     call READ_DISK
     cmp eax, 0
     jne DISK_ERROR1
- 
-    pusha
+
+    
     mov ax, BUFFER_SEGMENT
     mov ds, ax
     mov si, BUFFER_OFFSET
+    xor eax, eax
     mov al, byte [si]
     cmp al, 0x01
     jne ISO_ERROR1
-    popa
 
-    ; ; Read lba and size of root dir
-    ; ; 156: Root directory record
-    ; ; +2 LBA location
-    ; ; +10 Data length
+    ; Read lba and size of root dir
+    ; 156: Root directory record
+    ; +2 LBA location
+    ; +10 Data length
     mov ax, BUFFER_SEGMENT
     mov ds, ax
     mov si, BUFFER_OFFSET
     add si, 156+10
+    mov ax, word [si]
     mov ax, word [si+2]
     mov [extentLengthLE+2], ax
     mov ax, word [si]
     mov [extentLengthLE], ax
 
-    pusha
-    mov ax, [extentLengthLE]
-    mov cx, 4
-    call PRINT_HEXN
-    call PRINT_LINEFEED
-    popa
-
     cmp word [extentLengthLE], 0x800
     jb ISO_ERROR2
 
-    pusha
     mov ax, BUFFER_SEGMENT
     mov ds, ax
     mov si, BUFFER_OFFSET
@@ -305,28 +303,28 @@ start:
     mov [extentLocationLE_LBA], ax
     mov ax, word [si+2]
     mov [extentLocationLE_LBA+2], ax
-    popa
 
-    ; jump to kernel lba
-    pusha
+    cmp word [extentLocationLE_LBA], 29
+    jb ISO_ERROR3
+
+    ; load the root directory record
     mov eax, [extentLocationLE_LBA] ;lba
     mov cx, 1                   ; 1 sector
     mov bx, BUFFER_OFFSET
-    mov dx, BUFFER_SEGMENT      ;bx:dx = BUFFER_SEGMENT:BUFFER_OFFSET
+    mov dx, BUFFER_SEGMENT      ;dx:bx=buffer
     call READ_DISK              
     cmp ax, 0
     jne DISK_ERROR1
-    popa
 
-    mov word [offset_var], 0
+    mov dword [offset_var], 0
 
 .main_loop_start:
-    ;2.     while(offset_var < extentLengthLE)
+;     ;2.     while(offset_var < extentLengthLE)
     mov ax, [offset_var]
     mov bx, [extentLengthLE]
     cmp ax, bx
     jge .main_loop_end
-    ;3.     if ((record)(buffer_var+offset_var).length == 0) jmp ISO_ERROR
+;     ;3.     if ((record)(buffer_var+offset_var).length == 0) jmp ISO_ERROR
     mov ax, BUFFER_SEGMENT
     mov ds, ax
     mov si, BUFFER_OFFSET
@@ -334,7 +332,7 @@ start:
     mov al, byte [si]
     cmp al, 0
     je ISO_ERROR
-    ;5.     if(!((record)(buffer_var+offset_var).fileFlags & 0b00000010)) 
+;     ;5.     if(!((record)(buffer_var+offset_var).fileFlags & 0b00000010)) 
     mov ax, BUFFER_SEGMENT
     mov ds, ax
     mov si, BUFFER_OFFSET
@@ -343,28 +341,48 @@ start:
     mov al, byte [si]
     and al, 0b00000010
     jne .to_loop_increment
-    ;4.     strncpy(name_buf, record->fileIdentifier, record->fileNameLength);
+
+;     ;4.     strncopy(name_buf, record->fileIdentifier, record->fileNameLength);
     mov ax, BUFFER_SEGMENT
-    mov ds, ax
-    mov si, BUFFER_OFFSET
+    mov es, ax
+    mov di, BUFFER_OFFSET
 
-    add si, [offset_var]
-    add si, 32                  ; skip to filename length
+    add di, [offset_var]
+    add di, 32                  ; skip to filename length
     xor cx, cx
-    mov cl, byte [si]           ; string length
-    inc si                      ; Skip length byte
-    lea di, name_buf            ; address of name buffer
-    call strncpy
-    ;6. if(strcmp(KERNEL_FILENAME, name_buf) == 0)
-    lea si, krnl_str
-    lea di, name_buf
-    mov cx, KRNL_STR_LEN
-    call strncmp
-    cmp ax, 1
-    jne .to_loop_increment
+    mov cl, byte [di]           ; string length
+    push cx
+    inc di                   ; skip length byte
 
-    mov si, name_buf
+    pusha
+    mov si, di
     call PRINTNLN
+    popa
+;     if (strcmp(name_buf, "KRNL.BIN") == 0)
+        mov si, krnl_str    ;source1
+        mov cx, KRNL_STR_LEN;source1 length
+        call strncmp
+        cmp ax, 1
+        jne .to_loop_increment
+        
+        ; TODO: Load values to save at extenLocationLE_LBA_KRNL and extentLengthLE_KRNL
+        mov ax, BUFFER_SEGMENT
+        mov ds, ax
+        add si, [offset_var]
+        add si, 2
+        mov ax, word [si]   ; lba
+        mov [extenLocationLE_LBA_KRNL], ax
+        mov ax, word [si+2]
+        mov [extenLocationLE_LBA_KRNL+2], ax
+        add si, 10
+        mov ax, word [si]   ; length
+        mov [extentLengthLE_KRNL], ax
+        mov ax, word [si+2]
+        mov [extentLengthLE_KRNL+2], ax
+
+        mov byte [krnl_status], 1
+        jmp KRNL_TO_MEMORY
+
 .to_loop_increment:
     ;11.    If nothing happens: offset_var += (record)(buffer_var+offset_var).length
     mov ax, BUFFER_SEGMENT
@@ -380,13 +398,47 @@ start:
     jmp .main_loop_start
 .main_loop_end:
 
+
+
+
+KRNL_TO_MEMORY:
+    cmp byte [krnl_status], 1
+    je .kernel_found
+    jmp KRNL_NOT_FOUND
+
+
+
+.kernel_found:
+    ; Read the kernel from disk to memory
+    mov ax, [extentLengthLE]
+    ; If kernel length > 64KB, use 32-bit registers
+    ; Add 511 and divide by 512 (sector size)
+    mov eax, [extentLengthLE]
+    add eax, 511
+    shr eax, 9
+    mov cx, ax ; sectors to read
+    xor eax, eax
+    mov eax, [extenLocationLE_LBA_KRNL]
+
+    ; offset = bx
+    mov bx, KERNEL_LOAD_OFFSET
+    ; segment = dx
+    mov dx, KERNEL_LOAD_SEGMENT
+    call READ_DISK
+    cmp eax, 0
+    jne DISK_ERROR1
+
+
+    pusha
     mov si, msg_kernel_end
     call PRINTLN
-
+    popa 
+START_32BIT_PROTECTED_MODE:
     ; Start the 32-bit protected mode
-    lgdt [GDTR]    ; load GDT register with start address of Global Descriptor Table
+    lgdt [gdtr]    ; load GDT register with start address of Global Descriptor Table
     mov eax, cr0 
     or al, 1       ; set PE (Protection Enable) bit in CR0 (Control Register 0)
+    ;or eax, 1
     mov cr0, eax
 
     lidt [IDTR]
@@ -395,33 +447,10 @@ start:
     ; to load CS with proper PM32 descriptor)
     jmp 08h:PModeMain
 
-PModeMain:
-    mov ax, 0x10
-    mov ds, ax
-    mov es, ax
-    mov fs, ax
-    mov gs, ax
-    mov ss, ax
-    mov esp, 0x90000     ; Setup 32-bit stack somewhere safe in high memory
 
-    mov eax, 1
-    mov [_32_bit_on], eax
-
-KRNL_JMP:
-
-
-    ;jmp BUFFER_SEGMENT:BUFFER_OFFSET
-    jmp KERNEL_LOAD_SEGMENT:KERNEL_LOAD_OFFSET
-
-    jmp hang
 hang:
-    mov ax, [_32_bit_on]
-    cmp ax, 1
-    je .no_questions
     mov si, msg_hng_1
     call PRINTLN
-
-.no_questions:
     jmp $
 
 MEM_ERROR1:
@@ -448,12 +477,10 @@ MEM_ERROR6:
     mov si, msg_mem_err6
     call PRINTLN
     jmp hang
-
 DISK_ERROR1:
     mov si, msg_disk_err1
     call PRINTLN
     jmp hang
-
 ISO_ERROR1:
     mov si, msg_iso_err1
     call PRINTLN
@@ -462,9 +489,34 @@ ISO_ERROR2:
     mov si, msg_iso_err2
     call PRINTLN
     jmp hang
+ISO_ERROR3:
+    mov si, msg_iso_err3
+    call PRINTLN
+    jmp hang
 ISO_ERROR:
     mov si, msg_iso_errg
     call PRINTLN
     jmp hang
+KRNL_NOT_FOUND:
+    mov si, msg_krnl_not_found
+    call PRINTLN
+    jmp hang
 %include "SOURCE/KERNEL/KERNEL_ENTRY_DATA.inc"
 %include "SOURCE/KERNEL/16-BIT-BIOS/BIOS.inc"
+
+; Protected mode main 
+[BITS 32]
+PModeMain:
+    mov ax, 0x10          ; Data segment selector (index 2 in GDT)
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+    mov ss, ax
+
+    mov esp, 0x90000      ; Stack at 576KB (adjust if you want)
+
+    ; Jump to kernel at 0x200000 physical (flat)
+    jmp KERNEL_LOAD_ADDRESS
+hang32:
+    jmp $

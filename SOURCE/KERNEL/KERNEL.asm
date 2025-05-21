@@ -11,23 +11,38 @@
 ; REVISION HISTORY
 ;     2025/05/10 - Antonako1
 ;         Created this file
+;     2025/05/21 - Antonako1
+;         Second stage bootloader jump to this 32-bit kernel entry point
 ; 
 ; REMARKS
-;     Additional remarks, if any.
+;     Memory map at 0x9000-0xFFFF
+;     This kernel at 0x2000-0x9000
+;     Stack at 0x90000-0xA0000
 
 [BITS 32]
-[ORG 0x8000:0x0000]
+[org 0x2000]
 
-global _start
-_start:
-    xor eax, eax
-    mov esp, 0x100000
-
-    mov ebx,0xb8000    ; The video address
-    mov al,'!'         ; The character to be print
-    mov ah,0x0F        ; The color: white(F) on black(0)
-    mov [ebx],ax        ; Put the character into the video memory
-
+start:
+    mov esi, msg
+    mov edi, 0xB8000       ; VGA text buffer
+    call print_string
 
 HANG:
-    jmp $
+    cli
+    hlt
+    jmp HANG
+
+
+print_string:
+.next:
+    lodsb
+    test al, al
+    jz .done
+    mov ah, 0x0F           ; Light gray on black
+    mov [edi], ax
+    add edi, 2
+    jmp .next
+.done:
+    ret
+
+msg db "Kernel is running!", 0
