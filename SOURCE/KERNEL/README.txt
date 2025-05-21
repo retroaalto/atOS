@@ -1,5 +1,5 @@
 KERNEL_ENTRY.asm    = 2. stage bootloader
-KERNEL_ENTRY_DATA.inc = Defines and other data for 2. stage bootloader
+Include file found at .\16-BIT-BIOS\KERNEL_ENTRY_DATA.inc
 
 KERNEL.asm          = 32-bit kernel entry point
 RTOSKRNL.asm        = 32-bit kernel
