@@ -26,3 +26,5 @@ The following `.inc` files contain useful definitions, constants, and macros for
 | `SOURCE/KERNEL/32RTOSKRNL/SYSCALL/SYSCALL_MIN.inc`   | Provides system call constants and interface definitions for user programs.   |
 
 > Refer to the `README.md` in each file's directory for usage examples and additional context.
+
+> Take a look also inside `SOURCE\STD\README.md`!
