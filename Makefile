@@ -17,6 +17,10 @@ INPUT_ISO_DIR_SYSTEM ?= $(INPUT_ISO_DIR)/ATOS
 INPUT_ISO_DIR_USER ?= $(INPUT_ISO_DIR)/USER
 INPUT_ISO_DIR_PROGRAMS ?= $(INPUT_ISO_DIR)/PROGRAMS
 
+HARD_DISK_SIZE ?= 128M
+HARD_DISK_IMG ?= hdd.img
+HARD_DISK_DIR ?= $(OUTPUT_DIR)/IMG
+
 .PHONY: all kernel bootloader iso clean run debug help compiler shell
 
 # Default target is to build the ISO
@@ -102,8 +106,16 @@ debug:
 
 # Run the ISO in QEMU
 run:
+	@echo "Creating hard disk image..."
+	mkdir -p $(HARD_DISK_DIR)
+	qemu-img create -f raw $(HARD_DISK_DIR)/$(HARD_DISK_IMG) $(HARD_DISK_SIZE)
 	@echo "Running ISO..."
-	qemu-system-i386 -boot d -cdrom $(OUTPUT_ISO_DIR)/$(ISO_NAME) -m 512 
+	qemu-system-i386 \
+		-boot d \
+		-cdrom $(OUTPUT_ISO_DIR)/$(ISO_NAME) \
+		-drive file=$(HARD_DISK_DIR)/$(HARD_DISK_IMG),format=raw,if=ide,index=0,media=disk \
+		-m 512
+
 
 
 # Bootloader build rule

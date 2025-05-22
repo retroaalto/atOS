@@ -1,3 +1,9 @@
-ATA PIO Mode Disk Driver for the 32RTOSKRNL
+# Disk drivers for atOS-RT
 
-Include file is `DISK_DRIVER.inc`
+## ATA
+
+ATA PIO mode driver. Used for reading and writing onto hard disk
+
+## ATAPI
+
+ATAPI driver reads from cdrom. Used for reading data from ISO image

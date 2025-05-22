@@ -43,6 +43,7 @@ Run the provided ISO image in a virtual machine environment. QEMU is recommended
 | --- | ----------- | ------- |
 | RAM | 512 MiB     | 128 MiB |
 | CPU | 1 Core      | 1 Core  |
+| HDD | 256 MiB     | 128 MiB  |
 
 ### Installing QEMU
 
@@ -57,7 +58,12 @@ sudo apt install qemu-system-x86
 Navigate to the directory containing the ISO and run:
 
 ```bash
-qemu-system-i386 -boot d -cdrom ./atOS-RT.iso -m 512
+qemu-img create -f raw hdd.img 256M
+qemu-system-i386 \
+  -boot d \
+  -cdrom atOS-RT.iso \
+  -drive file=hdd.img,format=raw,if=ide,index=0,media=disk \
+  -m 512
 ```
 
 This boots the OS with 512MB of RAM, the recommended setting.

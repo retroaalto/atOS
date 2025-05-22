@@ -1,9 +1,9 @@
-; SOURCE\KERNEL\32RTOSKRNL\DRIVERS\DISK\DISK_DRIVER.inc - Disk driver include file
-;      
+; SOURCE\KERNEL\32RTOSKRNL\DRIVERS\DISK\ATA\DISK_DRIVER.inc - Disk driver include file
+;
 ; Licensed under the MIT License. See LICENSE file in the project root for full license information.
 ;
 ; DESCRIPTION
-;     This file contains the definitions and constants used in the disk driver.
+;     This file contains the definitions and constants used by the ATA PIO disk driver.
 ; 
 ; AUTHORS
 ;     Antonako1
@@ -16,8 +16,8 @@
 ;     Only to be used by the kernel and disk driver.
 ;     Include this file, not DISK_DRIVER.asm in the kernel.
 [BITS 32]
-%ifndef DISK_DRIVER_INC
-%define DISK_DRIVER_INC
+%ifndef ATA_DISK_DRIVER_INC
+%define ATA_DISK_DRIVER_INC
 
 ; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ; % ATA PIO Disk Driver
@@ -43,19 +43,15 @@ STAT_DF             EQU 1 << 5 ; Device fault bit
 STAT_RDY            EQU 1 << 6 ; Drive ready bit
 STAT_BUSY           EQU 1 << 7 ; Busy bit
 
+
 ; Drive/Head selection
 BASE_MASTER_LBA     EQU 0xE0 ; Base for master and lba mode
 BASE_SLAVE_LBA      EQU 0xF0 ; Base for slave and lba mode
 
 ; Command codes
-READ_SECTOR_CMD     EQU 0x20 ; Command to read sectors
-WRITE_SECTOR_CMD    EQU 0x30 ; Command to write sectors
+ATA_READ_SECTOR_CMD     EQU 0x20 ; Command to read sectors
+ATA_WRITE_SECTOR_CMD    EQU 0x30 ; Command to write sectors
+ATA_IDENTIFY_CMD        EQU 0xEC ; Command to identify drive
 
-
-; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-; % SATA Disk Driver
-; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-%include "SOURCE/KERNEL/32RTOSKRNL/DRIVERS/DISK/DISK_DRIVER.asm"
-%endif ; DISK_DRIVER_INC
+%include "SOURCE/KERNEL/32RTOSKRNL/DRIVERS/DISK/ATA/DISK_DRIVER.asm"
+%endif ; ATA_DISK_DRIVER_INC

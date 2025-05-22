@@ -31,11 +31,8 @@ start:
     mov ah, 0x0A
     call print_string
 
-    ; if ATA_PIO_IDENTIFY() == 0; goto ERROR_GENERAL
-    call ATA_PIO_IDENTIFY
-    cmp eax, 0
-    je ERROR_GENERAL
-    
+
+
     mov esi, msg_2
     mov ah, 0x0A
     call print_string
