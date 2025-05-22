@@ -105,36 +105,54 @@ DETECT_ATA_TYPE:
     mov [ebp-4], cx ; Save base port
 
     ; Select drive
-    outb ATA_PRIMARY_DRIVE_HEAD, byte [ebp-2]
-    inb ATA_PRIMARY_COMM_REGSTAT
+    mov bx, [ebp-4]
+    add bx, ATA_DRIVE_HEAD
+    outb bx, byte [ebp-2]
+    mov ax, [ebp-4]
+    add ax, ATA_COMM_REGSTAT
+    inb ax
     call ATA_WAIT_FOR_BSY ; Wait for BSY to be cleared
     
-    inb ATA__EXECUTE_DIAGNOSTIC
-    inb ATA_PRIMARY_COMM_REGSTAT ; Read status register
-    call ATA_WAIT_FOR_BSY ; Wait for BSY to be cleared
 
-    inb ATA_PRIMARY_SECCOUNT
+    mov ax, [ebp-4]
+    add ax, ATA_COMM_REGSTAT
+    mov dx, ax
+    mov al, ATA__EXECUTE_DIAGNOSTIC
+    out dx, al ; Send command
+
+    mov ax, [ebp-4]
+    add ax, ATA_SECCOUNT
+    inb ax
     mov byte [ebp-6], al ; Save sector count
+
+    mov ax, [ebp-4]
+    add ax, ATA_LBA_LO 
     inb ATA_LBA_LO 
     mov byte [ebp-7], al ; Save LBA low
-    inb ATA_LBA_MID
+
+    mov ax, [ebp-4]
+    add ax, ATA_LBA_MID
+    inb ax
     mov byte [ebp-8], al ; Save LBA mid
-    inb ATA_LBA_HI
+
+    mov ax, [ebp-4]
+    add ax, ATA_LBA_HI
+    inb ax
     mov byte [ebp-9], al ; Save LBA high
 
-    cmp byte [ebp-6], 0x00
+    cmp byte [ebp-6], 0x01
     jne .NO_DISK
-    cmp byte [ebp-7], 0x00
+    cmp byte [ebp-7], 0x01
     jne .NO_DISK
 
-    cmp byte [ebp-8], 0x01
+    cmp byte [ebp-8], 0x00
     je .TYPE_ATA
-    cmp byte [ebp-8], 0x01
+    cmp byte [ebp-9], 0x00
     je .TYPE_ATA
 
     cmp byte [ebp-8], 0x14
     je .TYPE_ATAPI
-    cmp byte [ebp-8], 0xEB
+    cmp byte [ebp-9], 0xEB
     je .TYPE_ATAPI
 .TYPE_ATAPI:
     mov ah, byte [ebp-4]

@@ -18,8 +18,17 @@
 %ifndef KERNEL_INC
 %define KERNEL_INC
 
-drive_number:       db 0
 %include "SOURCE/KERNEL/32RTOSKRNL/MEMORY/MEMORY.inc"
 %include "SOURCE/KERNEL/32RTOSKRNL/DRIVERS/DISK/ATAPI/DISK_DRIVER.inc"
+
+
+msg_1           db "Kernel is running!", 0
+msg_2           db "Kernel shutting down!", 0
+msg_ata         db "ATA found!", 0
+msg_atapi       db "ATAPI found!", 0
+msg_err         db "Error reading kernel!", 0
+ROW             dq 0
+MASTER_SLAVE    db 0
+drive_number    db 0
 
 %endif

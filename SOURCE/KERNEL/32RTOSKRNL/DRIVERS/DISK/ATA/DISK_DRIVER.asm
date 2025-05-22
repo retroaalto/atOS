@@ -58,7 +58,7 @@ ATA_PIO_IDENTIFY:
     jz .return_false
     ; outb    ATA_PRIMARY_COMM_REGSTAT,   byte 0xE7
 
-    test byte [ebp-2], STAT_BUSY
+    test byte [ebp-2], STAT_BSY
     jnz .wait_for_status
     jmp .status_done
 .wait_for_status:
@@ -72,7 +72,7 @@ ATA_PIO_IDENTIFY:
 
     inb ATA_PRIMARY_COMM_REGSTAT
     mov byte [ebp-2], al
-    test byte [ebp-2], STAT_BUSY
+    test byte [ebp-2], STAT_BSY
     jnz .wait_for_status
 .status_done:
 
@@ -82,7 +82,7 @@ ATA_PIO_IDENTIFY:
 .poll:
     inb ATA_PRIMARY_COMM_REGSTAT
     mov byte [ebp-2], al
-    test byte [ebp-2], STAT_BUSY
+    test byte [ebp-2], STAT_BSY
     jnz .poll
 .poll_done:
      inb ATA_PRIMARY_LBA_MID
