@@ -18,5 +18,13 @@
 %include "SOURCE/KERNEL/32RTOSKRNL/DRIVERS/DISK/DISK_DRIVER.inc"
 %include "SOURCE/KERNEL/32RTOSKRNL/MEMORY/MEMORY.inc"
 
+; --------------------------------
+; Offset constants for disk driver
+; --------------------------------
+; For ISO9660
+SECTOR_SIZE EQU             2048        ; 2KB per sector
+VOL_DESC_START EQU          16          ; Volume descriptor starts at sector 16
+PVD_OFFSET EQU                  VOL_DESC_START*SECTOR_SIZE/SECTOR_SIZE
+
 
 %endif ; ISO_ASM
