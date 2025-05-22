@@ -1,0 +1,19 @@
+name: Build ISO
+
+on:
+  workflow_dispatch:  # Manual trigger only
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y make nasm gcc genisoimage
+
+      - name: Build ISO
+        run: make iso
