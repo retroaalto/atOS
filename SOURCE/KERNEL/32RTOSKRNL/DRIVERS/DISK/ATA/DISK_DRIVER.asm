@@ -23,11 +23,11 @@
 %include "SOURCE/STD/CPU_IO.inc"
 
 ATA_PIO_IDENTIFY_MASTER:
-    mov bl, 0xA0
+    mov bl, ATA_MASTER
     call ATA_PIO_IDENTIFY
     ret
 ATA_PIO_IDENTIFY_SLAVE:
-    mov bl, 0xB0
+    mov bl, ATA_SLAVE
     call ATA_PIO_IDENTIFY
     ret
 

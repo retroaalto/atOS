@@ -1,9 +1,9 @@
-# Disk drivers for atOS-RT
+# Disk Drivers for atOS-RT
 
 ## ATA
 
-ATA PIO mode driver. Used for reading and writing onto hard disk
+ATA PIO mode driver for reading from and writing to hard disk drives.
 
 ## ATAPI
 
-ATAPI driver reads from cdrom. Used for reading data from ISO image
+ATAPI driver for reading data from CD-ROM devices and ISO images.

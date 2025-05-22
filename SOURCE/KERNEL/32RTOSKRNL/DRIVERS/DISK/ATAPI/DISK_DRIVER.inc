@@ -19,5 +19,12 @@
 %ifndef ATAPI_DISK_DRIVER_INC
 %define ATAPI_DISK_DRIVER_INC
 
+
+; ~~~~~~~~~~~~~~~~~~~~
+; ATAPI COMMANDS
+; ~~~~~~~~~~~~~~~~~~~~
+
+
 %include "SOURCE/KERNEL/32RTOSKRNL/DRIVERS/DISK/ATAPI/DISK_DRIVER.asm"
+%include "SOURCE/KERNEL/32RTOSKRNL/DRIVERS/DISK/ATA_SHARED.inc"
 %endif ; DISK_DRIVER_INC

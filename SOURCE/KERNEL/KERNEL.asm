@@ -31,7 +31,26 @@ start:
     mov ah, 0x0A
     call print_string
 
+    cli
+    ; try master drive
+    mov al, ATA_MASTER
+    mov cx, ATA_BASE
+    call DETECT_ATA_TYPE
+    cmp al, TYPE_ATAPI
+    je .ATAPI_FOUND
+    
+    ;try slave drive
+    mov al, ATA_SLAVE
+    mov cx, ATA_SECOND_BASE
+    call DETECT_ATA_TYPE
+    cmp al, TYPE_ATAPI
+    je .ATAPI_FOUND
 
+    jmp ERROR_GENERAL
+
+.ATA_FOUND:
+
+.ATAPI_FOUND:
 
     mov esi, msg_2
     mov ah, 0x0A
@@ -78,8 +97,15 @@ print_string:
 .done:
     ret
 
+%macro print 1
+    mov esi, %1
+    mov ah, 0x0A
+    call print_string
+%endmacro
 msg_1 db "Kernel is running!", 0
 msg_2 db "Kernel shutting down!", 0
+msg_ata db "ATA found!", 0
+msg_atapi db "ATAPI found!", 0
 msg_err db "Error reading kernel!", 0
 ROW dq 0
 
