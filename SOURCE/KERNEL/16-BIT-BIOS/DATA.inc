@@ -33,6 +33,10 @@ DAP:
 ; GDT - Global Descriptor Table
 ; Must be aligned on 8-byte boundaries
 ; ----------------------------------------
+; ----------------------------------------
+; GDT - Global Descriptor Table
+; Must be aligned on 8-byte boundaries
+; ----------------------------------------
 gdt_start:
     dd 0x0                ; Null descriptor
     dd 0x0

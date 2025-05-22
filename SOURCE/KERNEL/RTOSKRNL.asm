@@ -14,6 +14,7 @@
 ;
 ; REMARKS
 ;     None
+[BITS 32]
 %ifndef RTOSKRNL_ASM
 %define RTOSKRNL_ASM
 %include "SOURCE/KERNEL/32RTOSKRNL/RTOSKRNL.inc"

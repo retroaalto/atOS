@@ -20,38 +20,78 @@
 ;     Memory map at 0x9000-0xFFFF
 ;     This kernel at 0x2000-0x9000
 ;     Stack at 0x90000-0xA0000
-
 [BITS 32]
 [org 0x2000]
 
-
-
 start:
-    mov esi, msg
-    mov edi, 0xB8000       ; VGA text buffer
+    mov ax, 0x10
+    mov es, ax
+
+    mov esi, msg_1
+    mov ah, 0x0A
     call print_string
 
+    mov ebx, 1
+    mov edi, RTOSKRNL_ADDRESS
+    
+
+    mov al, byte [edi]      ; Should now contain Volume Descriptor Type
+    cmp al, 0x01            ; 0x01 = Primary Volume Descriptor
+    jne ERROR_GENERAL
+    
+    mov esi, msg_2
+    mov ah, 0x0A
+    call print_string
+
+    jmp HANG
 HANG:
     cli
     hlt
     jmp HANG
 
+ERROR_GENERAL:
+    mov esi, msg_err
+    mov ah, 0xEC
+    call print_string
+    jmp HANG
 
+
+; -----------------------
+; Utility functions, used only in this file
+; -----------------------
 print_string:
+    push eax
+    mov eax, [ROW]
+    mov ebx, 2
+    mul ebx
+    ; result in EAX
+    mov ebx, 0xB8000
+    add ebx, eax
+    mov edi, ebx
+
+    mov eax, [ROW]
+    add eax, 80
+    mov [ROW], eax
+    pop eax
 .next:
     lodsb
     test al, al
     jz .done
-    mov ah, 0x0F           ; Light gray on black
+    ;mov ah, 0x0A           ; Green on black
     mov [edi], ax
     add edi, 2
     jmp .next
 .done:
     ret
 
-msg db "Kernel is running!", 0
+msg_1 db "Kernel is running!", 0
+msg_2 db "Kernel shutting down!", 0
+msg_err db "Error reading kernel!", 0
+ROW dq 0
 
 
-
+; -----------------------
+; Includes
+; -----------------------
 %include "SOURCE/KERNEL/32RTOSKRNL/DRIVERS/DISK/DISK_DRIVER.inc"
 %include "SOURCE/KERNEL/32RTOSKRNL/KERNEL.inc"

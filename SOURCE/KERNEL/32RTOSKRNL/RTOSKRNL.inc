@@ -14,6 +14,7 @@
 ; 
 ; REMARKS
 ;     None
+[BITS 32]
 %ifndef RTOSKRNL_INC
 %define RTOSKRNL_INC
 %include "SOURCE/KERNEL/32RTOSKRNL/MEMORY/MEMORY.inc"

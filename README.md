@@ -10,7 +10,6 @@ A custom 32-bit operating system written entirely in assembly language, designed
 * [Features](#features)
 * [Running atOS-RT](#running-atos-rt)
 * [Development](#development)
-
   * [Dependencies](#dependencies)
   * [Building](#building)
   * [Debugging](#debugging)

@@ -14,6 +14,7 @@
 ; 
 ; REMARKS
 ;     Include this file in your assembly code to use the minimal syscall interface.
+[BITS 32]
 %ifndef SYSCALL_MIN_INC
 %define SYSCALL_MIN_INC
 

@@ -14,8 +14,9 @@
 ; 
 ; REMARKS
 ;     None
-%ifndef SCREEN_DRIVER_INC
-%define SCREEN_DRIVER_INC
+[BITS 32]
+%ifndef VIDEO_DRIVER_INC
+%define VIDEO_DRIVER_INC
 
 ; ----------------------------------------
 ; SuperVGA Mode Info Block
@@ -68,4 +69,4 @@ VESAR:
     dd VESA_START                  ; Base address (pointer to VESA structure)
 
 VESA_SIGNATURE db 'VESA' ; VESA signature
-%endif ; SCREEN_DRIVER_INC
+%endif ; VIDEO_DRIVER_INC

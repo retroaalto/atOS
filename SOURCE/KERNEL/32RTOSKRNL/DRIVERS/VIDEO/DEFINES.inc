@@ -17,6 +17,7 @@
 ; 
 ; REMARKS
 ;     None
+[BITS 32]
 %ifndef SCREEN_DEFINES_INC
 %define SCREEN_DEFINES_INC
 

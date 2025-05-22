@@ -14,6 +14,7 @@
 ; 
 ; REMARKS
 ;     None
+[BITS 32]
 %ifndef KERNEL_INC
 %define KERNEL_INC
 

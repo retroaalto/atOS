@@ -1,4 +1,4 @@
-; SOURCE\KERNEL\32RTOSKRNL\DRIVERS\SCREEN\SCREEN_DRIVER.asm - Screen driver
+; SOURCE\KERNEL\32RTOSKRNL\DRIVERS\VIDEO\VIDEO_DRIVER.asm - Screen driver
 ;      
 ; Licensed under the MIT License. See LICENSE file in the project root for full license information.
 ;
@@ -14,7 +14,11 @@
 ; 
 ; REMARKS
 ;     Only to be used by the kernel.
+[BITS 32]
 %ifndef DISK_DRIVER_ASM
 %define DISK_DRIVER_ASM
+%include "SOURCE/KERNEL/32RTOSKRNL/DRIVERS/DISK/DISK_DRIVER.inc"
+
+
 
 %endif ; DISK_DRIVER_ASM

@@ -17,6 +17,7 @@
 ; 
 ; REMARKS
 ;     See .\MEMORY.md for a description of the memory regions.
+[BITS 32]
 %ifndef MEMORY_INC
 %define MEMORY_INC
 

@@ -9,6 +9,7 @@ SOURCE/
 ├── COMPILER/           # Custom compiler and language tooling sources
 ├── INSIDE_1.txt        # Test file
 ├── KERNEL/             # 32-bit kernel source code (protected mode) and 2nd stage bootloader
+├── FS/                 # File system. File reading and writing
 ├── PROGRAMS/           # User programs to be included in the final ISO
 ├── README.md           # This file - provides an overview of the source layout
 ├── SHELL/              # atOS-RT shell source code
