@@ -31,13 +31,10 @@ start:
     mov ah, 0x0A
     call print_string
 
-    mov ebx, 1
-    mov edi, RTOSKRNL_ADDRESS
-    
-
-    mov al, byte [edi]      ; Should now contain Volume Descriptor Type
-    cmp al, 0x01            ; 0x01 = Primary Volume Descriptor
-    jne ERROR_GENERAL
+    ; if ATA_PIO_IDENTIFY() == 0; goto ERROR_GENERAL
+    call ATA_PIO_IDENTIFY
+    cmp eax, 0
+    je ERROR_GENERAL
     
     mov esi, msg_2
     mov ah, 0x0A
@@ -93,5 +90,4 @@ ROW dq 0
 ; -----------------------
 ; Includes
 ; -----------------------
-%include "SOURCE/KERNEL/32RTOSKRNL/DRIVERS/DISK/DISK_DRIVER.inc"
 %include "SOURCE/KERNEL/32RTOSKRNL/KERNEL.inc"

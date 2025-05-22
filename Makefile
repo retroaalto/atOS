@@ -10,75 +10,85 @@ OUTPUT_KERNEL_DIR ?= $(OUTPUT_DIR)/KERNEL
 OUTPUT_BOOTLOADER_DIR ?= $(OUTPUT_DIR)/BOOTLOADER
 OUTPUT_ISO_DIR ?= $(OUTPUT_DIR)/ISO
 INPUT_ISO_DIR  ?= ISO_DIR
-INPUT_ISO_DIR_M ?= $(INPUT_ISO_DIR)/ATOS
 ISO_NAME      ?= atOS.iso
 IMG_NAME      ?= output.img
+
+INPUT_ISO_DIR_SYSTEM ?= $(INPUT_ISO_DIR)/ATOS
+INPUT_ISO_DIR_USER ?= $(INPUT_ISO_DIR)/USER
+INPUT_ISO_DIR_PROGRAMS ?= $(INPUT_ISO_DIR)/PROGRAMS
 
 .PHONY: all kernel bootloader iso clean run debug help compiler shell
 
 # Default target is to build the ISO
 all: iso
 
-# For ATOS shell
-shell:
-	@echo "Compiling ATOS shell..."
-	mkdir -p $(OUTPUT_DIR)/SHELL
-	$(ASSEMBLER) -f bin $(SOURCE_DIR)/SHELL/SHELL.asm -o $(OUTPUT_DIR)/SHELL/ATSH.BIN
-	@echo "ATOS shell compiled successfully."
-
-# Compiler for ATL
-compiler:
-	@echo "Compiling ATLC compiler..."
-	mkdir -p $(OUTPUT_DIR)/ATLC
-	$(ASSEMBLER) -f bin $(SOURCE_DIR)/COMPILER/COMPILER.asm -o $(OUTPUT_DIR)/ATLC/ATLC.BIN
-	@echo "ATLC compiler compiled successfully."
+# Bootloader build rule (16-bit x86 real mode)
+$(OUTPUT_BOOTLOADER_DIR)/BOOTLOADER.BIN: $(SOURCE_BOOTLOADER_DIR)/BOOTLOADER.asm
+	@echo "Compiling bootloader (16-bit real mode)..."
+	mkdir -p $(OUTPUT_BOOTLOADER_DIR)
+	$(ASSEMBLER) -f bin -D__REAL_MODE__ -o $@ $<
+	@echo "Bootloader compiled successfully."
 
 # Kernel build target
-kernel: $(OUTPUT_KERNEL_DIR)/KERNEL.BIN $(OUTPUT_KERNEL_DIR)/KRNL.BIN $(OUTPUT_KERNEL_DIR)/32RTOSKRNL.BIN
-	@echo "Compiling KERNEL.BIN (real mode second stage)..."
+kernel: 
+	@echo "Compiling KERNEL.BIN (16-bit real mode second stage)..."
 	mkdir -p $(OUTPUT_KERNEL_DIR)
-	$(ASSEMBLER) -f bin $(SOURCE_KERNEL_DIR)/KERNEL_ENTRY.asm -o $(OUTPUT_KERNEL_DIR)/KERNEL.BIN
+	$(ASSEMBLER) -f bin -D__REAL_PROTECTED_MODE__ $(SOURCE_KERNEL_DIR)/KERNEL_ENTRY.asm -o $(OUTPUT_KERNEL_DIR)/KERNEL.BIN
 	@echo "KERNEL.BIN compiled successfully."
 	@size=$$(stat -c%s "$(OUTPUT_KERNEL_DIR)/KERNEL.BIN"); \
 	if [ $$size -gt 4095 ]; then \
 		echo "\033[1;33mWARNING: KERNEL.BIN size is $$size bytes, which exceeds 4095 bytes!\033[0m"; \
 	fi
 
-
-
-	@echo "Compiling 32-bit kernel entry..."
-	mkdir -p $(OUTPUT_KERNEL_DIR)
-	$(ASSEMBLER) -f bin $(SOURCE_KERNEL_DIR)/KERNEL.asm -o $(OUTPUT_KERNEL_DIR)/KRNL.BIN
-	@echo "32-bit kernel entry compiled successfully."
+	@echo "Compiling KRNL.BIN (32-bit protected mode entry)..."
+	$(ASSEMBLER) -f bin -D__PROTECTED_MODE__ $(SOURCE_KERNEL_DIR)/KERNEL.asm -o $(OUTPUT_KERNEL_DIR)/KRNL.BIN
+	@echo "KRNL.BIN compiled successfully."
 	@size=$$(stat -c%s "$(OUTPUT_KERNEL_DIR)/KRNL.BIN"); \
 	if [ $$size -gt 24000 ]; then \
 		echo "\033[1;33mWARNING: KRNL.BIN size is $$size bytes, which exceeds 24000 bytes!\033[0m"; \
 	fi
 
-	@echo "Compiling kernel..."
-	mkdir -p $(OUTPUT_KERNEL_DIR)
-	$(ASSEMBLER) -f bin $(SOURCE_KERNEL_DIR)/RTOSKRNL.asm -o $(OUTPUT_KERNEL_DIR)/32RTOSKRNL.BIN
-	@echo "Kernel compiled successfully."
+	@echo "Compiling 32RTOSKRNL.BIN (32-bit kernel)..."
+	$(ASSEMBLER) -f bin -D__PROTECTED_MODE__ $(SOURCE_KERNEL_DIR)/RTOSKRNL.asm -o $(OUTPUT_KERNEL_DIR)/32RTOSKRNL.BIN
+	@echo "32RTOSKRNL.BIN compiled successfully."
 
 	@echo "All kernel components compiled successfully."
 
+# ATOS shell (16-bit)
+shell:
+	@echo "Compiling ATOS shell (16-bit)..."
+	mkdir -p $(OUTPUT_DIR)/SHELL
+	$(ASSEMBLER) -f bin -D__PROTECTED_MODE__ $(SOURCE_DIR)/SHELL/SHELL.asm -o $(OUTPUT_DIR)/SHELL/ATSH.BIN
+	@echo "ATOS shell compiled successfully."
 
-# Bootloader build target
-bootloader: $(OUTPUT_BOOTLOADER_DIR)/BOOTLOADER.BIN
+# Compiler (16-bit)
+compiler:
+	@echo "Compiling ATLC compiler (16-bit)..."
+	mkdir -p $(OUTPUT_DIR)/ATLC
+	$(ASSEMBLER) -f bin -D__PROTECTED_MODE__ $(SOURCE_DIR)/COMPILER/COMPILER.asm -o $(OUTPUT_DIR)/ATLC/ATLC.BIN
+	@echo "ATLC compiler compiled successfully."
+
+
 
 # Build the ISO
 iso: bootloader kernel shell compiler
 	@echo "Creating ISO directory structure..."
 	mkdir -p $(INPUT_ISO_DIR)/INNER/INNER2
-	mkdir -p $(INPUT_ISO_DIR_M)
+	mkdir -p $(INPUT_ISO_DIR_SYSTEM)
+	mkdir -p $(INPUT_ISO_DIR_USER)
+	mkdir -p $(INPUT_ISO_DIR_PROGRAMS)
 	cp -f $(OUTPUT_BOOTLOADER_DIR)/BOOTLOADER.BIN $(INPUT_ISO_DIR)/BOOTLOADER.BIN
 	cp -f $(SOURCE_DIR)/INSIDE_1.txt $(INPUT_ISO_DIR)/INNER/INSIDE_1.txt
 	cp -f $(SOURCE_DIR)/BASE.txt $(INPUT_ISO_DIR)/INNER/INNER2/INSIDE_1.txt
 	cp -f $(SOURCE_DIR)/BASE.txt $(INPUT_ISO_DIR)/BASE.txt
 	cp -f $(OUTPUT_KERNEL_DIR)/KERNEL.BIN $(INPUT_ISO_DIR)/KERNEL.BIN
 	cp -f $(OUTPUT_KERNEL_DIR)/KRNL.BIN $(INPUT_ISO_DIR)/KRNL.BIN
-# 	NOTE: Add any additional files into $(INPUT_ISO_DIR_M)
-	cp -f $(OUTPUT_KERNEL_DIR)/32RTOSKRNL.BIN $(INPUT_ISO_DIR_M)/32RTOSKRNL.BIN
+# 	NOTE: Add any additional files into $(INPUT_ISO_DIR_*)
+	cp -f $(OUTPUT_KERNEL_DIR)/32RTOSKRNL.BIN $(INPUT_ISO_DIR_SYSTEM)/32RTOSKRNL.BIN
+	
+	# TODO: Copy SOURCE\PROGRAMS into $(INPUT_ISO_DIR_PROGRAMS)
+	
+
 	@echo "Building ISO..."
 	mkdir -p $(OUTPUT_ISO_DIR)
 	genisoimage -o $(OUTPUT_ISO_DIR)/$(ISO_NAME) -r -J -b BOOTLOADER.BIN -no-emul-boot $(INPUT_ISO_DIR)
