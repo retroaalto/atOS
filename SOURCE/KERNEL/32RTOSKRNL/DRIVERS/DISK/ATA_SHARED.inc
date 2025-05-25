@@ -31,27 +31,29 @@ ATA_LBA_HI EQU 5
 ATA_DRIVE_HEAD EQU 6
 ATA_COMM_REGSTAT EQU 7
 
-ATA_BASE           EQU 0x1F0 ; Base port for ATA
-ATA_PRIMARY_DATA    EQU ATA_BASE+ATA_DATA; Primary ATA port
-ATA_PRIMARY_ERR      EQU ATA_BASE+ATA_ERR ; Error register
-ATA_PRIMARY_SECCOUNT        EQU ATA_BASE+ATA_SECCOUNT  ; Sector count register
-ATA_PRIMARY_LBA_LO    EQU ATA_BASE+ATA_LBA_LO ; LBA low register
-ATA_PRIMARY_LBA_MID    EQU ATA_BASE+ATA_LBA_MID ; LBA mid register
-ATA_PRIMARY_LBA_HI   EQU ATA_BASE+ATA_LBA_HI ; LBA high register
-ATA_PRIMARY_DRIVE_HEAD EQU ATA_BASE+ATA_DRIVE_HEAD ; Drive/Head register
-ATA_PRIMARY_COMM_REGSTAT   EQU ATA_BASE+ATA_COMM_REGSTAT ; Status register
-ATA_PRIMARY_ALTSTAT_DCR  EQU 0x3F6 ; Alternate status register
+ATA_BASE                    EQU 0x1F0 ; Base port for ATA
+ATA_PRIMARY_DATA            EQU ATA_BASE + ATA_DATA; Primary ATA port
+ATA_PRIMARY_ERR             EQU ATA_BASE + ATA_ERR ; Error register
+ATA_PRIMARY_SECCOUNT        EQU ATA_BASE + ATA_SECCOUNT  ; Sector count register
+ATA_PRIMARY_LBA_LO          EQU ATA_BASE + ATA_LBA_LO ; LBA low register
+ATA_PRIMARY_LBA_MID         EQU ATA_BASE + ATA_LBA_MID ; LBA mid register
+ATA_PRIMARY_LBA_HI          EQU ATA_BASE + ATA_LBA_HI ; LBA high register
+ATA_PRIMARY_DRIVE_HEAD      EQU ATA_BASE + ATA_DRIVE_HEAD ; Drive/Head register
+ATA_PRIMARY_COMM_REGSTAT    EQU ATA_BASE + ATA_COMM_REGSTAT ; Status register
+ATA_PRIMARY_ALTSTAT_DCR     EQU 0x3F6 ; Alternate status register
 
-ATA_SECOND_BASE   EQU 0x170 ; Base port for secondary ATA
-ATA_SECONDARY_DATA    EQU ATA_SECOND_BASE +ATA_DATA; Secondary ATA port
-ATA_SECONDARY_ERR      EQU ATA_SECOND_BASE+ATA_ERR ; Error register
-ATA_SECONDARY_SECCOUNT        EQU ATA_SECOND_BASE+ATA_SECCOUNT  ; Sector count register
-ATA_SECONDARY_LBA_LO    EQU ATA_SECOND_BASE+ATA_LBA_LO ; LBA low register
-ATA_SECONDARY_LBA_MID    EQU ATA_SECOND_BASE+ATA_LBA_MID ; LBA mid register
-ATA_SECONDARY_LBA_HI   EQU ATA_SECOND_BASE+ATA_LBA_HI ; LBA high register
-ATA_SECONDARY_DRIVE_HEAD EQU ATA_SECOND_BASE+ATA_DRIVE_HEAD ; Drive/Head register
-ATA_SECONDARY_COMM_REGSTAT   EQU ATA_SECOND_BASE+ATA_COMM_REGSTAT ; Status register
-ATA_SECONDARY_ALTSTAT_DCR  EQU 0x376 ; Alternate status register
+ATA_SECONDY_BASE             EQU 0x170 ; Base port for secondary ATA
+ATA_SECONDARY_DATA          EQU ATA_SECONDY_BASE + ATA_DATA; Secondary ATA port
+ATA_SECONDARY_ERR           EQU ATA_SECONDY_BASE + ATA_ERR ; Error register
+ATA_SECONDARY_SECCOUNT      EQU ATA_SECONDY_BASE + ATA_SECCOUNT  ; Sector count register
+ATA_SECONDARY_LBA_LO        EQU ATA_SECONDY_BASE + ATA_LBA_LO ; LBA low register
+ATA_SECONDARY_LBA_MID       EQU ATA_SECONDY_BASE + ATA_LBA_MID ; LBA mid register
+ATA_SECONDARY_LBA_HI        EQU ATA_SECONDY_BASE + ATA_LBA_HI ; LBA high register
+ATA_SECONDARY_DRIVE_HEAD    EQU ATA_SECONDY_BASE + ATA_DRIVE_HEAD ; Drive/Head register
+ATA_SECONDARY_COMM_REGSTAT  EQU ATA_SECONDY_BASE + ATA_COMM_REGSTAT ; Status register
+ATA_SECONDARY_ALTSTAT_DCR   EQU 0x376 ; Alternate status register
+
+ATA_CONTROL_REG             EQU 0x206 ; Control register for ATA
 
 ;-------------------------
 ; Commands
@@ -59,7 +61,7 @@ ATA_SECONDARY_ALTSTAT_DCR  EQU 0x376 ; Alternate status register
 ATAPI_PACKET_CMD    EQU 0xA0
 ATAPI_IDENTIFY_CMD  EQU 0xA1
 ATA_IDENTIFY_CMD        EQU 0xEC ; Command to identify drive
-ATA__EXECUTE_DIAGNOSTIC EQU 0x90 ; Execute diagnostic command
+ATA_EXECUTE_DIAGNOSTIC  EQU 0x90 ; Execute diagnostic command
 
 ;-------------------------
 ; Status register bits
@@ -117,7 +119,7 @@ DETECT_ATA_TYPE:
     mov ax, [ebp-4]
     add ax, ATA_COMM_REGSTAT
     mov dx, ax
-    mov al, ATA__EXECUTE_DIAGNOSTIC
+    mov al, ATA_EXECUTE_DIAGNOSTIC
     out dx, al ; Send command
 
     mov ax, [ebp-4]
@@ -154,6 +156,8 @@ DETECT_ATA_TYPE:
     je .TYPE_ATAPI
     cmp byte [ebp-9], 0xEB
     je .TYPE_ATAPI
+    jmp .NO_DISK
+    
 .TYPE_ATAPI:
     mov ah, byte [ebp-4]
     mov al, TYPE_ATAPI

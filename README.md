@@ -1,6 +1,6 @@
 # atOS-RT - atOS Revised Technology
 
-A custom 32-bit operating system written entirely in assembly language, designed without security constraints to allow deep low-level exploration and experimentation.
+A custom 32-bit operating system written in C and assembly language, designed without security constraints to allow deep low-level exploration and experimentation.
 
 ---
 
@@ -19,14 +19,13 @@ A custom 32-bit operating system written entirely in assembly language, designed
 
 ## Overview
 
-**atOS-RT** is a 32-bit operating system built completely in **assembly language** from the ground up. This open-source project is crafted for enthusiasts and developers who want to dive deep into low-level system programming without the typical security restrictions of modern OSes. With atOS-RT, you have complete freedom to explore and modify every aspect of the system.
+**atOS-RT** is a 32-bit operating system built in **C** and **assembly language** from the ground up. This open-source project is crafted for enthusiasts and developers who want to dive deep into low-level system programming without the typical security restrictions of modern OSes. With atOS-RT, you have complete freedom to explore and modify every aspect of the system.
 
 ---
 
 ## Features
 
 * **32-bit Architecture**: Targeted specifically for 32-bit x86 processors.
-* **Pure Assembly**: Written entirely in assembly, providing unmatched control and insight into hardware interaction.
 * **Custom Programming Language**: Includes a unique integrated language for OS-level application development.
 * **No Security Constraints**: Designed for ultimate flexibility, allowing unrestricted operations—ideal for experimental and educational purposes.
 * **Open Source**: Released under the MIT License, encouraging developers to explore, contribute, and learn how operating systems function at a low level.
@@ -38,6 +37,8 @@ A custom 32-bit operating system written entirely in assembly language, designed
 Run the provided ISO image in a virtual machine environment. QEMU is recommended for simplicity, though other VMs may work.
 
 ### System Requirements
+
+Requirements for the Virtual Machine.
 
 |     | Recommended | Minimum |
 | --- | ----------- | ------- |
@@ -53,9 +54,10 @@ On Debian/Ubuntu-based systems:
 sudo apt install qemu-system-x86
 ```
 
-### Running the ISO
+### Running atOS-RT
 
-Navigate to the directory containing the ISO and run:
+
+Run atOS-RT with qemu:
 
 ```bash
 qemu-img create -f raw hdd.img 256M
@@ -65,8 +67,6 @@ qemu-system-i386 \
   -drive file=hdd.img,format=raw,if=ide,index=0,media=disk \
   -m 512
 ```
-
-This boots the OS with 512MB of RAM, the recommended setting.
 
 ---
 
@@ -135,6 +135,10 @@ You can debug atOS-RT using GDB with QEMU:
    ```
 
 ---
+
+### Documentation
+
+Find documentation in the DOCS directory and within each source directory's README.
 
 ## License
 

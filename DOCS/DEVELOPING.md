@@ -1,8 +1,12 @@
 ## Developing Your Own Programs
 
-You can develop custom programs for **atOS-RT** either directly inside the OS or externally using NASM. This section focuses on external development.
+You can develop custom programs for **atOS-RT** either directly inside the OS or externally using NASM or C. This section focuses on external development.
 
 ---
+
+### Developing Outside atOS-RT (Using C)
+
+
 
 ### Developing Outside atOS-RT (Using NASM)
 

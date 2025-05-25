@@ -20,6 +20,8 @@
 ;     Memory map at 0x9000-0xFFFF
 ;     This kernel at 0x2000-0x9000
 ;     Stack at 0x90000-0xA0000
+;
+;     Legacy... KERNEL.c is used instead of this file.
 [BITS 32]
 [org 0x2000]
 
@@ -69,7 +71,6 @@ ERROR_GENERAL:
     mov ah, 0xEC
     call print_string
     jmp HANG
-
 
 ; -----------------------
 ; Utility functions, used only in this file

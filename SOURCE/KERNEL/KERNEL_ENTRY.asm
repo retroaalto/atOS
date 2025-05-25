@@ -539,10 +539,13 @@ PModeMain:
     mov gs, ax
     mov ss, ax       ; stack segment
 
+    cli
 
     mov esp, 0x90000      ; Stack at 576KB (adjust if you want)
 
-    ; Jump to kernel at 0x200000 physical (flat)
+    ; Jump to kernel at 0x2000 (flat)
     jmp KERNEL_LOAD_ADDRESS
+
+    hlt
 hang32:
     jmp $

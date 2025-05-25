@@ -17,6 +17,8 @@
 ; 
 ; REMARKS
 ;     See .\MEMORY.md for a description of the memory regions.
+;     Legacy... MEMORY.h is used instead.
+; 
 [BITS 32]
 %ifndef MEMORY_INC
 %define MEMORY_INC

@@ -138,7 +138,7 @@ krnl_str: db "KRNL.BIN;1", KRNL_STR_LEN
 ;  uint8_t fileNameLength;        (buffer+offset+32). Length of fileIdentifier
 ;  strD fileIdentifier[1];        (buffer+offset+33). uint8_t. File name
 ;
-KERNEL_LOAD_ADDRESS EQU 0x002000
+KERNEL_LOAD_ADDRESS EQU 0x2000
 KERNEL_LOAD_SEGMENT EQU 0x2000
 KERNEL_LOAD_OFFSET EQU  0x0000
 

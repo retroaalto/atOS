@@ -13,6 +13,12 @@ INPUT_ISO_DIR  ?= ISO_DIR
 ISO_NAME      ?= atOS.iso
 IMG_NAME      ?= output.img
 
+CComp            ?= gcc
+CompArgs		 ?= -m32 -ffreestanding -fno-pic -fno-pie -nostdlib -O0	-Wall -Wextra
+LdArgs		 	?= -m elf_i386 -T 
+OBJCOPY       ?= objcopy
+Ld 		  ?= ld
+
 INPUT_ISO_DIR_SYSTEM ?= $(INPUT_ISO_DIR)/ATOS
 INPUT_ISO_DIR_USER ?= $(INPUT_ISO_DIR)/USER
 INPUT_ISO_DIR_PROGRAMS ?= $(INPUT_ISO_DIR)/PROGRAMS
@@ -44,13 +50,20 @@ kernel:
 		echo "\033[1;33mWARNING: KERNEL.BIN size is $$size bytes, which exceeds 4095 bytes!\033[0m"; \
 	fi
 
+
 	@echo "Compiling KRNL.BIN (32-bit protected mode entry)..."
-	$(ASSEMBLER) -f bin -D__PROTECTED_MODE__ $(SOURCE_KERNEL_DIR)/KERNEL.asm -o $(OUTPUT_KERNEL_DIR)/KRNL.BIN
+	
+	$(CComp) $(CompArgs) -c $(SOURCE_KERNEL_DIR)/KERNEL.c -o $(OUTPUT_KERNEL_DIR)/KRNL.o
+	$(Ld) $(LdArgs) $(SOURCE_KERNEL_DIR)/KERNEL.ld -o $(OUTPUT_KERNEL_DIR)/KRNL.elf $(OUTPUT_KERNEL_DIR)/KRNL.o 
+	$(OBJCOPY) -O binary $(OUTPUT_KERNEL_DIR)/KRNL.elf $(OUTPUT_KERNEL_DIR)/KRNL.BIN
+
 	@echo "KRNL.BIN compiled successfully."
 	@size=$$(stat -c%s "$(OUTPUT_KERNEL_DIR)/KRNL.BIN"); \
 	if [ $$size -gt 24000 ]; then \
 		echo "\033[1;33mWARNING: KRNL.BIN size is $$size bytes, which exceeds 24000 bytes!\033[0m"; \
 	fi
+
+
 
 	@echo "Compiling 32RTOSKRNL.BIN (32-bit kernel)..."
 	$(ASSEMBLER) -f bin -D__PROTECTED_MODE__ $(SOURCE_KERNEL_DIR)/RTOSKRNL.asm -o $(OUTPUT_KERNEL_DIR)/32RTOSKRNL.BIN
