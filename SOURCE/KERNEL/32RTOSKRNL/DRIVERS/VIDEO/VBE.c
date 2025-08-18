@@ -2,44 +2,50 @@
 #include "../../../../STD/MATH.h"
 
 
-BOOLEAN VBE_DRAW_FRAMEBUFFER(U32 pos, VBE_PIXEL_COLOUR colours) {
+BOOLEAN VBE_DRAW_FRAMEBUFFER(U32 pos, VBE_PIXEL_COLOUR colour) {
     VBE_MODE* mode = (VBE_MODE*)(VBE_MODE_LOAD_ADDRESS_PHYS);
     U8* framebuffer = (U8*)(mode->PhysBasePtr); // byte pointer
-    U16 color16 = colours;
-    *((U16*)(framebuffer + pos)) = color16;
+    U32 bytes_per_pixel = (mode->BitsPerPixel + 7) / 8;
+    
+    if (pos >= mode->XResolution * mode->YResolution * bytes_per_pixel) {
+        return FALSE;
+    }
+
+    switch (bytes_per_pixel) {
+        case 2: // RGB565
+            *(U16*)(framebuffer + pos) = (U16)colour;
+            break;
+        case 3: // RGB888
+            framebuffer[pos + 0] = (colour & 0xFF);        // Blue
+            framebuffer[pos + 1] = (colour >> 8) & 0xFF;   // Green
+            framebuffer[pos + 2] = (colour >> 16) & 0xFF;  // Red
+            break;
+        case 4: // RGBA8888
+            *(U32*)(framebuffer + pos) = (U32)colour;
+            break;
+        default:
+            return FALSE;
+    }
+
     return TRUE;
 }
 
 
 BOOLEAN VBE_DRAW_PIXEL(VBE_PIXEL_INFO pixel_info) {
     VBE_MODE* mode = (VBE_MODE*)(VBE_MODE_LOAD_ADDRESS_PHYS);
-    U8* framebuffer = (U8*)(mode->PhysBasePtr); // byte pointer
-    U32 pitch = mode->BytesPerScanLineLinear;
     U32 bytes_per_pixel = (mode->BitsPerPixel + 7) / 8;
 
-    if (pixel_info.X >= mode->XResolution || pixel_info.Y >= mode->YResolution) {
-        return FALSE;
-    }
-    if(
-        pixel_info.X < 0 || 
-        pixel_info.Y < 0 || 
-        pixel_info.X >= I32_MAX ||
-        pixel_info.Y >= I32_MAX
-    ) {
+    if(pixel_info.X == I32_MAX || pixel_info.Y == I32_MAX ||
+        (I32)pixel_info.X < 0 || (I32)pixel_info.Y < 0 ||
+        (U32)pixel_info.X >= mode->XResolution || (U32)pixel_info.Y >= mode->YResolution) {
         return FALSE;
     }
 
-    U32 offset = (pixel_info.Y * pitch) + (pixel_info.X * bytes_per_pixel);
-    U32* pixel_ptr = (U32*)(framebuffer + offset);
-
-    *pixel_ptr = pixel_info.Colour;
-
-    return TRUE;
+    U32 pos = (pixel_info.Y * mode->BytesPerScanLineLinear) + (pixel_info.X * bytes_per_pixel);
+    return VBE_DRAW_FRAMEBUFFER(pos, pixel_info.Colour);
 }
 
-BOOLEAN VBE_DRAW_ELLIPSE(
-    U32 x0, U32 y0, U32 a, U32 b, VBE_PIXEL_COLOUR fill_colours
-) {
+BOOLEAN VBE_DRAW_ELLIPSE(U32 x0, U32 y0, U32 a, U32 b, VBE_PIXEL_COLOUR fill_colours) {
     I32 x = 0;
     I32 y = b;
     U32 a2 = a*a;
@@ -84,37 +90,33 @@ BOOLEAN VBE_DRAW_ELLIPSE(
     return TRUE;
 }
 
-BOOLEAN VBE_DRAW_LINE(U32 x1, U32 y1, U32 x2, U32 y2, VBE_PIXEL_COLOUR colours) {
-    I32 dx = (I32)x2 - (I32)x1;
-    I32 dy = (I32)y2 - (I32)y1;
-    I32 abs_dx = abs(dx);
-    I32 abs_dy = abs(dy);
-    I32 sign_dx = (dx > 0) ? 1 : -1;
-    I32 sign_dy = (dy > 0) ? 1 : -1;
+BOOLEAN VBE_DRAW_LINE(U32 x0, U32 y0, U32 x1, U32 y1, VBE_PIXEL_COLOUR colour) {
+    I32 dx = abs((I32)x1 - (I32)x0);
+    I32 dy = abs((I32)y1 - (I32)y0);
+    I32 sx = (x0 < x1) ? 1 : -1;
+    I32 sy = (y0 < y1) ? 1 : -1;
+    I32 err = dx - dy;
 
-    if (abs_dx > abs_dy) {
-        I32 d = abs_dx / 2;
-        for (I32 x = x1, y = y1; x != x2; x += sign_dx) {
-            d += abs_dy;
-            if (d >= abs_dx) {
-                d -= abs_dx;
-                y += sign_dy;
-            }
-            VBE_DRAW_PIXEL(CREATE_VBE_PIXEL_INFO(x, y, colours));
+    I32 x = (I32)x0;
+    I32 y = (I32)y0;
+
+    while (1) {
+        if(!VBE_DRAW_PIXEL(CREATE_VBE_PIXEL_INFO(x, y, colour))) return FALSE;
+        if (x == (I32)x1 && y == (I32)y1) break;
+        I32 e2 = 2 * err;
+        if (e2 > -dy) {
+            err -= dy;
+            x += sx;
         }
-    } else {
-        I32 d = abs_dy / 2;
-        for (I32 x = x1, y = y1; y != y2; y += sign_dy) {
-            d += abs_dx;
-            if (d >= abs_dy) {
-                d -= abs_dy;
-                x += sign_dx;
-            }
-            VBE_DRAW_PIXEL(CREATE_VBE_PIXEL_INFO(x, y, colours));
+        if (e2 < dx) {
+            err += dx;
+            y += sy;
         }
     }
+
     return TRUE;
 }
+
 
 
 
@@ -124,12 +126,14 @@ BOOLEAN VBE_DRAW_RECTANGLE(U32 x, U32 y, U32 width, U32 height, VBE_PIXEL_COLOUR
         return TRUE;
     }
 
-    VBE_DRAW_LINE(x, y, width, y, colours);
-    // VBE_DRAW_LINE(width, y, width, height, colours);
-    // VBE_DRAW_LINE(width, height, x, height, colours);
-    // VBE_DRAW_LINE(x, height, x, y, colours);
+    U32 errcnt = 0;
 
-    return TRUE;
+    if(!VBE_DRAW_LINE(x, y, width, y, colours)) errcnt++;
+    if(!VBE_DRAW_LINE(width, y, width, height, colours)) errcnt++;
+    if(!VBE_DRAW_LINE(width, height, x, height, colours)) errcnt++;
+    if(!VBE_DRAW_LINE(x, height, x, y, colours)) errcnt++;
+
+    return errcnt == 0;
 }
 BOOLEAN VBE_DRAW_TRIANGLE(U32 x1, U32 y1, U32 x2, U32 y2, U32 x3, U32 y3, VBE_PIXEL_COLOUR colours) {
     I32 _ = x1+y1-x2-y2+x3-y3+colours;

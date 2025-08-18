@@ -22,8 +22,9 @@ REMARKS
     Access VBE struct at memory address VBE_MODE_LOAD_ADDRESS_PHYS,
         or use macro GET_VBE_MODE()
 
-    Although VBE 116h, 1024x768x32 should be common, it is not always supported.
-    Use the 5:6:5 colour format and its macros instead.
+    OS runs in VBE 116h, 1024x768x32bpp.
+     Although allowing 32-bit real colours,
+     use the 5:6:5 colour format and its macros.
 
     When compiling include VBE.c and VESA.c
     
