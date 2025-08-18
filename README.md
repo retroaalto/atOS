@@ -90,18 +90,6 @@ sudo apt install qemu-system-x86 nasm make gcc genisoimage
 | gcc             | Toolchain for utility programs |
 | genisoimage     | ISO file generation            |
 
-For advanced debugging (not recommended due to the OS's raw binary nature):
-
-```bash
-sudo apt install gdb bochs bochs-x
-```
-
-| Tool    | Purpose                |
-| ------- | ---------------------- |
-| gdb     | Debugger               |
-| bochs   | x86 emulator/debugger  |
-| bochs-x | GUI frontend for bochs |
-
 ### Building
 
 The project uses `make` with convenient targets.
@@ -120,19 +108,7 @@ The project uses `make` with convenient targets.
 
 ### Debugging
 
-You can debug atOS-RT using GDB with QEMU:
-
-1. **Build and start in debug mode:**
-
-   ```bash
-   make iso debug
-   ```
-
-2. **Launch GDB with config:**
-
-   ```bash
-   gdb -x ./.gdbinit
-   ```
+Not needed. Not supported. Print to screen.
 
 ---
 
