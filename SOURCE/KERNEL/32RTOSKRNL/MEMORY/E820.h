@@ -1,0 +1,1 @@
+#define E820_TABLE_PHYS   0x8000u

@@ -18,6 +18,11 @@
 ;         Sets up memory using E820h
 ;     2025/5/21  - Antonako1
 ;         Jumps to KRNL.BIN;1
+;     2025/08/18 - Antonako1
+;         Contains VESA info display function.
+;         VESA initialization and mode setting.
+;         Reads E820 memory map and stores it in a table.
+;         Initializes GDT and IDT into memory correctly
 ;
 ; REMARKS
 ;     None
@@ -49,18 +54,52 @@ start:
     ; %%%%%%%%%%%%%%%%%%%%%%%%%%%
     ; VESA/VBE initialization
     ; %%%%%%%%%%%%%%%%%%%%%%%%%%%
+    ; Get VESA controller info
     mov ax, VESA_LOAD_SEGMENT
     mov es, ax
     mov di, VESA_LOAD_OFFSET
-    mov ax, 4f01h
-    mov cx, 117h
+    mov ax, 4F00h
     int 10h
-    cmp al, 4fh
+    cmp al, 4Fh
     jne VESA_ERROR2
     cmp ah, 0
     jne VESA_ERROR1
 
-    
+    ; Set VBE mode
+
+    ; Get VBE mode info
+    mov cx, VESA_TARGET_MODE
+    mov ax, VESA_LOAD_SEGMENT
+    mov es, ax
+    mov di, VBE_MODE_OFFSET
+    mov ax, 4F01h
+    int 10h
+    cmp al, 4Fh
+    jne VESA_ERROR2
+    cmp ah, 0
+    jne VESA_ERROR1
+
+    ; mov ax, 4F02h              ; VBE: Set VBE Mode
+    ; mov bx, 0x4000 | VESA_TARGET_MODE  ; Bit 14 = 1, mode = 0x117
+    ; int 10h
+    ; cmp al, 4Fh
+    ; jne VESA_ERROR2              ; Check for error
+    ; cmp ah, 0
+    ; jne VESA_ERROR1              ; Check for error
+
+    ; mov ax, 4F03h
+    ; int 10h
+    ; cmp al, 4Fh
+    ; jne VESA_ERROR2
+    ; cmp ah, 0
+    ; jne VESA_ERROR1
+
+    ; ; BX now has mode + flags
+    ; mov dx, bx
+    ; and dx, 1FFFh          ; keep only bits 0–12 = pure mode number
+    ; cmp dx, VESA_TARGET_MODE
+    ; jne VESA_ERROR1
+
 
     ;%%%%%%%%%%%%%%%%%%%%%%%%%
     ; Set up memory
@@ -258,10 +297,7 @@ start:
 .TRY_AH88h:
     ;TODO.
 
-.A20_LINE:
-    in al, 0x92
-    or al, 2
-    out 0x92, al
+
 .FIND_KERNEL:
     ; Read KRNL.BIN from disk, load it into memory and jump to it
     ;
@@ -449,20 +485,20 @@ KRNL_TO_MEMORY:
     mov si, msg_kernel_end
     call PRINTLN
     popa 
+
 START_32BIT_PROTECTED_MODE:
-    ; Start the 32-bit protected mode
-    lgdt [gdtr]    ; load GDT register with start address of Global Descriptor Table
-    mov eax, cr0 
-    or al, 1       ; set PE (Protection Enable) bit in CR0 (Control Register 0)
-    ;or eax, 1
+    cli 
+    ; --- Load GDT ---
+    lgdt [gdtr]
+
+    ; --- Enter protected mode ---
+    ; Set PE (Protection Enable) bit in CR0
+    mov eax, cr0
+    or eax, 1           ; set PE bit
     mov cr0, eax
 
-    lidt [IDTR]
-
-    ; Perform far jump to selector 08h (offset into GDT, pointing at a 32bit PM code segment descriptor) 
-    ; to load CS with proper PM32 descriptor)
-    jmp 08h:PModeMain
-
+    ; --- Far jump to reload CS with protected mode selector ---
+    jmp 08h:PModeMain       ; 08h = code segment in GDT
 
 hang:
     mov si, msg_hng_1
@@ -532,6 +568,11 @@ VESA_ERROR2:
 ; Protected mode main 
 [BITS 32]
 PModeMain:
+    ; --- Load IDT ---
+    lidt [IDTR]
+
+
+
     mov ax, 0x10     ; data segment selector (GDT entry #2)
     mov ds, ax
     mov es, ax
@@ -540,12 +581,12 @@ PModeMain:
     mov ss, ax       ; stack segment
 
     cli
-
     mov esp, 0x90000      ; Stack at 576KB (adjust if you want)
 
     ; Jump to kernel at 0x2000 (flat)
     jmp KERNEL_LOAD_ADDRESS
 
-    hlt
+    jmp hang32
 hang32:
+    ;print q into video memory
     jmp $

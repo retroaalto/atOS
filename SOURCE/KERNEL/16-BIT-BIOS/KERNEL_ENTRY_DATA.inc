@@ -156,14 +156,77 @@ extentLengthLE_KRNL: dd 0
 offset_var: dd 0
 name_buf: db _MAX_PATH
 buffer_var: dd 0
+RETRY_COUNT_MAX equ 3 ; Maximum number of retries for reading files
+retry_count db 0 ; retry count for reading files
 
 
 ; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ; VESA/VBE information
 ; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-VESA_LOAD_ADDRESS EQU 0x00009000
 VESA_LOAD_SEGMENT EQU 0x9000
-VESA_LOAD_OFFSET EQU  0x0000
-VESA_SIZE EQU 0x100
+VESA_LOAD_OFFSET  EQU 0x0000
+
+; VESA controller info buffer (512 bytes)
+VESA_CTRL_SIZE    EQU 512
+
+; VBE mode info buffer immediately after VESA controller info
+VBE_MODE_OFFSET   EQU VESA_LOAD_OFFSET + VESA_CTRL_SIZE
+VBE_MODE_SIZE     EQU 256          ; typical size for mode info structure
+
+VESA_TARGET_MODE  EQU 0x114        ; the video mode you want
+
+
+; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+; GDT/IDT
+; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+GDT_SEGMENT EQU 0x9300
+GDT_OFFSET  EQU 0x0000
+GDT_SIZE    EQU 40             ; 5 entries × 8 bytes each
+
+IDT_SEGMENT EQU 0x9400
+IDT_OFFSET  EQU 0x0000
+IDT_SIZE    EQU 2048           ; 256 entries × 8 bytes each
+
+
+GDT_PTR:
+    dw GDT_SIZE-1      ; limit (size-1)
+    dd GDT_SEGMENT     ; base address
+GDT_PTR_END:
+
+gdt_start:
+    dd 0x0                ; Null descriptor
+    dd 0x0
+
+    dd 0x0000FFFF         ; Code segment descriptor (base=0, limit=4GB)
+    dd 0x00CF9A00
+
+    dd 0x0000FFFF         ; Data segment descriptor (base=0, limit=4GB)
+    dd 0x00CF9200
+
+gdt_end:
+
+
+; ----------------------------------------
+; GDTR - GDT register structure
+; ----------------------------------------
+gdtr:
+    dw gdt_end - gdt_start - 1     ; GDT size (limit)
+    dd gdt_start                   ; GDT base address
+
+
+IDT_PTR:
+    dw IDT_SIZE-1
+    dd IDT_SEGMENT
+IDT_PTR_END:
+
+IDT:
+    times 256 dq 0                 ; Fill with 0s for now (256 entries x 8 bytes)
+
+IDT_end:
+
+IDTR:
+    dw IDT_end - IDT - 1           ; Limit
+    dd IDT                         ; Base
+
 
 %endif ;KERNEL_ENTRY_DATA

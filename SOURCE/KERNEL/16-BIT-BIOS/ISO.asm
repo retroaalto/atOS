@@ -57,69 +57,78 @@ CALCULATE_KRNL_SEGMENT:
 ; eax READ_DISK(eax LBA, cx sectors, dx:bx buffer)
 ;
 ; Descrition:
-;     Reads sectors from the disk into the buffer.
-;     The function will return 0 if the read was successful, or an error code if it failed.
+; Reads sectors from the disk into the buffer.
+; The function will return 0 if the read was successful, or an error code if it failed.
 ;
 ; Parameters:
-;     eax - LBA of the first sector to read
-;     cx - number of sectors to read
-;     bx - Buffer offset
-;     dx - Buffer segment
+; eax - LBA of the first sector to read
+; cx - number of sectors to read
+; bx - Buffer offset
+; dx - Buffer segment
 ;
 ; Return:
-;     eax - 0 if the read was successful, or an error code if it failed.
+; eax - 0 if the read was successful, or an error code if it failed.
 READ_DISK:
     pusha
     mov si, DAP
-    mov byte [si], 0x10 ; Drive number
-    mov byte [si+1], 0                  ; Reserved
-    mov word [si+2], cx ; Number of sectors to read
-    mov word [si+4], bx ; Buffer offset
-    mov word [si+6], dx ; Buffer segment
-    mov dword [si+8], eax ; LBA of the first sector to read
+    mov byte [si], 0x10      ; Drive number
+    mov byte [si+1], 0       ; Reserved
+    mov word [si+2], cx      ; Number of sectors to read
+    mov word [si+4], bx      ; Buffer offset
+    mov word [si+6], dx      ; Buffer segment
+    mov dword [si+8], eax    ; LBA of the first sector to read
 
-    mov dl, [drive_number] ; Drive number
-    mov ah, 0x42 ; Read disk sectors
-    int 0x13 ; Call BIOS interrupt
-    jc .error ; If carry flag is set, there was an error
+    mov byte [retry_count], RETRY_COUNT_MAX ; Max retries
+.try:
+    mov dl, [drive_number]    ; Drive number
+    mov ah, 0x42              ; Extended Read
+    int 0x13                  ; Call BIOS
+    jc .error                 ; Jump if carry flag set (error)
+
     popa
-    xor eax, eax ; Clear eax
+    xor eax, eax              ; Success
     ret
+
 .error:
+    dec byte [retry_count]
+    jnz .try                  ; Retry if retries remain
+
     popa
-    mov eax, 0xFFFF ; Set ax to error code
+    mov eax, 0xFFFF           ; Failure
     ret
+
+
 
 ; eax READ_DISK_W(eax = LBA, cx = sectors, ebx = linear address)
 ; Returns:
 ;     eax = 0 on success, 0xFFFF on error
 
-READ_DISK_W:
-    pusha
+; READ_DISK_W:
+;     pusha
 
-    ; Prepare Disk Address Packet (DAP)
-    mov si, DAP
-    mov byte [si], 0x10            ; Size of DAP (must be 0x10, not "drive number"!)
-    mov byte [si+1], 0             ; Reserved
-    mov word [si+2], cx            ; Number of sectors to read
-    mov dword [si+4], ebx          ; 32-bit buffer pointer (flat memory address)
-    mov dword [si+8], eax          ; 64-bit LBA - lower 32 bits
-    mov dword [si+12], 0           ; LBA high 32 bits = 0 (assuming LBA < 2TB)
+;     ; Prepare Disk Address Packet (DAP)
+;     mov si, DAP
+;     mov byte [si], 0x10            ; Size of DAP (must be 0x10, not "drive number"!)
+;     mov byte [si+1], 0             ; Reserved
+;     mov word [si+2], cx            ; Number of sectors to read
+;     mov dword [si+4], ebx          ; 32-bit buffer pointer (flat memory address)
+;     mov dword [si+8], eax          ; 64-bit LBA - lower 32 bits
+;     mov dword [si+12], 0           ; LBA high 32 bits = 0 (assuming LBA < 2TB)
 
-    ; Read via BIOS
-    mov dl, [drive_number]         ; BIOS drive number (e.g. 0x80 for HDD)
-    mov ah, 0x42                   ; Extended Read
-    int 0x13
-    jc .error                      ; Carry flag set = error
+;     ; Read via BIOS
+;     mov dl, [drive_number]         ; BIOS drive number (e.g. 0x80 for HDD)
+;     mov ah, 0x42                   ; Extended Read
+;     int 0x13
+;     jc .error                      ; Carry flag set = error
 
-    popa
-    xor eax, eax                   ; Return 0 on success
-    ret
+;     popa
+;     xor eax, eax                   ; Return 0 on success
+;     ret
 
-.error:
-    popa
-    mov eax, 0xFFFF                ; Return error code
-    ret
+; .error:
+;     popa
+;     mov eax, 0xFFFF                ; Return error code
+;     ret
 
 
 ; eax READ_DISK_SECTORS(ax extent_length)

@@ -328,7 +328,7 @@ PRINT_HEX:
     push eax
     mov al, '0'
     call PUTCHAR
-    mov al, 'x'
+    mov al, 'X'
     call PUTCHAR
     pop eax
 
