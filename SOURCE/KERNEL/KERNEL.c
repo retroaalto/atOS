@@ -21,8 +21,12 @@ REVISION HISTORY
 REMARKS
     None
 ---*/
+#define KERNEL_ENTRY
 #include "./32RTOSKRNL/KERNEL.h"
 #include "./32RTOSKRNL/DRIVERS/VIDEO/VBE.h"
+#include "./32RTOSKRNL/MEMORY/E820.h"
+#include "./32RTOSKRNL/MEMORY/GDT_IDT.h"
+
 
 volatile U32 CURSOR = 0; // Defined in VESA.h
 volatile U32 VIDEO_MODE = 0; // Defined in VESA.h
@@ -99,56 +103,6 @@ void print_label_hex(const char* label, U32 value) {
 
 
 
-
-#define E820_TABLE_PHYS   0x8000u
-
-
-/* -------------------- Inspectors -------------------- */
-// typedef struct __attribute__((packed)) _GDTR32 {
-//     U16 limit;
-//     U32 base;
-// } GDTR32;
-
-// static void show_gdt_info(void) {
-//     GDTR32 gdtr;
-//     __asm__ volatile ("sgdt %0" : "=m"(gdtr));
-//     print_string("[GDT]\n");
-//     print_label_hex("  GDTR.limit", (U32)gdtr.limit);
-//     print_label_hex("  GDTR.base ", gdtr.base);
-// }
-
-typedef struct __attribute__((packed)) _E820_ENTRY {
-    U32 BaseAddressLow;
-    U32 BaseAddressHigh;
-    U32 LengthLow;
-    U32 LengthHigh;
-    U32 Type;
-} E820_ENTRY;
-
-static void show_e820_sample(void) {
-    print_string("[E820]\n");
-    E820_ENTRY* e = (E820_ENTRY*)(E820_TABLE_PHYS);
-
-    if (e->LengthLow==0 && e->LengthHigh==0 && e->BaseAddressLow==0 && e->BaseAddressHigh==0) {
-        print_string("  No E820 entries at 0x00008000\n");
-        return;
-    }
-
-    U32 entry_count = 0;
-    while(e->LengthLow || e->LengthHigh || e->BaseAddressLow || e->BaseAddressHigh) {
-        print_label_u32("  E820 Entry", entry_count++);
-        print_label_hex("    Base Address", (U32)e->BaseAddressLow);
-        print_label_hex("    Length", (U32)e->LengthLow);
-        print_label_hex("    Type", e->Type);
-        e++;
-    }
-}
-
-
-
-
-
-
 __attribute__((noreturn))
 void kernel_entry_main(U0) {
     clear_screen();
@@ -165,39 +119,40 @@ void kernel_entry_main(U0) {
     if(!vbe_check()) {
         goto HALT_KRNL_ENTRY;
     }
+    // TODO: E820
+    // TODO: GDT/IDT
 
 
 HALT_KRNL_ENTRY:
     VBE_MODE* mode = (VBE_MODE*)(VBE_MODE_LOAD_ADDRESS_PHYS);
-    U8* framebuffer = (U8*)(mode->PhysBasePtr); // byte pointer
-    U32 pitch = mode->BytesPerScanLineLinear;
-    U32 bytes_per_pixel = (mode->BitsPerPixel + 7) / 8;
 
-    while(1) {
-        for(U32 y=0; y<mode->YResolution; y++) {
-            for(U32 x=0; x<mode->XResolution; x++) {
-                U32 offset = y * mode->BytesPerScanLineLinear + x * bytes_per_pixel;
-                // if(mode->BitsPerPixel >= 1) {
-                    // framebuffer[offset] = VBE_COLOUR32(0x12, 0x12, 0x12, 0xFF) & 0xFF;
-                // } 
-                // else if(mode->BitsPerPixel == 16 || mode->BitsPerPixel == 15) {
-                    // *((U16*)(framebuffer + offset)) = _565_COLOUR(0x12, 0x12, 0x12); // Cyan in 5:6:5 format
-                // }
-
-                VBE_DRAW_FRAMEBUFFER(
-                    offset, 
-                    CREATE_VBE_PIXEL_COLOURS(
-                        VBE_COLOUR(
-                            0xFF, 0x00, 0xFF
-                        )
-                    ));
-                // VBE_DRAW_PIXEL(VBE_PIXEL_INFO_INIT(x, y, 0x12, 0x12, 0x12, 0xFF));
+    for(U32 y=0; y<mode->YResolution; y++) {
+        for(U32 x=0; x<mode->XResolution; x++) {
+            if(x % 2 == 0 && y % 2 == 0) {
+                VBE_DRAW_PIXEL(CREATE_VBE_PIXEL_INFO(x, y, VBE_YELLOW));
+            } else if(x % 2 == 1 && y % 2 == 1) {
+                VBE_DRAW_PIXEL(CREATE_VBE_PIXEL_INFO(x, y, VBE_GREEN));
+            } else {
+                VBE_DRAW_PIXEL(CREATE_VBE_PIXEL_INFO(x, y, VBE_BLACK));
             }
         }
     }
+    VBE_DRAW_ELLIPSE(mode->XResolution / 2, mode->YResolution / 2, mode->XResolution / 2, mode->YResolution / 2, VBE_BLACK);
+    VBE_DRAW_ELLIPSE(100, 100, 90, 90, VBE_WHITE);
+    VBE_DRAW_ELLIPSE(100, 100, 80, 80, VBE_BLACK);
+    VBE_DRAW_ELLIPSE(100, 100, 70, 70, VBE_WHITE);
+    VBE_DRAW_ELLIPSE(100, 100, 60, 60, VBE_BLACK);
+    VBE_DRAW_ELLIPSE(100, 100, 50, 50, VBE_WHITE);
+    VBE_DRAW_ELLIPSE(100, 100, 40, 40, VBE_BLACK);
+    VBE_DRAW_ELLIPSE(100, 100, 30, 30, VBE_WHITE);
+    VBE_DRAW_ELLIPSE(100, 100, 20, 20, VBE_BLACK);
+    VBE_DRAW_ELLIPSE(100, 100, 10, 10, VBE_RED);
 
 
-
+    VBE_DRAW_LINE(0, 0, 700, 500, VBE_RED);
+    // VBE_DRAW_LINE_THICKNESS(0, 0, 700, 500, VBE_RED, 5);
+    // VBE_DRAW_RECTANGLE(50, 50, 100, 100, VBE_BLUE);
+    // VBE_DRAW_TRIANGLE(100, 100, 150, 100, 125, 50, VBE_RED);
 
     print_string("Kernel entry point completed. Halting CPU...\n");
     while (1) {

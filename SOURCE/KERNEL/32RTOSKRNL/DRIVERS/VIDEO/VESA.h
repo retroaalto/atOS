@@ -44,6 +44,9 @@ REMARKS
 #define VESA_H
 #include "../../../../STD/ATOSMINDEF.h" // TYPE DEFINITIONS
 
+#define RM2LA(seg, off)  (((U32)(seg) << 4) + (U32)(off))
+#define FAR_PTR_TO_LINEAR(ptr)  RM2LA(((ptr) >> 16) & 0xFFFF, (ptr) & 0xFFFF)
+
 /*+++
 external definitions
 ---*/
@@ -86,20 +89,27 @@ typedef struct {
 #define VESA_TARGET_MODE 0x116 // 1024x768x32bpp
 
 static inline BOOL vesa_check(void) {
+    #ifdef KERNEL_ENTRY
     print_string("[VESA]\n");
+    #endif
     VESA_INFO* vesa = (VESA_INFO*)(VESA_LOAD_ADDRESS_PHYS);
     // Check signature
     if (vesa->Signature[0] != 'V' || vesa->Signature[1] != 'E' ||
         vesa->Signature[2] != 'S' || vesa->Signature[3] != 'A') {
+        #ifdef KERNEL_ENTRY
         print_label_hex("No VESA Signature at", VESA_LOAD_ADDRESS_PHYS);
+        #endif
         return FALSE;
     }
     
     // print_string_len_label("  Signature", vesa->Signature, 4);
     if (vesa->Version < 0x0200) {
+        #ifdef KERNEL_ENTRY
         print_string("  VESA version is too low, expected at least 2.0\n");
+        #endif
         return FALSE;
     }
+    #ifdef KERNEL_ENTRY
     print_label_hex("  VESA Version", vesa->Version);
     print_label_hex("  OEM String Pointer", vesa->OEMStringPtr);
     print_label_hex("  Capabilities", vesa->Capabilities);
@@ -109,36 +119,40 @@ static inline BOOL vesa_check(void) {
     U32 oem_vendor_ptr = vesa->OemVendorNamePtr;
     U32 linear_vendor  = FAR_PTR_TO_LINEAR(oem_vendor_ptr);
     print_string_len_label("  Oem Vendor Name", (CONST CHAR*)linear_vendor, 32);
-
+    
     // OEM Product Name
     U32 oem_product_ptr = vesa->OemProductNamePtr;
     U32 linear_product  = FAR_PTR_TO_LINEAR(oem_product_ptr);
     print_string_len_label("  Oem Product Name", (CONST CHAR*)linear_product, 32);
-
+    
     // OEM Product Revision
     U32 oem_rev_ptr = vesa->OemProductRevPtr;
     U32 linear_rev  = FAR_PTR_TO_LINEAR(oem_rev_ptr);
     print_string_len_label("  Oem Product Revision", (CONST CHAR*)linear_rev, 32);
-
+    #endif
+    
     U16 far_off_ptr = (U16)(vesa->VideoModePtr & 0xFFFF);
     U16 far_seg_ptr = (U16)((vesa->VideoModePtr >> 16) & 0xFFFF);
-
+    #ifdef KERNEL_ENTRY
     print_label_hex("  far_off_ptr", far_off_ptr);
     print_label_hex("  far_seg_ptr", far_seg_ptr);
-
+    #endif
     U32 linear_addr = RM2LA(far_seg_ptr, far_off_ptr);
-
+    #ifdef KERNEL_ENTRY
     print_label_hex("  Video Modes (raw far pointer)", vesa->VideoModePtr);
     print_label_hex("  Linear Address", linear_addr);
-
+    #endif
     U16 *mode_list = (U16*)linear_addr;
     for (int i = 0; mode_list[i] != 0xFFFF; i++) {
         if(mode_list[i] == VESA_TARGET_MODE) {
+            #ifdef KERNEL_ENTRY
             print_string("  Found target VESA mode 0x116 (1024x768x32bpp)\n");
+            #endif
+            return TRUE;
             break;
         }
     }
-    return TRUE;
+    RETURN FALSE;
 }
 
 #endif
