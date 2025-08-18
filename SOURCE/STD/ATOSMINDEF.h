@@ -19,6 +19,7 @@
 #define ENUM         enum
 #define INLINE       inline
 #define ASM          __asm__
+#define RETURN       return
 
 #define CONST        const
 #define VOLATILE    volatile
