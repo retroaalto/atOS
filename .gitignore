@@ -8,3 +8,4 @@
 *.log
 *.out
 ISO_DIR/
+build/
