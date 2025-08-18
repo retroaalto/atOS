@@ -100,7 +100,8 @@ iso: bootloader kernel
 # Run ISO in QEMU
 run: iso
 	@echo "Running ISO in QEMU..."
-	qemu-system-i386 -vga std -boot d -cdrom $(OUTPUT_ISO_DIR)/$(ISO_NAME) -m 512
+	qemu-img create -f raw hdd.img 256M
+	qemu-system-i386 -vga std -boot d -cdrom $(OUTPUT_ISO_DIR)/$(ISO_NAME) -m 512 -drive file=hdd.img,format=raw,if=ide,index=0,media=disk
 
 # Clean
 clean:
