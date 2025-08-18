@@ -10,7 +10,7 @@ DESCRIPTION
 
 AUTHORS
     Antonako1
-
+    
 REVISION HISTORY
     2025/05/26 - Antonako1
         Initial version. Switched from KERNEL.asm to KERNEL.c.
