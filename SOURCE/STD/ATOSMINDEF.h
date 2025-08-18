@@ -9,6 +9,17 @@
 #define ATOSMINDEF_H
 
 // Keywords
+#define STATIC       static
+#define EXTERN       extern
+#define AUTO         auto
+#define REGISTER     register
+#define TYPEDEF      typedef
+#define STRUCT       struct
+#define UNION        union
+#define ENUM         enum
+#define INLINE       inline
+#define ASM          __asm__
+
 #define CONST        const
 #define VOLATILE    volatile
 #define INLINE       inline
@@ -16,6 +27,7 @@
 #define NULL         ((void*)0)
 #define NULLPTR      ((void*)0)
 #define VOID         void
+#define VOIDPTR     void*
 // Integer definitions
 typedef VOID         U0;
 typedef signed char   I8;
@@ -30,6 +42,7 @@ typedef float         F32;
 
 // Boolean definitions
 #define BOOL         U32
+#define BOOLEAN      BOOL
 #define TRUE         1
 #define FALSE        0
 
