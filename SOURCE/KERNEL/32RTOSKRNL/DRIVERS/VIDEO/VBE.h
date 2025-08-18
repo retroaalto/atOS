@@ -18,62 +18,60 @@ REVISION HISTORY
 REMARKS
     Dependant on VESA.h for VESA_INFO structure and constants.
     Use this header to include VBE mode definitions in your application.
+
+    Access VBE struct at memory address VBE_MODE_LOAD_ADDRESS_PHYS.
 ---*/
 #ifndef VBE_H
 #define VBE_H
 
 #include "./VESA.h"
 
-/*+++
-
-    VESA Pixel Access Macros
-    These macros allow easy access to pixel data in VBE modes.
-    Mode: VBE_MODE
-    x: X coordinate of the pixel
-    y: Y coordinate of the pixel
-    Usage:
-        VBE_PIXEL_PTR(mode, x, y) - Returns a pointer to the pixel at (x, y) in the specified mode.
-    Example:
-        U32 *pixel = VBE_PIXEL_PTR(mode, 100, 200);
-        *pixel = 0x00FF00; // Set pixel to green
-
----*/
-#define VBE_PIXEL_PTR(mode, x, y) \
-    ((U32*)((U8*)(mode)->PhysBasePtr + ((y) * (mode)->XResolution + (x)) * 4))
-
-#define VBE_COLOUR(r, g, b) \
-    ((U32)((((r) & 0xFF) << 16) | (((g) & 0xFF) << 8) | ((b) & 0xFF)))
-
-#define VBE_COORDS(x, y) \
-    ((U32)((((y) & 0xFFFF) << 16) | ((x) & 0xFFFF)))
-
-#define VBE_COLOUR_COORDS(x, y, r, g, b) \
-    ((U32)((((y) & 0xFFFF) << 16) | ((x) & 0xFFFF) | \
-    (((r) & 0xFF) << 24) | (((g) & 0xFF) << 16) | ((b) & 0xFF)))
-    
-#define VBE_SET_PIXEL(mode, x, y, color) \
-    *(VBE_PIXEL_PTR(mode, x, y)) = (color)
-
 #define VBE_MODE_OFFSET VESA_LOAD_ADDRESS_PHYS + VESA_CTRL_SIZE
 #define VBE_MODE_LOAD_ADDRESS_PHYS VBE_MODE_OFFSET
 #define VBE_MODE_SIZE 256
-#define VESA_TARGET_MODE 0x117 // 1024x768x32bpp
 
-#define VBE_OFF_X_RESOLUTION       0x12
-#define VBE_OFF_Y_RESOLUTION       0x14
-#define VBE_OFF_BITS_PER_PIXEL     0x19
-#define VBE_OFF_PHYS_BASE_PTR      0x28
+// 5:6:5 color format
+#define VBE_COLOUR(r, g, b) \
+    ((U16)((((r) & 0xF8) << 8) | (((g) & 0xFC) << 3) | ((b) >> 3)))
 
-// Colours
-#define VBE_COLOUR_BLACK   0x000000
-#define VBE_COLOUR_WHITE   0xFFFFFF
-#define VBE_COLOUR_RED     0xFF0000
-#define VBE_COLOUR_GREEN   0x00FF00
-#define VBE_COLOUR_BLUE    0x0000FF
-#define VBE_COLOUR_YELLOW  0xFFFF00
-#define VBE_COLOUR_CYAN    0x00FFFF
+#define VBE_COLOUR_RED   VBE_COLOUR(255, 0, 0) // Red in 5:6:5 format
+#define VBE_COLOUR_GREEN VBE_COLOUR(0, 255, 0) // Green in 5:6:5 format
+#define VBE_COLOUR_BLUE  VBE_COLOUR(0, 0, 255) // Blue in 5:6:5 format
+
+// 32-bit color format
+#define VBE_COLOUR32(r, g, b, a) \
+    ((U32)((((r) & 0xFF) << 16) | (((g) & 0xFF) << 8) | ((b) & 0xFF) | (((a) & 0xFF) << 24)))
+
+#define VBE_COLOUR_RED_32   VBE_COLOUR32(255, 0, 0) // Red in 32-bit format
+#define VBE_COLOUR_GREEN_32 VBE_COLOUR32(0, 255, 0) // Green in 32-bit format
+#define VBE_COLOUR_BLUE_32  VBE_COLOUR32(0, 0, 255) // Blue in 32-bit format
+
+typedef struct {
+    U8 RED;
+    U8 GREEN;
+    U8 BLUE;
+    U8 ALPHA;
+} __attribute__((packed)) VBE_PIXEL_COLOURS;
+
+// Creates colour structure for 32-bit colouring. Use VBE_COLOUR32
+#define CREATE_VBE_PIXEL_COLOURS32(colour) \
+    ((VBE_PIXEL_COLOURS){(U8)((colour) >> 16), (U8)((colour) >> 8), (U8)(colour), (U8)((colour) >> 24)})
+
+// Creates colour structure for 16-bit colouring. Use VBE_COLOUR
+#define CREATE_VBE_PIXEL_COLOURS(colour) \
+    ((VBE_PIXEL_COLOURS){(U8)((colour) >> 8), (U8)(colour), 0xFF})
+
+typedef struct {
+    U32 X;
+    U32 Y;
+    VBE_PIXEL_COLOURS Colour;
+} VBE_PIXEL_INFO;
+
+#define CREATE_VBE_PIXEL_INFO(x, y, r, g, b, a) \
+    ((VBE_PIXEL_INFO){(U32)(x), (U32)(y), CREATE_VBE_PIXEL_COLOURS32(VBE_COLOUR32(r, g, b, a))})
 
 
+/// @brief VESA BIOS Extensions (VBE) mode information
 typedef struct {
     U16 ModeAttributes;      // Mode attributes (bit flags)
     U8  WinAAttributes;      // Window A attributes
@@ -85,6 +83,7 @@ typedef struct {
     U32 WinFuncPtr;          // Real mode pointer to window function
     U16 BytesPerScanLine;    // Bytes per scan line
 
+    /* remainder is optional for VESA modes in v1.0/1.1, needed for OEM modes */
     U16 XResolution;         // Horizontal resolution in pixels
     U16 YResolution;         // Vertical resolution in pixels
     U8  XCharSize;           // Character cell width
@@ -97,6 +96,7 @@ typedef struct {
     U8  NumberOfImagePages;  // Number of images
     U8  Reserved1;           // Reserved
 
+    /* VBE 1.2+ */
     U8  RedMaskSize;         // # of bits for red
     U8  RedFieldPosition;    // Position of red
     U8  GreenMaskSize;      // # of bits for green
@@ -105,14 +105,52 @@ typedef struct {
     U8  BlueFieldPosition;   // Position of blue
     U8  RsvMaskSize;         // # of bits for reserved
     U8  RsvFieldPosition;    // Position of reserved
+    U8  DirectColorModeInfo; // Direct color mode info
+    /* Bit 0: 0 = Direct Color, 1 = Pseudo Color */
 
+    /* VBE 2.0+ */
     U32 PhysBasePtr;         // Physical address of linear framebuffer
     U32 OffScreenMemOffset;  // Pointer to start of offscreen memory
     U16 OffScreenMemSize;    // Size of offscreen memory in KB
-    U8  Reserved2[206];      // Padding / reserved
+
+    /* VBE 3.0+ */
+    U16 BytesPerScanLineLinear; // Bytes per scan line in linear mode
+    U8 NumOfImagesBanked;          // Number of images in banked mode
+    U8 NumOfImagesLinear;          // Number of images in linear mode
+    U8 LinearModesRedMaskSz;     // Red mask size in linear mode
+    U8 LinearModesRedLsb; // Red LSB position in linear mode
+    U8 LinearModesGreenMaskSz;   // Green mask size in linear mode
+    U8 LinearModesGreenLsb;       // Green LSB position in linear mode
+    U8 LinearModesBlueMaskSz;     // Blue mask size in linear mode
+    U8 LinearModesBlueLsb;        // Blue LSB position in linear mode
+    U8 LinearModesRsvMaskSz;      // Reserved mask size in linear mode
+    U8 LinearModesRsvLsb;         // Reserved LSB position in linear mode
+    U32 PhysBasePtr2;             // Second physical base pointer (if applicable)
 } __attribute__((packed)) VBE_MODE;
 
-static inline BOOL vbe_check(void) {
+/*+++
+STATIC INLINE BOOL vbe_check(U0)
+
+DESCRIPTION
+    Checks the validity of the VBE mode.
+    This function verifies the VBE mode information structure and ensures
+    that the necessary fields are populated correctly.
+
+RETURN
+    TRUE if the VBE mode is valid, FALSE otherwise.
+
+AUTHORS
+    Antonako1
+
+REVISION HISTORY
+    2025/08/18 - Antonako1
+        Initial version.
+
+REMARKS:
+    This function is called during the initialization phase to ensure
+    that the VBE mode is set up correctly before use.
+---*/
+STATIC INLINE BOOL vbe_check(U0) {
     print_string("[VBE]\n");
     VBE_MODE* mode = (VBE_MODE*)(VBE_MODE_LOAD_ADDRESS_PHYS);
     VESA_INFO *vesa = (VESA_INFO*)(VESA_LOAD_ADDRESS_PHYS);
@@ -135,13 +173,6 @@ static inline BOOL vbe_check(void) {
     for( U32 i = 0; i < 5; i++) {
         print_label_hex("  Video Mode", mode_list[i]);
     }
-
-
-    // Check if the mode supports 32bpp
-    if (mode->BitsPerPixel != 32) {
-        print_string("  VBE mode does not support 32bpp.\n");
-        return FALSE;
-    }
     
     // Check if the physical base pointer is valid
     if (mode->PhysBasePtr == 0) {
@@ -159,12 +190,67 @@ static inline BOOL vbe_check(void) {
         return FALSE;
     }
 
-    for(U32 x = 0; x < SCREEN_WIDTH; x++) {
-        ((volatile U32*)(mode->PhysBasePtr))[x] = VBE_COLOUR_CYAN;
+    U32 *framebuffer = (U32*)(mode->PhysBasePtr); // framebuffer base address
+    // Fill the screen with cyan color as a test
+    for(U32 y = 0; y < SCREEN_HEIGHT; y++) {
+        for(U32 x = 0; x < SCREEN_WIDTH; x++) {
+            framebuffer[y * SCREEN_WIDTH + x] = VBE_COLOUR_RED;
+        }
     }
     return TRUE;
 }
 
-U0 vbe_draw(U32 x, U32 y, U32 color);
+/*+++
+BOOLEAN VBE_DRAW_PIXEL(VBE_PIXEL_INFO pixel_info)
+
+DESCRIPTION
+    Draws a pixel on the framebuffer.
+
+PARAMETERS
+    VBE_PIXEL_INFO    pixel_info
+        Information about the pixel to draw.
+
+RETURN
+    True if successful, False otherwise.
+
+AUTHORS
+    Antonako1
+
+REVISION HISTORY
+    2025/08/18 - Antonako1
+        Initial version.
+
+REMARKS
+    This draws a pixel in the frambuffer into the given coordinates inside pixel info
+---*/
+BOOLEAN VBE_DRAW_PIXEL(VBE_PIXEL_INFO pixel_info);
+
+
+/*+++
+BOOLEAN VBE_DRAW_FRAMEBUFFER(U32 pos, VBE_PIXEL_COLOURS colours)
+
+DESCRIPTION
+    Draws a pixel on the framebuffer.
+
+PARAMETERS
+    U32    pos
+        The position (offset) in the framebuffer.
+    VBE_PIXEL_COLOURS colours
+        The color information for the pixel.
+
+RETURN
+    TRUE if successful, FALSE otherwise.
+
+AUTHORS
+    Antonako1
+
+REVISION HISTORY
+    2025/08/18 - Antonako1
+        Initial version.
+
+REMARKS
+    This draws a pixel in the framebuffer, not at the current cursor position nor at coordinates.
+---*/
+BOOLEAN VBE_DRAW_FRAMEBUFFER(U32 pos, VBE_PIXEL_COLOURS colours);
 
 #endif

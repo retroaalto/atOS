@@ -25,7 +25,7 @@ REMARKS
 #include "../../STD/ATOSMINDEF.h" /* your U0, U8, U16, U32, etc. */
 
 #define RM2LA(seg, off)  (((U32)(seg) << 4) + (U32)(off))
-
+#define FAR_PTR_TO_LINEAR(ptr)  RM2LA(((ptr) >> 16) & 0xFFFF, (ptr) & 0xFFFF)
 
 /* -------------------- Kernel Entry -------------------- */
 

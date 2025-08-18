@@ -79,26 +79,26 @@ start:
     cmp ah, 0
     jne VESA_ERROR1
 
-    ; mov ax, 4F02h              ; VBE: Set VBE Mode
-    ; mov bx, 0x4000 | VESA_TARGET_MODE  ; Bit 14 = 1, mode = 0x117
-    ; int 10h
-    ; cmp al, 4Fh
-    ; jne VESA_ERROR2              ; Check for error
-    ; cmp ah, 0
-    ; jne VESA_ERROR1              ; Check for error
+    mov ax, 4F02h              ; VBE: Set VBE Mode
+    mov bx, 0x4000 | VESA_TARGET_MODE  ; Bit 14 = 1, mode = 0x117
+    int 10h
+    cmp al, 4Fh
+    jne VESA_ERROR2              ; Check for error
+    cmp ah, 0
+    jne VESA_ERROR1              ; Check for error
 
-    ; mov ax, 4F03h
-    ; int 10h
-    ; cmp al, 4Fh
-    ; jne VESA_ERROR2
-    ; cmp ah, 0
-    ; jne VESA_ERROR1
+    mov ax, 4F03h
+    int 10h
+    cmp al, 4Fh
+    jne VESA_ERROR2
+    cmp ah, 0
+    jne VESA_ERROR1
 
-    ; ; BX now has mode + flags
-    ; mov dx, bx
-    ; and dx, 1FFFh          ; keep only bits 0–12 = pure mode number
-    ; cmp dx, VESA_TARGET_MODE
-    ; jne VESA_ERROR1
+    ; BX now has mode + flags
+    mov dx, bx
+    and dx, 1FFFh          ; keep only bits 0–12 = pure mode number
+    cmp dx, VESA_TARGET_MODE
+    jne VESA_ERROR1
 
 
     ;%%%%%%%%%%%%%%%%%%%%%%%%%

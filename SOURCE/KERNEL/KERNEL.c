@@ -151,9 +151,9 @@ static void show_e820_sample(void) {
 
 __attribute__((noreturn))
 void kernel_entry_main(U0) {
-    VIDEO_MODE = VIDEO_MODE_VESA;
-    static const char hello[] = "\nHello from atOS-RT!\n";
-    print_string(hello);
+    clear_screen();
+    print_string("atOS-RT Kernel Entry Point\n");
+    print_string("Kernel Version: 0.1.0\n");
     print_crlf();
 
 
@@ -168,20 +168,41 @@ void kernel_entry_main(U0) {
 
 
 HALT_KRNL_ENTRY:
-    VIDEO_MODE = VIDEO_MODE_VBE; // Set VBE mode flag
     VBE_MODE* mode = (VBE_MODE*)(VBE_MODE_LOAD_ADDRESS_PHYS);
+    U8* framebuffer = (U8*)(mode->PhysBasePtr); // byte pointer
+    U32 pitch = mode->BytesPerScanLineLinear;
+    U32 bytes_per_pixel = (mode->BitsPerPixel + 7) / 8;
 
-    U32* framebuffer = (U32*)(mode->PhysBasePtr); // framebuffer base address
+    while(1) {
+        for(U32 y=0; y<mode->YResolution; y++) {
+            for(U32 x=0; x<mode->XResolution; x++) {
+                U32 offset = y * mode->BytesPerScanLineLinear + x * bytes_per_pixel;
+                // if(mode->BitsPerPixel >= 1) {
+                    // framebuffer[offset] = VBE_COLOUR32(0x12, 0x12, 0x12, 0xFF) & 0xFF;
+                // } 
+                // else if(mode->BitsPerPixel == 16 || mode->BitsPerPixel == 15) {
+                    // *((U16*)(framebuffer + offset)) = _565_COLOUR(0x12, 0x12, 0x12); // Cyan in 5:6:5 format
+                // }
 
-    while (1) {
-        for (U32 y = 0; y < mode->YResolution; y++) {
-            for (U32 x = 0; x < mode->XResolution; x++) {
-                U32 offset = y * mode->XResolution + x;
-                framebuffer[offset] = VBE_COLOUR_GREEN;
+                VBE_DRAW_FRAMEBUFFER(
+                    offset, 
+                    CREATE_VBE_PIXEL_COLOURS(
+                        VBE_COLOUR(
+                            0xFF, 0x00, 0xFF
+                        )
+                    ));
+                // VBE_DRAW_PIXEL(VBE_PIXEL_INFO_INIT(x, y, 0x12, 0x12, 0x12, 0xFF));
             }
         }
     }
 
+
+
+
+    print_string("Kernel entry point completed. Halting CPU...\n");
+    while (1) {
+        __asm__ volatile ("hlt");
+    }
 }
 
 __attribute__((noreturn, section(".text")))
