@@ -173,7 +173,7 @@ VESA_CTRL_SIZE    EQU 512
 VBE_MODE_OFFSET   EQU VESA_LOAD_OFFSET + VESA_CTRL_SIZE
 VBE_MODE_SIZE     EQU 256          ; typical size for mode info structure
 
-VESA_TARGET_MODE  EQU 0x114        ; the video mode you want
+VESA_TARGET_MODE  EQU 0x116   
 
 
 ; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
