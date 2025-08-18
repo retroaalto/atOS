@@ -37,6 +37,9 @@ typedef signed short  I16;
 typedef unsigned short U16;
 typedef signed int    I32;
 typedef unsigned int  U32;
+typedef I8            S8;
+typedef I16           S16;
+typedef I32           S32;
 
 // Floating-point definitions
 typedef float         F32;
