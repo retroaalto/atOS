@@ -37,6 +37,8 @@ REMARKS
         See below for external definitions.
     
     Access VESA struct at memory address VESA_LOAD_ADDRESS_PHYS.
+
+    When compiling, include VESA.c
 ---*/
 #ifndef VESA_H
 #define VESA_H
