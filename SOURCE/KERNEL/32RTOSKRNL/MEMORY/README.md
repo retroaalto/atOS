@@ -23,8 +23,9 @@
 | `0x00009400`  | `0x00009BFF` | IDT                 | 2048 bytes | 256 entries × 8 bytes    |
 | `0x00009C00`  | `0x00009FFF` | Unused              | 1024 bytes | Free memory              |
 | `0x000A0000`  | `0x000BFFFF` | Legacy Video Memory | 128 KiB   | VGA framebuffer (Mode 13h etc.)                          |
-| `0x000C0000`  | `0x000FFFFF` | BIOS ROM + Stack    | \~256 KiB | BIOS area + protected mode stack                         |
-| `0x00100000`  | `0x001FFFFF` | DATA                | 1 MiB     | Early kernel data, init heap                             |
+| `0x00080000`  | `0x000BFFFF` | Stack               |~256 KiB   | Stack|
+| `0x000C0000`  | `0x000FFFFF` | BIOS ROM            |~256 KiB | Bios area
+| `0x00100000`  | `0x001FFFFF` | Kernel data         | 1 MiB | Early kernel data, init heap|
 | `0x00200000`  | `0x003FFFFF` | RTOSKRNL            | 2 MiB     | 32-bit RTOS Kernel binary                                |
 | `0x00400000`  | `0x005FFFFF` | Kernel Heap         | 2 MiB     | Kernel dynamic allocations                               |
 | `0x00600000`  | `0x00DFFFFF` | Program/Tmp         | 8 MiB     | Temporary programs and data                              |
