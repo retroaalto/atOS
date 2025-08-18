@@ -33,14 +33,13 @@ typedef float         F32;
 #define TRUE         1
 #define FALSE        0
 
-#define CHAR         I8
-#define UCHAR        U8
+#define CHAR         char
+#define UCHAR        unsigned char
 #define SHORT        I16
 #define USHORT       U16
 #define INT          I32
 #define UINT         U32
 
-#define UCHAR        unsigned char
 typedef I8           BYTE;
 typedef U8           UBYTE;
 typedef I16          WORD;
