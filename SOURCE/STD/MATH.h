@@ -64,4 +64,13 @@ F32 sqrtf(F32 x) {
     return left;
 }
 
+I32 round_up(I32 x) {
+    return (x + 1) & ~1;
+}
+I32 round_down(I32 x) {
+    return x & ~1;
+}
+I32 round_to_nearest(I32 x) {
+    return (x + 1) & ~1;
+}
 #endif // MATH_H

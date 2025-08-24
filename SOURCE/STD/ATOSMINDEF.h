@@ -64,6 +64,9 @@ typedef U16          UWORD;
 typedef I32          DWORD;
 typedef U32          UDWORD;
 
+typedef U8*          PU8;
+typedef U16*         PU16;
+typedef U32*         PU32;
 
 
 // Min - Max value definitions

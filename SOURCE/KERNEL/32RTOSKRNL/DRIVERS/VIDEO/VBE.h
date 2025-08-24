@@ -38,6 +38,20 @@ REMARKS
 #define VBE_MODE_LOAD_ADDRESS_PHYS VBE_MODE_OFFSET
 #define VBE_MODE_SIZE 256
 
+
+#define SCREEN_BPP 32
+
+/*
+Framebuffer is located at 0x00F00000u-0x011FFFFFu
+It has a size of ~3MB, which is enough for the resolution 1024*768*(32/8)
+
+Video memory data is written into this location, and updated to the vbe framebuffer.
+*/
+#define FRAMEBUFFER_ADDRESS MEM_FRAMEBUFFER_BASE
+#define FRAMEBUFFER_END MEM_FRAMEBUFFER_END
+#define FRAMEBUFFER_SIZE (FRAMEBUFFER_END - FRAMEBUFFER_ADDRESS + 1)
+
+
 // 5:6:5 color format
 /*
 Usage as follows:
@@ -280,16 +294,60 @@ STATIC INLINE BOOL vbe_check(U0) {
         #endif // KERNEL_ENTRY
         return FALSE;
     }
-
-    U32 *framebuffer = (U32*)(mode->PhysBasePtr); // framebuffer base address
-    // Fill the screen with cyan color as a test
-    for(U32 y = 0; y < SCREEN_HEIGHT; y++) {
-        for(U32 x = 0; x < SCREEN_WIDTH; x++) {
-            framebuffer[y * SCREEN_WIDTH + x] = VBE_GREEN;
-        }
-    }
     return TRUE;
 }
+
+
+// memcpy copied from STD/MEM.h to avoid "bloating" the size of KRNL
+U0 ___memcpy(void* dest, const void* src, U32 n);
+
+/*+++
+U0 UPDATE_VRAM(U0);
+
+DESCRIPTION
+    Updates the VRAM by copying the contents of the framebuffer to the physical
+    address specified by the VBE mode.
+
+RETURN
+    None.
+
+AUTHORS
+    Antonako1
+
+REVISION HISTORY
+    2025/08/19 - Antonako1
+        Initial version.
+
+REMARKS
+    This function is called to refresh the screen contents.
+---*/
+U0 UPDATE_VRAM(U0);
+
+
+/*+++
+U0 STOP_DRAWING(U0);
+
+DESCRIPTION
+    Calls once drawing is complete to finalize any changes and update the VRAM.
+
+PARAMETERS
+    U0
+
+RETURN
+    None.
+
+AUTHORS
+    Antonako1
+
+REVISION HISTORY
+    2025/08/19 - Antonako1
+        Initial version.
+
+REMARKS
+    This function is called to refresh the screen contents.
+---*/
+U0 STOP_DRAWING(U0);
+
 
 /*+++
 BOOLEAN VBE_DRAW_PIXEL(VBE_PIXEL_INFO pixel_info)

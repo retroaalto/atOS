@@ -43,6 +43,7 @@ REMARKS
 #ifndef VESA_H
 #define VESA_H
 #include "../../../../STD/ATOSMINDEF.h" // TYPE DEFINITIONS
+#include "../../MEMORY/MEMORY.h"
 
 #define RM2LA(seg, off)  (((U32)(seg) << 4) + (U32)(off))
 #define FAR_PTR_TO_LINEAR(ptr)  RM2LA(((ptr) >> 16) & 0xFFFF, (ptr) & 0xFFFF)
@@ -57,8 +58,8 @@ extern volatile U32 VIDEO_MODE; // Defined in KERNEL.c
 
 // #define VIDEO_MEMORY ((volatile U16*)0x00F00000)
 #define VIDEO_MEMORY ((volatile U16*)0xB8000) // Text mode video memory address
-#define SCREEN_WIDTH 80
-#define SCREEN_HEIGHT 25
+#define SCREEN_WIDTH 1024
+#define SCREEN_HEIGHT 768
 
 /* Foreground/Background colors */
 #define COLOR_GREEN_ON_BLACK 0x0A
