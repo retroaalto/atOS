@@ -104,27 +104,21 @@ void print_label_hex(const char* label, U32 value) {
     print_crlf();
 }
 
-
+void test(void) {
+}
 
 __attribute__((noreturn))
 void kernel_entry_main(U0) {
     // clear_screen();
 
-    // gdt
-    if(!GDT_INIT()) {
-        goto HLT_NO_DEBUG;
-    }
-
-    // ldt
-    if(!LDT_INIT()) {
-        goto HLT_NO_DEBUG;
-    }
-
-    // idt
-    if(!IDT_INIT()){
-        goto HLT_NO_DEBUG;
-    }
     
+    GDT_INIT();
+    // IDT_INIT();
+
+    // LDT_INIT();
+    // Enable Interrupts
+    __asm__ volatile ("sti");
+
     // print_label_hex("Cursor Position", CURSOR);
     if(!vesa_check()) {
         print_string("[VESA] Check failed.\n");
@@ -179,9 +173,8 @@ void kernel_entry_main(U0) {
     // VBE_DRAW_ELLIPSE(100, 100, 10, 10, VBE_RED);
     // VBE_DRAW_ELLIPSE(100, 100, 10, 10, VBE_RED);
     // VBE_DRAW_ELLIPSE(100, 100, 1000, 1000, VBE_RED);
-
     
-    // VBE_DRAW_LINE(500, 500, 100, 100, VBE_GREEN);
+    VBE_DRAW_LINE(500, 500, 100, 100, VBE_GREEN);
     // VBE_DRAW_LINE(100, 100, 300, 200, VBE_RED);
 
     // U32 iters = 1;
