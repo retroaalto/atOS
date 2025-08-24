@@ -50,7 +50,7 @@ typedef float         F32;
 #define TRUE         1
 #define FALSE        0
 
-#define CHAR         char
+#define CHAR         U8
 #define UCHAR        unsigned char
 #define SHORT        I16
 #define USHORT       U16

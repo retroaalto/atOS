@@ -246,52 +246,17 @@ REMARKS:
     that the VBE mode is set up correctly before use.
 ---*/
 STATIC INLINE BOOL vbe_check(U0) {
-    #ifdef KERNEL_ENTRY
-    print_string("[VBE]\n");
-    VESA_INFO *vesa = (VESA_INFO*)(VESA_LOAD_ADDRESS_PHYS);
-    #endif
     VBE_MODE* mode = (VBE_MODE*)(VBE_MODE_LOAD_ADDRESS_PHYS);
-
     // Check if the mode is valid
     if (mode->ModeAttributes == 0) {
-        #ifdef KERNEL_ENTRY
-        print_label_hex("  No valid VBE mode found at offset", VBE_MODE_LOAD_ADDRESS_PHYS);
-        #endif
         return FALSE;
     }
-    #ifdef KERNEL_ENTRY
-    print_label_hex("  Mode Attributes", mode->ModeAttributes);
-    print_label_hex("  X Resolution", mode->XResolution);
-    print_label_hex("  Y Resolution", mode->YResolution);
-    print_label_hex("  Bits Per Pixel", mode->BitsPerPixel);
-    print_label_hex("  Physical Base Pointer", mode->PhysBasePtr);
-    print_label_u32("  Off-Screen Memory Size (KB)", mode->OffScreenMemSize);
-    
-    U16 *mode_list = (U16*)(((vesa->VideoModePtr & 0xFFFF0000) >> 12) +
-                                  (vesa->VideoModePtr & 0xFFFF));
-    for( U32 i = 0; i < 5; i++) {
-        print_label_hex("  Video Mode", mode_list[i]);
-    }
-    #endif
-
     // Check if the physical base pointer is valid
     if (mode->PhysBasePtr == 0) {
-        #ifdef KERNEL_ENTRY
-        print_string("  Invalid Physical Base Pointer.\n");
-        #endif // KERNEL_ENTRY
         return FALSE;
     }
-
-    #ifdef KERNEL_ENTRY
-    print_string("  VBE mode check passed.\n");
-    print_label_hex("  VBE Mode Offset, physical address", VBE_MODE_LOAD_ADDRESS_PHYS);
-    print_label_hex("  VBE Mode Size", sizeof(VBE_MODE));
-    #endif 
     // Check if the mode is compatible with the screen size
     if (mode->XResolution < SCREEN_WIDTH || mode->YResolution < SCREEN_HEIGHT) {
-        #ifdef KERNEL_ENTRY
-        print_string("[VBE] Resolution too low for screen.\n");
-        #endif // KERNEL_ENTRY
         return FALSE;
     }
     return TRUE;
@@ -300,6 +265,13 @@ STATIC INLINE BOOL vbe_check(U0) {
 
 // memcpy copied from STD/MEM.h to avoid "bloating" the size of KRNL
 U0 ___memcpy(void* dest, const void* src, U32 n);
+
+// Allows for 255 characters
+#define VBE_MAX_CHARS sizeof(CHAR) * 255
+#define VBE_CHAR_HEIGHT 8
+extern U8 VBE_LETTERS[VBE_MAX_CHARS][VBE_CHAR_HEIGHT];
+
+BOOLEAN VBE_DRAW_CHARACTER(U32 x, U32 y, CHAR c, VBE_PIXEL_COLOUR fg, VBE_PIXEL_COLOUR bg);
 
 /*+++
 U0 UPDATE_VRAM(U0);
@@ -325,7 +297,7 @@ U0 UPDATE_VRAM(U0);
 
 
 /*+++
-U0 STOP_DRAWING(U0);
+U0 VBE_STOP_DRAWING(U0);
 
 DESCRIPTION
     Calls once drawing is complete to finalize any changes and update the VRAM.
@@ -346,7 +318,7 @@ REVISION HISTORY
 REMARKS
     This function is called to refresh the screen contents.
 ---*/
-U0 STOP_DRAWING(U0);
+U0 VBE_STOP_DRAWING(U0);
 
 
 /*+++

@@ -22,41 +22,43 @@ REMARKS
 ---*/
 #include "./GDT.h"
 
-static GDTENTRY gdt[GDT_ENTRY_COUNT] __attribute__((aligned(16)));
+static GDTENTRY gdt[GDT_ENTRY_COUNT] __attribute__((aligned(8)));
 static GDTDESCRIPTOR gdtr;
 
-static inline void gdt_set_gate(I32 num, U32 base, U32 limit, U8 access, U8 gran) {
-    gdt[num].Base0 = (U16)(base & 0xFFFF);
-    gdt[num].Base1 = (U8)((base >> 16) & 0xFF);
-    gdt[num].Base2 = (U8)((base >> 24) & 0xFF);
-
-    gdt[num].Limit0 = (U16)(limit & 0xFFFF);
-    gdt[num].Limit1_Flags = (U8)((limit >> 16) & 0x0F);
-    gdt[num].Limit1_Flags |= (gran & 0xF0); // flags live in high nibble
-    gdt[num].AccessByte = (U8)access;
-}
-
 VOID GDT_INIT(VOID) {
-    // Null, Kernel code, Kernel data (flat 32-bit: limit = 0xFFFFF + G=1)
-    gdt_set_gate(GDT_IDX_NULL,  0,       0,        0x00,       0x00);       // null
-    gdt_set_gate(GDT_IDX_KCODE, 0, 0xFFFFF, ACC_KCODE, GRAN_32_4K);         // kernel code
-    gdt_set_gate(GDT_IDX_KDATA, 0, 0xFFFFF, ACC_KDATA, GRAN_32_4K);         // kernel data
+    // Null descriptor
+    gdt[0] = (GDTENTRY){0,0,0,0,0,0};
 
-    gdtr.size = (sizeof(gdt) - 1);
+    // Kernel code segment
+    gdt[1] = (GDTENTRY){0xFFFF, 0, 0, ACC_KCODE, GRAN_32_4K, 0};
+
+    // Kernel data segment
+    gdt[2] = (GDTENTRY){0xFFFF, 0, 0, ACC_KDATA, GRAN_32_4K, 0};
+
+    gdtr.size = sizeof(gdt)-1;
     gdtr.offset = (U32)&gdt;
 
+    __asm__ volatile("lgdt %0" : : "m"(gdtr));
+
+    // Reload segment registers
+    U16 sel = KDATA_SEL;   // make a proper 16-bit selector
     __asm__ volatile(
-        "cli\n\t"                    // ensure interrupts off during switch
-        "lgdt %0\n\t"                // load new GDT
-        "mov %1, %%ax\n\t"           // load data selectors
-        "mov %%ax, %%ds\n\t"
-        "mov %%ax, %%es\n\t"
-        "mov %%ax, %%fs\n\t"
-        "mov %%ax, %%gs\n\t"
-        "mov %%ax, %%ss\n\t"
-        "ljmp %2, $1f\n\t"           // far jump to reload CS
-        "1:\n\t"
-        : : "m"(gdtr), "i"(KDATA_SEL), "i"(KCODE_SEL) : "ax", "memory"
+        "mov %0, %%ax\n"   // move the 16-bit value into AX
+        "mov %%ax, %%ds\n"
+        "mov %%ax, %%es\n"
+        "mov %%ax, %%fs\n"
+        "mov %%ax, %%gs\n"
+        "mov %%ax, %%ss\n"
+        :
+        : "r"(sel)
+        : "ax"
     );
 
+
+
+    // Far jump to reload CS
+    __asm__ volatile(
+        "ljmp %0, $1f\n"
+        "1:\n" : : "i"(KCODE_SEL)
+    );
 }

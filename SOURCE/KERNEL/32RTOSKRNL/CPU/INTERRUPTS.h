@@ -21,12 +21,14 @@ REMARKS
         GDT/GDT.c
         IDT/IDT.c
         LDT/LDT.c
+        ISR/ISR.c
 ---*/
 #ifndef INTERRUPTS_H
 #define INTERRUPTS_H
 
-#include "./LDT/LDT.h"
 #include "./IDT/IDT.h"
 #include "./GDT/GDT.h"
+#include "./IRQ/IRQ.h"
+
 
 #endif // INTERRUPTS_H

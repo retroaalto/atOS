@@ -58,8 +58,9 @@ kernel:
 
 	$(CComp) $(CompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/CPU/IDT/IDT.c -o $(OUTPUT_KERNEL_DIR)/IDT.o
 
-	$(CComp) $(CompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/CPU/LDT/LDT.c -o $(OUTPUT_KERNEL_DIR)/LDT.o
+	$(CComp) $(CompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/CPU/ISR/ISR.c -o $(OUTPUT_KERNEL_DIR)/ISR.o
 
+	$(CComp) $(CompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/CPU/IRQ/IRQ.c -o $(OUTPUT_KERNEL_DIR)/IRQ.o
 
 # Link all object files into KRNL.BIN
 	
@@ -71,7 +72,8 @@ kernel:
 		$(OUTPUT_KERNEL_DIR)/VBE.o \
 		$(OUTPUT_KERNEL_DIR)/GDT.o \
 		$(OUTPUT_KERNEL_DIR)/IDT.o \
-		$(OUTPUT_KERNEL_DIR)/LDT.o \
+		$(OUTPUT_KERNEL_DIR)/ISR.o \
+		$(OUTPUT_KERNEL_DIR)/IRQ.o \
 
 
 	@echo "KRNL.BIN compiled successfully."

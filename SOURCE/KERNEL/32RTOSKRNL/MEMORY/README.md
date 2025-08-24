@@ -19,7 +19,7 @@
 | `0x00008000`  | `0x00008FFF` | E820 Table          | 4 KiB     | BIOS memory map                                          |
 | `0x00009000`  | `0x000091FF` | VESA Controller Info| 512 bytes | VESA BIOS Extensions controller info block    |
 | `0x00009200`  | `0x000092FF` | VBE Mode Info       | 256 bytes | VBE Mode information structure for target mode|
-| `0x00009300` | `0x000093FF`   |GDT |   (256 bytes, 32 entries)        | Global descriptor table |
+| `0x00009300` | `0x000093FF`   |GDT |   (256 bytes, 32 entries, although only 3 are used)        | Global descriptor table |
 | `0x00009400` | `0x00009BFF`   |IDT |  (2048 bytes, 256 entries × 8 bytes) | Interrupt disrupt table |
 | `0x00009C00` | `0x00009DFF`   |LDT | (512 bytes, ~64 entries) | Local descriptor table
 | `0x00009E00` | `0x00009FFF`   |Free|(512 bytes left) | Free to use memory |

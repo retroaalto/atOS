@@ -1,62 +1,32 @@
-/*+++
-    Source/KERNEL/32RTOSKRNL/CPU/IDT/IDT.h - IDT Implementation
-
-    Part of atOS-RT
-
-    Licensed under the MIT License. See LICENSE file in the project root for full license information.
-
-DESCRIPTION
-    32-bit IDT definitions for atOS-RT.
-
-AUTHORS
-    Antonako1
-
-REVISION HISTORY
-    2025/08/23 - Antonako1
-        Initial version. Contains LDT structures and constants.
-
-REMARKS
-
-    Only for kernel usage.
----*/
-#include "./IDT.h"
+#include "IDT.h"
 #include "../GDT/GDT.h"
+#include "../ISR/ISR.h"
 
-
-#define IDT_COUNT 256
-static IDTENTRY idt[IDT_COUNT] __attribute__((aligned(8)));
+// Pointer to memory-mapped IDT
 static IDTDESCRIPTOR idtr;
 
-static void idt_set_gate(I32 idx, U32 handler_addr, U16 sel, U8 type_attr) {
-    idt[idx].OffsetLow  = handler_addr & 0xFFFF;
-    idt[idx].Selector   = sel;
-    idt[idx].Zero       = 0;
-    idt[idx].TypeAttr   = type_attr; // 0x8E
-    idt[idx].OffsetHigh = (handler_addr >> 16) & 0xFFFF;
+// Low-level function to set a gate in memory
+void idt_set_gate(I32 idx, U32 handler_addr, U16 sel, U8 type_attr) {
+    IDTENTRY* gate = &IDT_PTR[idx];
+    gate->OffsetLow  = handler_addr & 0xFFFF;
+    gate->Selector   = sel;
+    gate->Zero       = 0;
+    gate->TypeAttr   = type_attr;
+    gate->OffsetHigh = (handler_addr >> 16) & 0xFFFF;
 }
 
-void isr_handler() {
-    // Handle the interrupt
+// Register a C-level ISR
+void ISR_REGISTER_HANDLER(U32 int_no, ISRHandler handler) {
+    if(int_no < IDT_COUNT)
+        g_Handlers[int_no] = handler;
 }
 
-void isr_stub_common() {
-    __asm__ volatile (
-        "push %eax\n"
-        "push %ecx\n"
-        "push %edx\n"
-        "call isr_handler\n"
-        "pop %edx\n"
-        "pop %ecx\n"
-        "pop %eax\n"
-        "iret\n"
-    );
-}
+// Initialize the IDT
+void IDT_INIT(void) {
+    for(int i = 0; i < IDT_COUNT; i++)
+        idt_set_gate(i, isr_default_handler, KCODE_SEL, INT_GATE_32);
 
-void IDT_INIT() {
-    for (int i = 0; i < IDT_COUNT; ++i) {
-        idt_set_gate(i, (U32)isr_stub_common, KCODE_SEL, 0x8E);
-    }
-    idtr.size = sizeof(idt) - 1;
-    idtr.offset = (U32)&idt;
+    idtr.size = IDT_COUNT * sizeof(IDTENTRY) - 1;
+    idtr.offset = IDT_MEM_BASE;
     __asm__ volatile("lidt %0" : : "m"(idtr));
 }

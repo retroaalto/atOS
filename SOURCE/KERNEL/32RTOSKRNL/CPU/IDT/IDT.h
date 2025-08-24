@@ -1,36 +1,15 @@
-/*+++
-    Source/KERNEL/32RTOSKRNL/CPU/IDT/IDT.h - IDT Definitions
-
-    Part of atOS-RT
-
-    Licensed under the MIT License. See LICENSE file in the project root for full license information.
-
-DESCRIPTION
-    32-bit IDT definitions for atOS-RT.
-
-AUTHORS
-    Antonako1
-
-REVISION HISTORY
-    2025/08/23 - Antonako1
-        Initial version. Contains IDT structures and constants.
-
-REMARKS
-
-    Include ..\INTERUPTS.h before this file.
-    When compiling include IDT.c
-    Only for kernel usage.
----*/
-
 #ifndef IDT_H
 #define IDT_H
 
 #include "../../../../STD/ATOSMINDEF.h"
 #include "../../MEMORY/MEMORY.h"
+#include "../ISR/ISR.h"
 
-#define IDT_START MEM_IDT_BASE
-#define IDT_END   MEM_IDT_END
-#define IDT_SIZE  (IDT_END - IDT_START + 1)
+#define IDT_MEM_BASE MEM_IDT_BASE
+#define IDT_MEM_END MEM_IDT_END
+#define IDT_MEM_SIZE (IDT_MEM_END - IDT_MEM_BASE)
+#define IDT_COUNT 256
+#define INT_GATE_32 0x8E
 
 typedef struct __attribute__((packed)) {
     U16 OffsetLow;
@@ -45,6 +24,7 @@ typedef struct __attribute__((packed)) {
     U32 offset;
 } IDTDESCRIPTOR;
 
+void idt_set_gate(I32 idx, U32 handler_addr, U16 sel, U8 type_attr);
 void IDT_INIT(void);
 
-#endif // IDT_H
+#endif

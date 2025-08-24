@@ -1,5 +1,30 @@
 #include "./VBE.h"
 #include "../../../../STD/MATH.h"
+U8 VBE_LETTERS[VBE_MAX_CHARS][VBE_CHAR_HEIGHT] = {
+    {0b00011000,
+    0b00100100,
+    0b01000010,
+    0b01000010,
+    0b01111110,
+    0b01000010,
+    0b01000010,
+    0b01000010}
+};
+
+BOOLEAN VBE_DRAW_CHARACTER(U32 x, U32 y, UCHAR c, VBE_PIXEL_COLOUR fg, VBE_PIXEL_COLOUR bg) {
+    if (x >= SCREEN_WIDTH || y >= SCREEN_HEIGHT) return FALSE;
+    if(c > 0 && c < VBE_MAX_CHARS) return FALSE; // Invalid character
+    // Draw the character
+    for (U32 i = 0; i < 8; i++) {
+        U8 row = VBE_LETTERS[c][i];
+        for (U32 j = 0; j < 8; j++) {
+            VBE_PIXEL_COLOUR colour = (row & (1 << (7 - j))) ? fg : bg;
+            VBE_DRAW_PIXEL(CREATE_VBE_PIXEL_INFO(x + j, y + i, colour));
+        }
+    }
+
+    return TRUE;
+}
 
 U0 ___memcpy(void* dest, const void* src, U32 n) {
     U8* d = (U8*)dest;
@@ -47,7 +72,7 @@ U0 UPDATE_VRAM(U0) {
     ___memcpy((void*)mode->PhysBasePtr, (void*)FRAMEBUFFER_ADDRESS, copy_size);
 }
 
-U0 STOP_DRAWING(U0) {
+U0 VBE_STOP_DRAWING(U0) {
     UPDATE_VRAM();
 }
 
@@ -218,8 +243,9 @@ BOOLEAN VBE_DRAW_RECTANGLE(U32 x, U32 y, U32 width, U32 height, VBE_PIXEL_COLOUR
     return errcnt == 0;
 }
 BOOLEAN VBE_DRAW_TRIANGLE(U32 x1, U32 y1, U32 x2, U32 y2, U32 x3, U32 y3, VBE_PIXEL_COLOUR colours) {
-    I32 _ = x1+y1-x2-y2+x3-y3+colours;
-    _+=1;
+    VBE_DRAW_LINE(x1, y1, x2, y2, colours);
+    VBE_DRAW_LINE(x2, y2, x3, y3, colours);
+    VBE_DRAW_LINE(x3, y3, x1, y1, colours);
     return TRUE;
 }
 

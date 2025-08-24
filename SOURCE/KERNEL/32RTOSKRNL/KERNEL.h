@@ -41,33 +41,4 @@ U0 kernel_entry_main(U0);
 __attribute__((noreturn, section(".text")))
 void _start(void);
 
-/* -------------------- Text-mode output API -------------------- */
-/* Prints a single character at the current cursor */
-void put_char(U8 ch);
-
-/* Prints a null-terminated string */
-void print_string(CONST CHAR* s);
-
-/* Prints a string with a specified length */
-void print_string_len(CONST CHAR* s, U32 len);
-
-void print_string_len_label(CONST CHAR* label, CONST CHAR* s, U32 len);
-
-/* Prints a 32-bit unsigned integer in decimal */
-void print_u32(U32 v);
-
-/* Prints a 32-bit value in hexadecimal */
-void print_hex32(U32 v);
-
-/* Prints a newline */
-static inline void print_crlf() { put_char('\n'); }
-
-/* Prints a label and a 32-bit value in hex */
-void print_label_hex(CONST CHAR* label, U32 value);
-
-/* Prints a label and a 32-bit value in decimal */
-void print_label_u32(CONST CHAR* label, U32 value);
-
-void clear_screen(U0);
-
 #endif /* KERNEL_H */
