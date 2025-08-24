@@ -237,8 +237,8 @@ start:
 
     ; Print the E820 entries
     mov ax, word [num_of_e820_entries]
-    call PRINT_DEC
-    call PRINT__
+    call PRINT_HEX
+    ; call PRINT__
     call PRINT_LINEFEED
 
 
@@ -567,21 +567,45 @@ VESA_ERROR2:
 
 ; Protected mode main 
 [BITS 32]
+isr_stub:
+    cli                 ; disable interrupts immediately
+halt_loop:
+    hlt
+    jmp halt_loop
+
+
 PModeMain:
-    ; --- Load IDT ---
-    lidt [IDTR]
-
-
-
     mov ax, 0x10     ; data segment selector (GDT entry #2)
     mov ds, ax
     mov es, ax
     mov fs, ax
     mov gs, ax
     mov ss, ax       ; stack segment
-
-    cli
     mov esp, 0x00080000      ; Stack at 512KB (adjust if you want)
+
+    ; --- Load IDT ---
+    %define KCODE_SEL 0x08
+    mov ecx, 256               ; loop through all vectors
+    mov ebx, isr_stub          ; ISR address
+    lea edi, [IDT]             ; start of IDT
+
+fill_loop:
+    mov ax, bx                  ; lower 16 bits of ISR
+    mov [edi], ax
+    shr ebx, 16
+    mov ax, bx                  ; upper 16 bits of ISR
+    mov [edi+6], ax
+
+    mov word [edi+2], KCODE_SEL ; code segment selector
+    mov byte [edi+4], 0         ; zero
+    mov byte [edi+5], 0x8E      ; type attr = present, interrupt gate, DPL=0
+
+    add edi, 8                   ; next IDT entry
+    dec ecx
+    jnz fill_loop
+
+    lidt [IDTR]
+
 
     ; Jump to kernel at 0x2000 (flat)
     jmp KERNEL_LOAD_ADDRESS
