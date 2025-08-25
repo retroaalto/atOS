@@ -21,8 +21,7 @@
 | `0x00009200`  | `0x000092FF` | VBE Mode Info       | 256 bytes | VBE Mode information structure for target mode|
 | `0x00009300` | `0x000093FF`   |GDT |   (256 bytes, 32 entries, although only 3 are used)        | Global descriptor table |
 | `0x00009400` | `0x00009BFF`   |IDT |  (2048 bytes, 256 entries × 8 bytes) | Interrupt disrupt table |
-| `0x00009C00` | `0x00009DFF`   |LDT | (512 bytes, ~64 entries) | Local descriptor table
-| `0x00009E00` | `0x00009FFF`   |Free|(512 bytes left) | Free to use memory |
+| `0x00009C00` | `0x00009FFF`   |Free|(1024 bytes left) | Free to use memory |
 | `0x000A0000`  | `0x000BFFFF` | Legacy Video Memory | 128 KiB   | VGA framebuffer (Mode 13h etc.)                          |
 | `0x00080000`  | `0x000BFFFF` | Stack               |~256 KiB   | Stack|
 | `0x000C0000`  | `0x000FFFFF` | BIOS ROM            |~256 KiB | Bios area

@@ -11,9 +11,10 @@ U8 VBE_LETTERS[VBE_MAX_CHARS][VBE_CHAR_HEIGHT] = {
     0b01000010}
 };
 
-BOOLEAN VBE_DRAW_CHARACTER(U32 x, U32 y, UCHAR c, VBE_PIXEL_COLOUR fg, VBE_PIXEL_COLOUR bg) {
-    if (x >= SCREEN_WIDTH || y >= SCREEN_HEIGHT) return FALSE;
-    if(c > 0 && c < VBE_MAX_CHARS) return FALSE; // Invalid character
+BOOLEAN VBE_DRAW_CHARACTER(U32 x, U32 y, U8 c, VBE_PIXEL_COLOUR fg, VBE_PIXEL_COLOUR bg) {
+    VBE_MODE* mode = GET_VBE_MODE();
+    if (x >= (U32)(mode->XResolution + VBE_CHAR_WIDTH) || y >= (U32)(mode->YResolution + VBE_CHAR_HEIGHT)) return FALSE;
+    if(c >= (U32)VBE_MAX_CHARS) return FALSE; // Invalid character
     // Draw the character
     for (U32 i = 0; i < 8; i++) {
         U8 row = VBE_LETTERS[c][i];
@@ -253,6 +254,7 @@ BOOLEAN VBE_DRAW_RECTANGLE_FILLED(U32 x, U32 y, U32 width, U32 height, VBE_PIXEL
     if (width == 0 || height == 0) {
         return TRUE;
     }
+    (void)x; (void)y; (void)width; (void)height; (void)colours;
 
     return TRUE;
 }

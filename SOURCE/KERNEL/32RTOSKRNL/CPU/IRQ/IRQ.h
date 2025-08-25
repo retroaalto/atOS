@@ -27,14 +27,10 @@ REMARKS
 #include "../../MEMORY/MEMORY.h"
 #include "../ISR/ISR.h"
 
-#define PIC1_CMD 0x20
-#define PIC1_DATA 0x21
-#define PIC2_CMD 0xA0
-#define PIC2_DATA 0xA1
-#define ICW1_INIT 0x10
-#define ICW1_ICW4 0x01
-#define ICW4_8086 0x01
-void IRQ_INIT();
-void irq_default_handler(struct regs* r);
 
+
+U0 IRQ_INIT(U0);
+extern IRQHandler g_IRQHandlers[16];
+void irq_default_handler(struct regs* r);
+void pic_remap();
 #endif // IRQ_H

@@ -23,42 +23,24 @@ REMARKS
 #include "./GDT.h"
 
 static GDTENTRY gdt[GDT_ENTRY_COUNT] __attribute__((aligned(8)));
-static GDTDESCRIPTOR gdtr;
+static GDTDESCRIPTOR *gdtr = (GDTDESCRIPTOR *)MEM_GDT_BASE;
+void gdt_set_gate(I32 num, U32 base, U32 limit, U8 access, U8 gran) {
+    gdt[num].Base0    = (base & 0xFFFF);
+    gdt[num].Base1 = (base >> 16) & 0xFF;
+    gdt[num].Base2   = (base >> 24) & 0xFF;
+
+    gdt[num].Limit0   = (limit & 0xFFFF);
+    gdt[num].Limit1_Flags = ((limit >> 16) & 0x0F);
+
+    gdt[num].Limit1_Flags |= (gran & 0xF0);
+    gdt[num].AccessByte      = access;
+}
 
 VOID GDT_INIT(VOID) {
-    // Null descriptor
-    gdt[0] = (GDTENTRY){0,0,0,0,0,0};
-
-    // Kernel code segment
-    gdt[1] = (GDTENTRY){0xFFFF, 0, 0, ACC_KCODE, GRAN_32_4K, 0};
-
-    // Kernel data segment
-    gdt[2] = (GDTENTRY){0xFFFF, 0, 0, ACC_KDATA, GRAN_32_4K, 0};
-
-    gdtr.size = sizeof(gdt)-1;
+    gdt_set_gate(0, 0, 0, 0, 0);                // Null segment
+    gdt_set_gate(1, 0, 0xFFFFFFFF, 0x9A, 0xCF); // Code segment
+    gdt_set_gate(2, 0, 0xFFFFFFFF, 0x92, 0xCF); // Data segment
+    gdtr.size = (sizeof(GDTENTRY) * GDT_ENTRY_COUNT) - 1;
     gdtr.offset = (U32)&gdt;
 
-    __asm__ volatile("lgdt %0" : : "m"(gdtr));
-
-    // Reload segment registers
-    U16 sel = KDATA_SEL;   // make a proper 16-bit selector
-    __asm__ volatile(
-        "mov %0, %%ax\n"   // move the 16-bit value into AX
-        "mov %%ax, %%ds\n"
-        "mov %%ax, %%es\n"
-        "mov %%ax, %%fs\n"
-        "mov %%ax, %%gs\n"
-        "mov %%ax, %%ss\n"
-        :
-        : "r"(sel)
-        : "ax"
-    );
-
-
-
-    // Far jump to reload CS
-    __asm__ volatile(
-        "ljmp %0, $1f\n"
-        "1:\n" : : "i"(KCODE_SEL)
-    );
 }

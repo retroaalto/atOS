@@ -5,28 +5,19 @@
 // Pointer to memory-mapped IDT
 static IDTDESCRIPTOR idtr;
 
-// Low-level function to set a gate in memory
-void idt_set_gate(I32 idx, U32 handler_addr, U16 sel, U8 type_attr) {
-    IDTENTRY* gate = &IDT_PTR[idx];
-    gate->OffsetLow  = handler_addr & 0xFFFF;
-    gate->Selector   = sel;
-    gate->Zero       = 0;
-    gate->TypeAttr   = type_attr;
-    gate->OffsetHigh = (handler_addr >> 16) & 0xFFFF;
-}
-
-// Register a C-level ISR
-void ISR_REGISTER_HANDLER(U32 int_no, ISRHandler handler) {
-    if(int_no < IDT_COUNT)
-        g_Handlers[int_no] = handler;
+void idt_set_gate(U32 index, U32 handler, U16 sel, U8 flags) {
+    IDTENTRY* entry = (IDTENTRY*)(IDT_MEM_BASE + index * sizeof(IDTENTRY));
+    entry->offset0 = (U16)(handler & 0xFFFF);
+    entry->selector = sel; // Kernel code segment selector
+    entry->zero = 0;
+    entry->type_attr = flags; // Present, kernel mode, interrupt gate
+    entry->offset1 = (U16)((handler >> 16) & 0xFFFF);
 }
 
 // Initialize the IDT
 void IDT_INIT(void) {
-    for(int i = 0; i < IDT_COUNT; i++)
-        idt_set_gate(i, isr_default_handler, KCODE_SEL, INT_GATE_32);
-
-    idtr.size = IDT_COUNT * sizeof(IDTENTRY) - 1;
+    idtr.size = IDT_MEM_SIZE;
     idtr.offset = IDT_MEM_BASE;
+
     __asm__ volatile("lidt %0" : : "m"(idtr));
 }

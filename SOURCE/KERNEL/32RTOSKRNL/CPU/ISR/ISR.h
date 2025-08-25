@@ -26,63 +26,74 @@ REMARKS
 #define IDT_COUNT 256
 #endif // IDT_COUNT
 
-// ISR stub macro
-#define ISR_STUB_DEF(n) \
-__attribute__((naked)) void isr_##n(void); \
-
-#define ISR_STUB(n) \
-__attribute__((naked)) void isr_##n(void) { \
-    __asm__ volatile ( \
-        "cli\n\t" \
-        "push %%ds\n\t" \
-        "push %%es\n\t" \
-        "push %%fs\n\t" \
-        "push %%gs\n\t" \
-        "push %%eax\n\t" \
-        "push %%ecx\n\t" \
-        "push %%edx\n\t" \
-        "push %%ebx\n\t" \
-        "push %%esp\n\t" \
-        "push %%ebp\n\t" \
-        "push %%esi\n\t" \
-        "push %%edi\n\t" \
-        "movl %0, %%eax\n\t" \
-        "push %%eax\n\t" \
-        "leal 4(%%esp), %%eax\n\t" \
-        "push %%eax\n\t" \
-        "call isr_handler\n\t" \
-        "addl $8, %%esp\n\t" \
-        "pop %%edi\n\t" \
-        "pop %%esi\n\t" \
-        "pop %%ebp\n\t" \
-        "pop %%esp\n\t" \
-        "pop %%ebx\n\t" \
-        "pop %%edx\n\t" \
-        "pop %%ecx\n\t" \
-        "pop %%eax\n\t" \
-        "pop %%gs\n\t" \
-        "pop %%fs\n\t" \
-        "pop %%es\n\t" \
-        "pop %%ds\n\t" \
-        "iret\n\t" \
-        : : "i"(n) \
-    ); \
-}
 struct regs {
     U32 edi, esi, ebp, esp, ebx, edx, ecx, eax;
     U32 ds, es, fs, gs, ss;
     U32 eip, cs, eflags;
     U32 int_no;
 };
+
 typedef void (*ISRHandler)(struct regs* r);
-#define IDT_PTR ((IDTENTRY*)IDT_MEM_BASE)
+typedef void (*IRQHandler)(struct regs* r);
+
 void ISR_REGISTER_HANDLER(U32 int_no, ISRHandler handler);
 extern ISRHandler g_Handlers[IDT_COUNT];
+
 VOID SETUP_ISR_HANDLERS(VOID);
 void isr_default_handler(struct regs* r);
-void isr0_handler(struct regs* r);
-ISR_STUB_DEF(0)
-ISR_STUB_DEF(1)
-ISR_STUB_DEF(2)
-ISR_STUB_DEF(3)
+U0 SETUP_ISRS();
+
+void isr0();
+void isr1();
+void isr2();
+void isr3();
+void isr4();
+void isr5();
+void isr6();
+void isr7();
+void isr8();
+void isr9();
+void isr10();
+void isr11();
+void isr12();
+void isr13();
+void isr14();
+void isr15();
+void isr16();
+void isr17();
+void isr18();
+void isr19();
+void isr20();
+void isr21();
+void isr22();
+void isr23();
+void isr24();
+void isr25();
+void isr26();
+void isr27();
+void isr28();
+void isr29();
+void isr30();
+void isr31();
+void isr32();
+void isr33();
+void isr34();
+void isr35();
+void isr36();
+void isr37();
+void isr38();
+void isr39();
+void isr40();
+void isr41();
+void isr42();
+void isr43();
+void isr44();
+void isr45();
+void isr46();
+void isr47();
+void isr48();
+void isr49();
+void isr50();
+
+
 #endif // ISR_H

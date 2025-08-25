@@ -267,11 +267,12 @@ STATIC INLINE BOOL vbe_check(U0) {
 U0 ___memcpy(void* dest, const void* src, U32 n);
 
 // Allows for 255 characters
-#define VBE_MAX_CHARS sizeof(CHAR) * 255
+#define VBE_MAX_CHARS 255
 #define VBE_CHAR_HEIGHT 8
+#define VBE_CHAR_WIDTH 8
 extern U8 VBE_LETTERS[VBE_MAX_CHARS][VBE_CHAR_HEIGHT];
 
-BOOLEAN VBE_DRAW_CHARACTER(U32 x, U32 y, CHAR c, VBE_PIXEL_COLOUR fg, VBE_PIXEL_COLOUR bg);
+BOOLEAN VBE_DRAW_CHARACTER(U32 x, U32 y, U8 c, VBE_PIXEL_COLOUR fg, VBE_PIXEL_COLOUR bg);
 
 /*+++
 U0 UPDATE_VRAM(U0);

@@ -40,13 +40,11 @@
 #define MEM_VBE_MODE_INFO_BASE    0x00009200
 #define MEM_VBE_MODE_INFO_END     0x000092FF
 
-// IDT / GDT / LDT
+// IDT / GDT 
 #define MEM_GDT_BASE              0x00009300
 #define MEM_GDT_END               0x000093FF
 #define MEM_IDT_BASE              0x00009400
-#define MEM_IDT_END               0x00009BFF
-#define MEM_LDT_BASE              0x00009C00
-#define MEM_LDT_END               0x00009DFF
+#define MEM_IDT_END               0x00009BFF + 1
 
 // 512kb of free memory
 #define MEM_UNUSED_BASE           0x00009E00

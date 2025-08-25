@@ -51,10 +51,13 @@ You can use these in your application if you know what you're doing,
 ---*/
 #if defined(KERNEL_ENTRY) || defined(RTOSKRNL)
 static E820_ENTRY e820_entries[128];
-static U32 e820_entry_count = 0;
+static U32 e820_entry_count;
 
 BOOLEAN E820_INIT(void) {
     e820_entry_count = 0;
+    for (U32 i = 0; i < 128; i++) {
+        e820_entries[i] = (E820_ENTRY){ 0 };
+    }
     return TRUE;
 }
 #endif // KERNEL_ENTRY || RTOSKRNL

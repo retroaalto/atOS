@@ -62,6 +62,8 @@ kernel:
 
 	$(CComp) $(CompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/CPU/IRQ/IRQ.c -o $(OUTPUT_KERNEL_DIR)/IRQ.o
 
+	$(CComp) $(CompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/CPU/INTERRUPTS.c -o $(OUTPUT_KERNEL_DIR)/INTERRUPTS.o
+
 # Link all object files into KRNL.BIN
 	
 		$(CComp) -m32 -nostdlib -ffreestanding \
@@ -74,6 +76,7 @@ kernel:
 		$(OUTPUT_KERNEL_DIR)/IDT.o \
 		$(OUTPUT_KERNEL_DIR)/ISR.o \
 		$(OUTPUT_KERNEL_DIR)/IRQ.o \
+		$(OUTPUT_KERNEL_DIR)/INTERRUPTS.o \
 
 
 	@echo "KRNL.BIN compiled successfully."
@@ -114,6 +117,7 @@ run: iso
 	@echo "Running ISO in QEMU..."
 	qemu-img create -f raw hdd.img 256M
 	qemu-system-i386 -vga std -boot d -cdrom $(OUTPUT_ISO_DIR)/$(ISO_NAME) -m 512 -drive file=hdd.img,format=raw,if=ide,index=0,media=disk
+	
 
 # Clean
 clean:

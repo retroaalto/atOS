@@ -17,6 +17,7 @@ STATIC INLINE void outsw(U16 __port, const void *__buffer, U32 __count) {
         : "memory");
 }
 
+#define ASM_VOLATILE(x) __asm__ volatile (x)
 
 /*+++
 INx and OUTx functions
@@ -45,7 +46,7 @@ STATIC INLINE U32 inl(U16 __port) {
 }
 
 STATIC INLINE VOID outb(U16 __port, U8 __value) {
-    ASM volatile ( "outb %b0, %w1" : : "a"(__value), "Nd"(__port) : "memory");
+    ASM volatile ( "outb %b0, %w1" : : "a"(__value), "Nd"(__port));
 }
 STATIC INLINE VOID outw(U16 __port, U16 __value) {
     ASM volatile ( "outw %w0, %w1" : : "a"(__value), "Nd"(__port) : "memory");
@@ -54,10 +55,7 @@ STATIC INLINE VOID outl(U16 __port, U32 __value) {
     ASM volatile ( "outl %0, %w1" : : "a"(__value), "Nd"(__port) : "memory");
 }
 
-
-
-
 STATIC INLINE VOID io_wait(VOID){
-    outb(0x80, 0);
+    ASM VOLATILE ( "outb %%al, $0x80" : : "a"(0) );
 }
 #endif // STD_ASM_H

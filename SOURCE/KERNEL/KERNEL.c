@@ -27,34 +27,32 @@ REMARKS
 #include "./32RTOSKRNL/DRIVERS/DISK/ATAPI/ATAPI.h"
 #include "./32RTOSKRNL/DRIVERS/DISK/ATA/ATA.h"
 #include "../STD/ASM.h"
-#include "./32RTOSKRNL/MEMORY/E820.h"
 #include "./32RTOSKRNL/CPU/INTERRUPTS.h"
-
-void test(void) {
-}
 
 
 __attribute__((noreturn))
 void kernel_entry_main(U0) {
+
+    __asm__ volatile ("cli");
     GDT_INIT();
+    pic_remap();
     IDT_INIT();
-    // IRQ_INIT();
-    SETUP_ISR_HANDLERS();
+
+
+    SETUP_ISRS();
+    IRQ_INIT();
     __asm__ volatile ("sti");
 
-    // if(!vesa_check()) {
-        // goto HLT_NO_DEBUG;
-    // }
-    // if(!vbe_check()) {
-        // goto HLT_NO_DEBUG;
-    // }
+    if(!vesa_check()) {
+        ASM_VOLATILE("hlt");
+    }
+    if(!vbe_check()) {
+        ASM_VOLATILE("hlt");
+    }
 
-    // if(!E820_INIT()) {
-        // goto HLT_NO_DEBUG;
-    // }
-    // TODO: GDT/IDT
-
-
+    /*
+    ATAPI driver. Initialize and read RTOSKRNL into memory
+    */
     VBE_MODE* mode = GET_VBE_MODE();
 
     VBE_DRAW_ELLIPSE(
@@ -77,9 +75,8 @@ void kernel_entry_main(U0) {
     VBE_DRAW_LINE(100, 100, 300, 200, VBE_RED);
     VBE_DRAW_RECTANGLE(50, 50, 100, 100, VBE_RED);
 
-    // VBE_DRAW_RECTANGLE_FILLED(200, 200, 10, 10, VBE_GREEN);
-    // VBE_DRAW_LINE(200, 200, 500, 500, VBE_RED);
-    // VBE_DRAW_LINE(530, 22, 40, 12, VBE_GREEN);
+    VBE_DRAW_LINE(200, 200, 500, 500, VBE_RED);
+    VBE_DRAW_LINE(530, 22, 40, 12, VBE_GREEN);
     
     
     for (U32 i = 0; i < 10; i++) {
@@ -92,14 +89,15 @@ void kernel_entry_main(U0) {
     
         VBE_DRAW_LINE(centerX - radius, centerY - radius, centerX + radius, centerY + radius, VBE_AQUA);
         VBE_DRAW_LINE(centerX - radius, centerY + radius, centerX + radius, centerY - radius, VBE_AQUA);
+
+        VBE_DRAW_LINE(i * 10, 0, i * 10, mode->YResolution, VBE_AQUA);
     }
         
-    // VBE_DRAW_LINE_THICKNESS(0, 0, 700, 500, VBE_RED, 5);
     VBE_DRAW_TRIANGLE(100, 100, 150, 100, 125, 50, VBE_RED);
-        
+
+    VBE_DRAW_CHARACTER(100, 100, 0, VBE_WHITE, VBE_VIOLET);
     VBE_STOP_DRAWING();
 
-HLT_NO_DEBUG:
     while (1) {
         __asm__ volatile ("hlt");
     }
