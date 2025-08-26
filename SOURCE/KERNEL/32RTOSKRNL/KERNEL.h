@@ -22,7 +22,12 @@ REMARKS
 
 #ifndef KERNEL_H
 #define KERNEL_H
-#include "../../STD/ATOSMINDEF.h" /* your U0, U8, U16, U32, etc. */
+#include "../../STD/ATOSMINDEF.h"
+#include "./DRIVERS/VIDEO/VBE.h"
+#include "./DRIVERS/DISK/ATAPI/ATAPI.h"
+#include "./DRIVERS/DISK/ATA/ATA.h"
+#include "../../STD/ASM.h"
+#include "./CPU/INTERRUPTS.h"
 
 #ifndef KERNEL_ENTRY
 #define KERNEL_ENTRY

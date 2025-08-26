@@ -1,7 +1,7 @@
 /* kernel.ld - Linker script for atOS-RT 32-bit protected mode kernel entry */
 
 OUTPUT_FORMAT("binary")
-ENTRY(_start)
+ENTRY(kernel_entry_main)
 
 SECTIONS
 {

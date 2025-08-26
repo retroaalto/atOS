@@ -11,6 +11,8 @@
 ; REVISION HISTORY
 ;     2025/05/10 - Antonako1
 ;         - Created the file.
+;     2025/08/27 - Antonako1
+;         - Updated kernel load address
 ; 
 ; REMARKS
 ;     None
@@ -138,9 +140,10 @@ krnl_str: db "KRNL.BIN;1", KRNL_STR_LEN
 ;  uint8_t fileNameLength;        (buffer+offset+32). Length of fileIdentifier
 ;  strD fileIdentifier[1];        (buffer+offset+33). uint8_t. File name
 ;
-KERNEL_LOAD_ADDRESS EQU 0x2000
+KERNEL_LOAD_ADDRESS EQU 0x20000
 KERNEL_LOAD_SEGMENT EQU 0x2000
 KERNEL_LOAD_OFFSET EQU  0x0000
+; KERNEL_LOAD_ADDRESS = KERNEL_LOAD_SEGMENT:KERNEL_LOAD_OFFSET
 
 BUFFER_SEGMENT equ 0x0000
 BUFFER_OFFSET equ 0x4000
@@ -151,7 +154,7 @@ PVD_OFFSET equ              VOL_DESC_START*SECTOR_SIZE/SECTOR_SIZE
 
 extentLocationLE_LBA: dd 0
 extentLengthLE: dd 0
-extenLocationLE_LBA_KRNL: dd 0
+extentLocationLE_LBA_KRNL: dd 0
 extentLengthLE_KRNL: dd 0
 offset_var: dd 0
 name_buf: db _MAX_PATH

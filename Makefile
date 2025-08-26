@@ -9,9 +9,25 @@ OUTPUT_BOOTLOADER_DIR ?= $(OUTPUT_DIR)/BOOTLOADER
 OUTPUT_ISO_DIR ?= $(OUTPUT_DIR)/ISO
 INPUT_ISO_DIR  ?= ISO_DIR
 ISO_NAME      ?= atOS.iso
+KRNL_INCLUDES ?= \
+	-I$(SOURCE_DIR)/STD/ \
+	-I$(SOURCE_KERNEL_DIR)/32RTOSKRNL/DRIVERS/VIDEO/ \
+	-I$(SOURCE_KERNEL_DIR)/32RTOSKRNL/DRIVERS/DISK/ATA/ \
+	-I$(SOURCE_KERNEL_DIR)/32RTOSKRNL/DRIVERS/DISK/ATAPI/ \
+	-I$(SOURCE_KERNEL_DIR)/32RTOSKRNL/DRIVERS/DISK/ \
+	-I$(SOURCE_KERNEL_DIR)/32RTOSKRNL/CPU/ \
+	-I$(SOURCE_KERNEL_DIR)/32RTOSKRNL/CPU/GDT/ \
+	-I$(SOURCE_KERNEL_DIR)/32RTOSKRNL/CPU/IDT/ \
+	-I$(SOURCE_KERNEL_DIR)/32RTOSKRNL/CPU/ISR/ \
+	-I$(SOURCE_KERNEL_DIR)/32RTOSKRNL/CPU/IRQ/ \
+	-I$(SOURCE_KERNEL_DIR)/32RTOSKRNL/CPU/ \
+	-I$(SOURCE_KERNEL_DIR)/32RTOSKRNL/MEMORY/ \
+
+
 
 CComp         ?= gcc
-CompArgs 	  ?= -m32 -ffreestanding -fno-pic -fno-pie -nostdlib -O0 -Wall -Wextra -fno-stack-protector -fno-builtin -fno-inline
+CompArgs 	  ?= -Wno-comment -Wno-comments -m32 -ffreestanding -fno-pic -fno-pie -nostdlib -O0 -Wall -Wextra -fno-stack-protector -fno-builtin -fno-inline
+KRNLCompArgs  ?= $(CompArgs) $(KRNL_INCLUDES)
 
 INPUT_ISO_DIR_SYSTEM ?= $(INPUT_ISO_DIR)/ATOS
 INPUT_ISO_DIR_USER ?= $(INPUT_ISO_DIR)/USER
@@ -36,6 +52,8 @@ bootloader: $(OUTPUT_BOOTLOADER_DIR)/BOOTLOADER.BIN
 kernel: 
 	@echo "Compiling KERNEL.BIN (16-bit real mode second stage)..."
 	mkdir -p $(OUTPUT_KERNEL_DIR)
+	rm -rf $(OUTPUT_KERNEL_DIR)
+	mkdir -p $(OUTPUT_KERNEL_DIR)
 	$(ASSEMBLER) -f bin -D__REAL_PROTECTED_MODE__ \
 		$(SOURCE_KERNEL_DIR)/KERNEL_ENTRY.asm \
 		-o $(OUTPUT_KERNEL_DIR)/KERNEL.BIN
@@ -47,26 +65,25 @@ kernel:
 
 	@echo "Compiling KRNL.BIN (32-bit protected mode C kernel)..."
 	mkdir -p $(OUTPUT_KERNEL_DIR)
-# Compile each .c file to its own .o
-	$(CComp) $(CompArgs) -c $(SOURCE_KERNEL_DIR)/KERNEL.c -o $(OUTPUT_KERNEL_DIR)/KERNEL.o -m32
+	$(CComp) $(KRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/KERNEL.c -o $(OUTPUT_KERNEL_DIR)/KERNEL.o -m32
 
-	$(CComp) $(CompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/DRIVERS/VIDEO/VESA.c -o $(OUTPUT_KERNEL_DIR)/VESA.o
+	$(CComp) $(KRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/DRIVERS/VIDEO/VESA.c -o $(OUTPUT_KERNEL_DIR)/VESA.o
 
-	$(CComp) $(CompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/DRIVERS/VIDEO/VBE.c -o $(OUTPUT_KERNEL_DIR)/VBE.o 
+	$(CComp) $(KRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/DRIVERS/VIDEO/VBE.c -o $(OUTPUT_KERNEL_DIR)/VBE.o
 
-	$(CComp) $(CompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/CPU/GDT/GDT.c -o $(OUTPUT_KERNEL_DIR)/GDT.o
+	$(CComp) $(KRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/CPU/GDT/GDT.c -o $(OUTPUT_KERNEL_DIR)/GDT.o
 
-	$(CComp) $(CompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/CPU/IDT/IDT.c -o $(OUTPUT_KERNEL_DIR)/IDT.o
+	$(CComp) $(KRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/CPU/IDT/IDT.c -o $(OUTPUT_KERNEL_DIR)/IDT.o
 
-	$(CComp) $(CompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/CPU/ISR/ISR.c -o $(OUTPUT_KERNEL_DIR)/ISR.o
+	$(CComp) $(KRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/CPU/ISR/ISR.c -o $(OUTPUT_KERNEL_DIR)/ISR.o
 
-	$(CComp) $(CompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/CPU/IRQ/IRQ.c -o $(OUTPUT_KERNEL_DIR)/IRQ.o
+	$(CComp) $(KRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/CPU/IRQ/IRQ.c -o $(OUTPUT_KERNEL_DIR)/IRQ.o
 
-	$(CComp) $(CompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/CPU/INTERRUPTS.c -o $(OUTPUT_KERNEL_DIR)/INTERRUPTS.o
+	$(CComp) $(KRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/CPU/INTERRUPTS.c -o $(OUTPUT_KERNEL_DIR)/INTERRUPTS.o
 
 # Link all object files into KRNL.BIN
 	
-		$(CComp) -m32 -nostdlib -ffreestanding \
+	$(CComp) -m32 -nostdlib -ffreestanding \
 		-Wl,-T,$(SOURCE_KERNEL_DIR)/kernel.ld,-e,_start,--oformat=binary \
 		-o $(OUTPUT_KERNEL_DIR)/KRNL.BIN \
 		$(OUTPUT_KERNEL_DIR)/KERNEL.o \

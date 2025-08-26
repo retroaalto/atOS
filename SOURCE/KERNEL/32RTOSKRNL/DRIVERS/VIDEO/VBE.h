@@ -245,22 +245,7 @@ REMARKS:
     This function is called during the initialization phase to ensure
     that the VBE mode is set up correctly before use.
 ---*/
-STATIC INLINE BOOL vbe_check(U0) {
-    VBE_MODE* mode = (VBE_MODE*)(VBE_MODE_LOAD_ADDRESS_PHYS);
-    // Check if the mode is valid
-    if (mode->ModeAttributes == 0) {
-        return FALSE;
-    }
-    // Check if the physical base pointer is valid
-    if (mode->PhysBasePtr == 0) {
-        return FALSE;
-    }
-    // Check if the mode is compatible with the screen size
-    if (mode->XResolution < SCREEN_WIDTH || mode->YResolution < SCREEN_HEIGHT) {
-        return FALSE;
-    }
-    return TRUE;
-}
+BOOL vbe_check(U0);
 
 
 // memcpy copied from STD/MEM.h to avoid "bloating" the size of KRNL

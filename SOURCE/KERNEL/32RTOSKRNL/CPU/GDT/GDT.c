@@ -20,27 +20,56 @@ REMARKS
     Only for kernel usage.
 
 ---*/
-#include "./GDT.h"
+#include "GDT.h"
 
-static GDTENTRY gdt[GDT_ENTRY_COUNT] __attribute__((aligned(8)));
-static GDTDESCRIPTOR *gdtr = (GDTDESCRIPTOR *)MEM_GDT_BASE;
-void gdt_set_gate(I32 num, U32 base, U32 limit, U8 access, U8 gran) {
-    gdt[num].Base0    = (base & 0xFFFF);
-    gdt[num].Base1 = (base >> 16) & 0xFF;
-    gdt[num].Base2   = (base >> 24) & 0xFF;
+typedef struct __attribute__((packed)) {
+    U16 limit0;
+    U16 base0;
+    U8  base1;
+    U8  access;
+    U8  granularity;
+    U8  base2;
+} GDTENTRY;
 
-    gdt[num].Limit0   = (limit & 0xFFFF);
-    gdt[num].Limit1_Flags = ((limit >> 16) & 0x0F);
+typedef struct __attribute__((packed)) {
+    U16 limit;
+    GDTENTRY *base;
+} GDTDESCRIPTOR;
 
-    gdt[num].Limit1_Flags |= (gran & 0xF0);
-    gdt[num].AccessByte      = access;
+#define GDT_ENTRY_COUNT 3
+
+#define READABLE_RNG0_KRNL 0x9A
+#define WRITABLE_RNG0_KRNL 0x92
+#define GRANULARITY 0xCF
+
+GDTENTRY *g_GDT = (GDTENTRY *)(MEM_GDT_BASE);
+GDTDESCRIPTOR *g_GDTDescriptor = (GDTDESCRIPTOR *)(MEM_GDT_BASE + sizeof(GDTENTRY) * GDT_ENTRY_COUNT);
+
+void gdt_set_gate(U32 num, U32 base, U32 limit, U8 access, U8 gran) {
+    g_GDT[num].base0       = base & 0xFFFF;
+    g_GDT[num].base1       = (base >> 16) & 0xFF;
+    g_GDT[num].base2       = (base >> 24) & 0xFF;
+    g_GDT[num].limit0      = limit & 0xFFFF;
+    g_GDT[num].granularity = ((limit >> 16) & 0x0F) | (gran & 0xF0);
+    g_GDT[num].access      = access;
 }
 
-VOID GDT_INIT(VOID) {
-    gdt_set_gate(0, 0, 0, 0, 0);                // Null segment
-    gdt_set_gate(1, 0, 0xFFFFFFFF, 0x9A, 0xCF); // Code segment
-    gdt_set_gate(2, 0, 0xFFFFFFFF, 0x92, 0xCF); // Data segment
-    gdtr.size = (sizeof(GDTENTRY) * GDT_ENTRY_COUNT) - 1;
-    gdtr.offset = (U32)&gdt;
+U0 GDT_INIT(U0) {
+    // __asm__ volatile("hlt");
+    // Null descriptor
+    gdt_set_gate(0, 0, 0, 0, 0);                  
+    // Kernel code segment
+    gdt_set_gate(1, 0, 0xFFFFF, READABLE_RNG0_KRNL, GRANULARITY); 
+    // Kernel data segment
+    gdt_set_gate(2, 0, 0xFFFFF, WRITABLE_RNG0_KRNL, GRANULARITY); 
 
+    g_GDTDescriptor->limit = GDT_ENTRY_COUNT * sizeof(GDTENTRY) - 1;
+    g_GDTDescriptor->base  = g_GDT;
+
+    // Load GDT
+    __asm__ volatile("lgdt %0" : : "m"(g_GDTDescriptor));
+
+    return;
 }
+
+

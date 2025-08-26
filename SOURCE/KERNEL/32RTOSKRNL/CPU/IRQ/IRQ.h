@@ -27,10 +27,11 @@ REMARKS
 #include "../../MEMORY/MEMORY.h"
 #include "../ISR/ISR.h"
 
-
+#define PIC_REMAP_OFFSET 0x20
 
 U0 IRQ_INIT(U0);
 extern IRQHandler g_IRQHandlers[16];
-void irq_default_handler(struct regs* r);
+__attribute__((noreturn)) void irq_default_handler(struct regs* r);
+void pic_send_eoi(U8 irq);
 void pic_remap();
 #endif // IRQ_H

@@ -23,11 +23,13 @@
 ;         VESA initialization and mode setting.
 ;         Reads E820 memory map and stores it in a table.
 ;         Initializes GDT and IDT into memory correctly
+;     2025/08/27 - Antonako1
+;         Fixed a bug with kernel load address
 ;
 ; REMARKS
 ;     None
 
-
+%define VBE_ACTIVATE 1
 [BITS 16]
 [ORG 0x1000:0x0000]
 
@@ -67,6 +69,7 @@ start:
 
     ; Set VBE mode
 
+%ifdef VBE_ACTIVATE
     ; Get VBE mode info
     mov cx, VESA_TARGET_MODE
     mov ax, VESA_LOAD_SEGMENT
@@ -99,7 +102,7 @@ start:
     and dx, 1FFFh          ; keep only bits 0–12 = pure mode number
     cmp dx, VESA_TARGET_MODE
     jne VESA_ERROR1
-
+%endif ; VBE_ACTIVATE
 
     ;%%%%%%%%%%%%%%%%%%%%%%%%%
     ; Set up memory
@@ -338,11 +341,8 @@ start:
     mov ds, ax
     mov si, BUFFER_OFFSET
     add si, 156+10
-    mov ax, word [si]
-    mov ax, word [si+2]
-    mov [extentLengthLE+2], ax
-    mov ax, word [si]
-    mov [extentLengthLE], ax
+    mov eax, dword [si]
+    mov [extentLengthLE], eax
 
     cmp word [extentLengthLE], 0x800
     jb ISO_ERROR2
@@ -391,25 +391,26 @@ start:
     add si, [offset_var]
     add si, 25
     mov al, byte [si]
-    and al, 0b00000010
-    jne .to_loop_increment
+    and al, 0b00000010          ; Check if directory flag is set
+    jne .to_loop_increment      ; If directory, skip to next record
 
 ;     ;4.     strncopy(name_buf, record->fileIdentifier, record->fileNameLength);
     mov ax, BUFFER_SEGMENT
     mov es, ax
     mov di, BUFFER_OFFSET
 
-    add di, [offset_var]
-    add di, 32                  ; skip to filename length
+    add di, [offset_var]        ; Move to start of record
+    add di, 32                  ; Skip to filename length
     xor cx, cx
-    mov cl, byte [di]           ; string length
-    push cx
-    inc di                   ; skip length byte
+    mov cl, byte [di]           ; String length
+    ;push cx                 ; Save string length ; NOTE:???
+    inc di                   ; Skip length byte
 
     pusha
     mov si, di
     call PRINTNLN
     popa
+
 ;     if (strcmp(name_buf, "KRNL.BIN") == 0)
         mov si, krnl_str    ;source1
         mov cx, KRNL_STR_LEN;source1 length
@@ -417,20 +418,26 @@ start:
         cmp ax, 1
         jne .to_loop_increment
         
-        ; TODO: Load values to save at extenLocationLE_LBA_KRNL and extentLengthLE_KRNL
+        ; TODO: Load values to save at extentLocationLE_LBA_KRNL and extentLengthLE_KRNL
         mov ax, BUFFER_SEGMENT
         mov ds, ax
-        add si, [offset_var]
-        add si, 2
-        mov ax, word [si]   ; lba
-        mov [extenLocationLE_LBA_KRNL], ax
-        mov ax, word [si+2]
-        mov [extenLocationLE_LBA_KRNL+2], ax
-        add si, 10
-        mov ax, word [si]   ; length
-        mov [extentLengthLE_KRNL], ax
-        mov ax, word [si+2]
-        mov [extentLengthLE_KRNL+2], ax
+        mov si, BUFFER_OFFSET
+        add si, [offset_var] ; move to start of record
+
+        ; ds:si = points to current record
+        ; lba
+        mov eax, [si+2]
+        mov [extentLocationLE_LBA_KRNL], eax
+        ; call PRINT_HEX
+        ; call PRINT_LINEFEED
+
+        ; length
+        mov eax, dword [si+10]         ; little-endian length at offset 14
+        mov [extentLengthLE_KRNL], eax
+        ; call PRINT_HEX
+        ; call PRINT_LINEFEED
+
+
 
         mov byte [krnl_status], 1
         jmp KRNL_TO_MEMORY
@@ -462,17 +469,26 @@ KRNL_TO_MEMORY:
 
 .kernel_found:
     ; Read the kernel from disk to memory
-    mov ax, [extentLengthLE]
     ; If kernel length > 64KB, use 32-bit registers
     ; Add 511 and divide by 512 (sector size)
-    mov eax, [extentLengthLE]
+    mov eax, [extentLengthLE_KRNL]
+    ; push eax
+    ; call PRINT_HEX
+    ; call PRINT_LINEFEED
+    ; pop eax
     add eax, 511
     shr eax, 9
     mov cx, ax ; sectors to read
-    xor eax, eax
-    mov eax, [extenLocationLE_LBA_KRNL]
+    ; xor eax, eax
+    mov eax, [extentLocationLE_LBA_KRNL]
+
+    ; mov eax, ecx
+    ; call PRINT_HEX
+    ; call PRINT_LINEFEED
 
     ; offset = bx
+    xor ebx, ebx
+    mov edx, ebx
     mov bx, KERNEL_LOAD_OFFSET
     ; segment = dx
     mov dx, KERNEL_LOAD_SEGMENT
@@ -480,6 +496,12 @@ KRNL_TO_MEMORY:
     cmp eax, 0
     jne DISK_ERROR1
 
+    ; lea esi, KERNEL_LOAD_ADDRESS
+    ; add esi, 0x781
+    ; add esi, 0x880
+    ; mov eax, [esi]
+    ; call PRINT_HEX
+    ; call PRINT_LINEFEED
 
     pusha
     mov si, msg_kernel_end
@@ -487,7 +509,10 @@ KRNL_TO_MEMORY:
     popa 
 
 START_32BIT_PROTECTED_MODE:
-    cli 
+
+
+    ; hlt
+    ; cli 
     ; --- Load GDT ---
     lgdt [gdtr]
 
@@ -608,7 +633,7 @@ fill_loop:
 
 
     ; Jump to kernel at 0x2000 (flat)
-    jmp KERNEL_LOAD_ADDRESS
+    jmp 0x08:KERNEL_LOAD_ADDRESS
 
     jmp hang32
 hang32:

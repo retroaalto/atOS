@@ -24,82 +24,117 @@ REMARKS
 
 ISRHandler g_Handlers[IDT_COUNT];
 
+#warning REMOVE ME
+#include "../../DRIVERS/VIDEO/VBE.h"
+
+// This is the c-level exception handler
+__attribute__((noreturn))
+void exception_handler(struct regs* r){
+    (void)r;
+    // ASM_VOLATILE("cli");
+    // for(;;) { ASM_VOLATILE("hlt"); }  // infinite halt
+}
+
+// This function is called from assembly
+__attribute__((noreturn))
 void isr_default_handler(struct regs* r) {
-     if(g_Handlers[r->int_no] != 0) {
-         g_Handlers[r->int_no](r);
-    }else {
-        ASM_VOLATILE("hlt");
+    if(g_Handlers[r->int_no] != 0) {
+        g_Handlers[r->int_no](r); // Calls c-level handler if one is registered
+    } else {
+        ASM_VOLATILE("cli");
+        for(;;) { ASM_VOLATILE("hlt"); }  // infinite halt
     }
 }
 
-void ISR_REGISTER_HANDLER(U32 int_no, ISRHandler handler) {
-    if(int_no < IDT_COUNT)
-        g_Handlers[int_no] = handler;
+__attribute__((noreturn))
+void irq_default_handler(struct regs* r) {
+    U8 irq = r->int_no - 32; // IRQs mapped to 32–47
+    if (irq < 16 && g_IRQHandlers[irq]) {
+        g_IRQHandlers[irq](r);  // Call custom handler
+    }
+
+    pic_send_eoi(irq);          // Always notify PIC
+
+    for (;;) { asm volatile("hlt"); } // Halt CPU if no return
 }
 
 
-U0 SETUP_ISRS() {
-    idt_set_gate(0, (U32)&isr0, 0x08, 0x8E);
-    idt_set_gate(1, (U32)&isr1, 0x08, 0x8E);
-    idt_set_gate(2, (U32)&isr2, 0x08, 0x8E);
-    idt_set_gate(3, (U32)&isr3, 0x08, 0x8E);
-    idt_set_gate(4, (U32)&isr4, 0x08, 0x8E);
-    idt_set_gate(5, (U32)&isr5, 0x08, 0x8E);
-    idt_set_gate(6, (U32)&isr6, 0x08, 0x8E);
-    idt_set_gate(7, (U32)&isr7, 0x08, 0x8E);
-    idt_set_gate(8, (U32)&isr8, 0x08, 0x8E);
-    idt_set_gate(9, (U32)&isr9, 0x08, 0x8E);
-    idt_set_gate(10, (U32)isr10, 0x08, 0x8E);
-    idt_set_gate(11, (U32)isr11, 0x08, 0x8E);
-    idt_set_gate(12, (U32)isr12, 0x08, 0x8E);
-    idt_set_gate(13, (U32)isr13, 0x08, 0x8E);
-    idt_set_gate(14, (U32)isr14, 0x08, 0x8E);
-    idt_set_gate(15, (U32)isr15, 0x08, 0x8E);
-    idt_set_gate(16, (U32)isr16, 0x08, 0x8E);
-    idt_set_gate(17, (U32)isr17, 0x08, 0x8E);
-    idt_set_gate(18, (U32)isr18, 0x08, 0x8E);
-    idt_set_gate(19, (U32)isr19, 0x08, 0x8E);
-    idt_set_gate(20, (U32)isr20, 0x08, 0x8E);
-    idt_set_gate(21, (U32)isr21, 0x08, 0x8E);
-    idt_set_gate(22, (U32)isr22, 0x08, 0x8E);
-    idt_set_gate(23, (U32)isr23, 0x08, 0x8E);
-    idt_set_gate(24, (U32)isr24, 0x08, 0x8E);
-    idt_set_gate(25, (U32)isr25, 0x08, 0x8E);
-    idt_set_gate(26, (U32)isr26, 0x08, 0x8E);
-    idt_set_gate(27, (U32)isr27, 0x08, 0x8E);
-    idt_set_gate(28, (U32)isr28, 0x08, 0x8E);
-    idt_set_gate(29, (U32)isr29, 0x08, 0x8E);
-    idt_set_gate(30, (U32)isr30, 0x08, 0x8E);
-    idt_set_gate(31, (U32)isr31, 0x08, 0x8E);
-    idt_set_gate(32, (U32)isr32, 0x08, 0x8E);
-    idt_set_gate(33, (U32)isr33, 0x08, 0x8E);
-    idt_set_gate(34, (U32)isr34, 0x08, 0x8E);
-    idt_set_gate(35, (U32)isr35, 0x08, 0x8E);
-    idt_set_gate(36, (U32)isr36, 0x08, 0x8E);
-    idt_set_gate(37, (U32)isr37, 0x08, 0x8E);
-    idt_set_gate(38, (U32)isr38, 0x08, 0x8E);
-    idt_set_gate(39, (U32)isr39, 0x08, 0x8E);
-    idt_set_gate(40, (U32)isr40, 0x08, 0x8E);
-    idt_set_gate(41, (U32)isr41, 0x08, 0x8E);
-    idt_set_gate(42, (U32)isr42, 0x08, 0x8E);
-    idt_set_gate(43, (U32)isr43, 0x08, 0x8E);
-    idt_set_gate(44, (U32)isr44, 0x08, 0x8E);
-    idt_set_gate(45, (U32)isr45, 0x08, 0x8E);
-    idt_set_gate(46, (U32)isr46, 0x08, 0x8E);
-    idt_set_gate(47, (U32)isr47, 0x08, 0x8E);
-    idt_set_gate(48, (U32)isr48, 0x08, 0x8E);
-    idt_set_gate(49, (U32)isr49, 0x08, 0x8E);
-    idt_set_gate(50, (U32)isr50, 0x08, 0x8E);
+void ISR_REGISTER_HANDLER(U32 int_no, ISRHandler handler) {
+    if(int_no < IDT_COUNT) {
+        g_Handlers[int_no] = handler;
+        IDT_ENABLEGATE(int_no);
+    } else {
+        IDT_DISABLEGATE(int_no);
+    }
+}
+#define fdf(x) x
+
+U0 SETUP_ISRS(U0) {
+    idt_set_gate(0, fdf(isr0), KCODE_SEL, INT_GATE_32);
+    idt_set_gate(1, fdf(isr1), KCODE_SEL, INT_GATE_32);
+    idt_set_gate(2, fdf(isr2), KCODE_SEL, INT_GATE_32);
+    idt_set_gate(3, fdf(isr3), KCODE_SEL, INT_GATE_32);
+    idt_set_gate(4, fdf(isr4), KCODE_SEL, INT_GATE_32);
+    idt_set_gate(5, fdf(isr5), KCODE_SEL, INT_GATE_32);
+    idt_set_gate(6, fdf(isr6), KCODE_SEL, INT_GATE_32);
+    idt_set_gate(7, fdf(isr7), KCODE_SEL, INT_GATE_32);
+    idt_set_gate(8, fdf(isr8), KCODE_SEL, INT_GATE_32);
+    idt_set_gate(9, fdf(isr9), KCODE_SEL, INT_GATE_32);
+    idt_set_gate(10, fdf(isr10), KCODE_SEL, INT_GATE_32);
+    idt_set_gate(11, fdf(isr11), KCODE_SEL, INT_GATE_32);
+    idt_set_gate(12, fdf(isr12), KCODE_SEL, INT_GATE_32);
+    idt_set_gate(13, fdf(isr13), KCODE_SEL, INT_GATE_32);
+    idt_set_gate(14, fdf(isr14), KCODE_SEL, INT_GATE_32);
+    idt_set_gate(15, fdf(isr15), KCODE_SEL, INT_GATE_32);
+    idt_set_gate(16, fdf(isr16), KCODE_SEL, INT_GATE_32);
+    idt_set_gate(17, fdf(isr17), KCODE_SEL, INT_GATE_32);
+    idt_set_gate(18, fdf(isr18), KCODE_SEL, INT_GATE_32);
+    idt_set_gate(19, fdf(isr19), KCODE_SEL, INT_GATE_32);
+    idt_set_gate(20, fdf(isr20), KCODE_SEL, INT_GATE_32);
+    idt_set_gate(21, fdf(isr21), KCODE_SEL, INT_GATE_32);
+    idt_set_gate(22, fdf(isr22), KCODE_SEL, INT_GATE_32);
+    idt_set_gate(23, fdf(isr23), KCODE_SEL, INT_GATE_32);
+    idt_set_gate(24, fdf(isr24), KCODE_SEL, INT_GATE_32);
+    idt_set_gate(25, fdf(isr25), KCODE_SEL, INT_GATE_32);
+    idt_set_gate(26, fdf(isr26), KCODE_SEL, INT_GATE_32);
+    idt_set_gate(27, fdf(isr27), KCODE_SEL, INT_GATE_32);
+    idt_set_gate(28, fdf(isr28), KCODE_SEL, INT_GATE_32);
+    idt_set_gate(29, fdf(isr29), KCODE_SEL, INT_GATE_32);
+    idt_set_gate(30, fdf(isr30), KCODE_SEL, INT_GATE_32);
+    idt_set_gate(31, fdf(isr31), KCODE_SEL, INT_GATE_32);
+    idt_set_gate(32, fdf(isr32), KCODE_SEL, INT_GATE_32);
+    idt_set_gate(33, fdf(isr33), KCODE_SEL, INT_GATE_32);
+    idt_set_gate(34, fdf(isr34), KCODE_SEL, INT_GATE_32);
+    idt_set_gate(35, fdf(isr35), KCODE_SEL, INT_GATE_32);
+    idt_set_gate(36, fdf(isr36), KCODE_SEL, INT_GATE_32);
+    idt_set_gate(37, fdf(isr37), KCODE_SEL, INT_GATE_32);
+    idt_set_gate(38, fdf(isr38), KCODE_SEL, INT_GATE_32);
+    idt_set_gate(39, fdf(isr39), KCODE_SEL, INT_GATE_32);
+    idt_set_gate(40, fdf(isr40), KCODE_SEL, INT_GATE_32);
+    idt_set_gate(41, fdf(isr41), KCODE_SEL, INT_GATE_32);
+    idt_set_gate(42, fdf(isr42), KCODE_SEL, INT_GATE_32);
+    idt_set_gate(43, fdf(isr43), KCODE_SEL, INT_GATE_32);
+    idt_set_gate(44, fdf(isr44), KCODE_SEL, INT_GATE_32);
+    idt_set_gate(45, fdf(isr45), KCODE_SEL, INT_GATE_32);
+    idt_set_gate(46, fdf(isr46), KCODE_SEL, INT_GATE_32);
+    idt_set_gate(47, fdf(isr47), KCODE_SEL, INT_GATE_32);
+    idt_set_gate(48, fdf(isr48), KCODE_SEL, INT_GATE_32);
+    idt_set_gate(49, fdf(isr49), KCODE_SEL, INT_GATE_32);
+    idt_set_gate(50, fdf(isr50), KCODE_SEL, INT_GATE_32);
+    for(U32 i = 51; i < IDT_COUNT; i++) {
+        idt_set_gate(i, fdf(isr51), KCODE_SEL, INT_GATE_32);
+    }   
+
 }
 
 VOID SETUP_ISR_HANDLERS(VOID) {    
     for(int i = 0; i < IDT_COUNT; i++) {
         if(i < 32) {
-            ISR_REGISTER_HANDLER(i, isr_default_handler); // CPU exceptions
+            ISR_REGISTER_HANDLER(i, exception_handler); // CPU exceptions
         } else if(i >= 32 && i < 48) {
-            ISR_REGISTER_HANDLER(i, irq_default_handler); // Hardware IRQs
+            ISR_REGISTER_HANDLER(i, irq_default_handler);
         } else {
-            ISR_REGISTER_HANDLER(i, isr_default_handler); // Reserved / unused
+            ISR_REGISTER_HANDLER(i, exception_handler); // Reserved / unused
         }
     }
 }

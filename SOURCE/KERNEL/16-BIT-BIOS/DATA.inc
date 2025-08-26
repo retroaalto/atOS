@@ -17,17 +17,26 @@
 %ifndef BIOS_DATA_SEGMENT
 %define BIOS_DATA_SEGMENT
 
-; ----------------------------------------
-; Disk Address Packet (DAP) - 16 bytes
-; Used with INT 13h, AH=42h (Extended Read)
-; ----------------------------------------
+;---------------------------------------------------------------
+; DAP - Disk Address Packet (16 bytes)
+;---------------------------------------------------------------
+; Offset | Size | Description
+; 0      | 1    | Size of packet (0x10)
+; 1      | 1    | Reserved (always 0)
+; 2      | 2    | Number of sectors to read
+; 4      | 2    | Buffer offset (BX)
+; 6      | 2    | Buffer segment (DX)
+; 8      | 4    | Starting LBA, low 32 bits
+; 12     | 4    | Starting LBA, high 16 bits
 DAP:
-    db 0x10           ; Size of DAP (must be 0x10)
+    db 0x10           ; Size of DAP
     db 0x00           ; Reserved
-    dw 0              ; Number of sectors to read (set at runtime)
-    dw 0x0000         ; Buffer offset
-    dw 0x0000         ; Buffer segment
-    dq 0              ; 64-bit LBA address
+    dw 0x0000         ; Number of sectors (set at runtime)
+    dw 0x0000         ; Buffer offset (BX)
+    dw 0x0000         ; Buffer segment (DX)
+    dd 0x00000000     ; LBA low 32 bits
+    dd 0x0000         ; LBA high 16 bits
+
 
 ; ----------------------------------------
 ; String Constants

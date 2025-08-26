@@ -21,10 +21,11 @@ all: iso fat
 iso: $(ISO_DIR)/$(TOOL_ISO)
 	@echo "Running ISO9660 tool on ISO image..."
 	cp -f $(OUT_DIR)/$(ISOFILE) ./$(ISOFILE)
-	./$(TOOL_ISO) $(ISOFILE) BASE.txt
-	./$(TOOL_ISO) $(ISOFILE) "INNER/INSIDE_1.txt"
-	./$(TOOL_ISO) $(ISOFILE) "INNER/INNER2/INSIDE_1.txt"
-	./$(TOOL_ISO) $(ISOFILE) KERNEL.BIN
+# 	./$(TOOL_ISO) $(ISOFILE) BASE.txt
+# 	./$(TOOL_ISO) $(ISOFILE) "INNER/INSIDE_1.txt"
+# 	./$(TOOL_ISO) $(ISOFILE) "INNER/INNER2/INSIDE_1.txt"
+# 	./$(TOOL_ISO) $(ISOFILE) KERNEL.BIN
+	./$(TOOL_ISO) $(ISOFILE) "KRNL.BIN"
 
 # FAT Tool (currently just a placeholder)
 fat: $(FAT_DIR)/$(TOOL_FAT)
@@ -48,4 +49,5 @@ help:
 	@echo "  all   - Build both ISO9660 and FAT16 tools"
 	@echo "  iso   - Build and run ISO9660 tool"
 	@echo "  fat   - Build and run FAT16 tool (placeholder)"
+	@echo "  func_ref   - Build and run func_ref test tool" 
 	@echo "  clean - Remove generated files"

@@ -11,7 +11,10 @@
 ; REVISION HISTORY
 ;     2025/05/10 - Antonako1
 ;         Initial version.
-; 
+;
+;     2025/08/27 - Antonako1
+;         Fixed a bug with kernel load address and DAP.
+;
 ; REMARKS
 ;     None
 [BITS 16]
@@ -20,7 +23,7 @@
 
 %include "SOURCE/KERNEL/16-BIT-BIOS/DATA.inc"
 %include "SOURCE/KERNEL/16-BIT-BIOS/BIOS.inc"
-
+%include "SOURCE/KERNEL/16-BIT-BIOS/IO.asm"
 
 ; eax CALCULATE_KRNL_SEGMENT(ebx amount of sectors, ecx sector size, edx buffer_value)
 ;
@@ -56,48 +59,65 @@ CALCULATE_KRNL_SEGMENT:
 
 ; eax READ_DISK(eax LBA, cx sectors, dx:bx buffer)
 ;
-; Descrition:
-; Reads sectors from the disk into the buffer.
+; Description:
+;   Reads sectors from the disk into the buffer.
 ; The function will return 0 if the read was successful, or an error code if it failed.
 ;
 ; Parameters:
-; eax - LBA of the first sector to read
-; cx - number of sectors to read
-; bx - Buffer offset
-; dx - Buffer segment
+;   eax - LBA of the first sector to read
+;   cx - number of sectors to read
+;   bx - Buffer offset
+;  dx - Buffer segment
 ;
 ; Return:
-; eax - 0 if the read was successful, or an error code if it failed.
+;   eax - 0 if the read was successful
+;   eax - 0xffff on error
 READ_DISK:
-    pusha
-    mov si, DAP
-    mov byte [si], 0x10      ; Drive number
-    mov byte [si+1], 0       ; Reserved
-    mov word [si+2], cx      ; Number of sectors to read
-    mov word [si+4], bx      ; Buffer offset
-    mov word [si+6], dx      ; Buffer segment
-    mov dword [si+8], eax    ; LBA of the first sector to read
+    pusha                       ; Save all registers
 
-    mov byte [retry_count], RETRY_COUNT_MAX ; Max retries
+    push eax
+    mov eax, ecx
+    call PRINT_HEX
+    call PRINT_LINEFEED
+    ; mov ds, eax                 ; Set DS to 0 for real mode addressing
+    lea si, DAP                 ; Load DAP address into SI
+    ; mov eax, [si]
+    ; call PRINT_HEX
+    ; call PRINT_LINEFEED
+    pop eax
+    mov es, bx ; es:bx = buffer
+
+    ; ds:si= 0x0000:DAP
+
+    mov byte [si], 0x10         ; DAP size
+    mov byte [si+1], 0          ; Reserved
+    mov word [si+2], cx         ; Number of sectors to read
+    mov word [si+4], es         ; Buffer offset
+    mov word [si+6], dx         ; Buffer segment
+    mov dword [si+8], eax       ; LBA low 32 bits
+    mov word [si+12], 0         ; LBA high 16 bits (upper part of 48-bit LBA)
+    mov byte [retry_count], 5   ; Max retries
+
 .try:
-    mov dl, [drive_number]    ; Drive number
-    mov ah, 0x42              ; Extended Read
-    int 0x13                  ; Call BIOS
-    jc .error                 ; Jump if carry flag set (error)
+    mov dl, [drive_number]      ; Drive number (e.g., 0x80)
+    mov ah, 0x42                ; Extended Read
+    int 0x13                    ; BIOS call
+    jc .error                   ; Jump if CF=1 (error)
 
-    popa
-    xor eax, eax              ; Success
+    mov eax, [DAP]          ; Read number of sectors
+    call PRINT_HEX
+    call PRINT_LINEFEED
+
+    popa                        ; Restore registers
+    xor eax, eax                ; Success = 0
     ret
-
 .error:
     dec byte [retry_count]
-    jnz .try                  ; Retry if retries remain
+    jnz .try                    ; Retry if retries remain
 
     popa
-    mov eax, 0xFFFF           ; Failure
+    mov eax, 0xFFFF             ; Failure
     ret
-
-
 
 ; eax READ_DISK_W(eax = LBA, cx = sectors, ebx = linear address)
 ; Returns:

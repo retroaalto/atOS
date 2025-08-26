@@ -91,19 +91,19 @@ IsoDirectoryDateAndTime;
 typedef uint8_t fileFlag;
 // Directory Record
 typedef struct _IsoDirectoryRecord {
-    uint8_t length;
-    uint8_t extendedAttributeRecordLength;
-    uint32_t extentLocationLE_LBA;
-    uint32_t extentLocationBE_LBA;
-    uint32_t extentLengthLE;
-    uint32_t extentLengthBE;
-    IsoDirectoryDateAndTime recordingDateAndTime;
-    fileFlag fileFlags;
-    uint8_t fileUnitSize;
-    uint8_t interleaveGapSize;
-    uint16_t volumeSequenceNumberLE;
-    uint16_t volumeSequenceNumberBE;
-    uint8_t fileNameLength;
+    uint8_t length;                                         // +0
+    uint8_t extendedAttributeRecordLength;                  // +1
+    uint32_t extentLocationLE_LBA;                          // +2
+    uint32_t extentLocationBE_LBA;                          // +6
+    uint32_t extentLengthLE;                                // +10
+    uint32_t extentLengthBE;                                // +14
+    IsoDirectoryDateAndTime recordingDateAndTime;           // +18
+    fileFlag fileFlags;                                     // +25
+    uint8_t fileUnitSize;                                   // +26
+    uint8_t interleaveGapSize;                              // +27
+    uint16_t volumeSequenceNumberLE;                        // +28
+    uint16_t volumeSequenceNumberBE;                        // +30
+    uint8_t fileNameLength;                                 // +31
     strD fileIdentifier[1];
 } 
 #if defined(__linux__) || defined(__GNUC__)
@@ -229,7 +229,8 @@ bool read_directory(FILE *iso, uint32_t lba, uint32_t size, char *target, char *
         } else {
             if (strcmp(name, target) == 0) {
                 printf("File found: %s\n", name);
-                printf("LEN: %u... %lu... %lu\n", record->length, record->extentLocationLE_LBA, record->extentLengthLE);
+                // printf("LEN: %u... %lu... %lu\n", record->length, record->extentLocationLE_LBA, record->extentLengthLE);
+                printf("ExtentLengthLE: %lu. ExtentLocationLE: %lu\n", record->extentLengthLE, record->extentLocationLE_LBA);
                 char buffer[1024];
                 fseek(iso, record->extentLocationLE_LBA * size, SEEK_SET);
                 fread(buffer, 1024, 1, iso);
