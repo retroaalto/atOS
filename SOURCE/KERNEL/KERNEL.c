@@ -23,58 +23,35 @@ REMARKS
 ---*/
 #define KERNEL_ENTRY
 #include "./32RTOSKRNL/KERNEL.h"
-#include "./32RTOSKRNL/CPU/ISR/ISR.h"
-
-const char *kernel_version = "END OF FILE:!!";
 
 U0 kernel_after_gdt(U0);
 __attribute__((noreturn))
 void kernel_entry_main(U0) {
-    char* video_memory = (char*)0xB8000; // Textmode buffer
-    U32* memory_address = (U32*)(0x2000);
-    U32 data = *memory_address;
-    const char hex_chars[] = "0123456789ABCDEF";
-    // Print each nibble (4 bits) as hex
-    for(int i = 0; i < 8; i++) {
-        U8 nibble = (data >> ((7 - i) * 4)) & 0xF; // Extract nibble
-        video_memory[i*2 + 0] = hex_chars[nibble]; // Character
-        video_memory[i*2 + 1] = 0x07;             // Attribute: white on black
-    }
+    vbe_check();
+    
+    VBE_DRAW_ELLIPSE(600, 600, 200, 50, VBE_PURPLE2);
+    VBE_DRAW_ELLIPSE(650, 710, 180, 50, VBE_AQUA); VBE_STOP_DRAWING();
+
     GDT_INIT();                      // Setup GDT
-    video_memory[0] = '<';
-    video_memory[4] = 'K';
-    video_memory[8] = 'E';
-    video_memory[12] = 'R';
-    video_memory[16] = 'N';
-    video_memory[20] = 'E';
-    video_memory[24] = 'L';
-    video_memory[28] = '>';
-    VBE_DRAW_LINE(200, 200, 400, 400, VBE_RED); VBE_STOP_DRAWING();
+    // setup in asm, can still be called
     kernel_after_gdt();
 }
 
 U0 kernel_after_gdt(U0) {
     IDT_INIT();                       // Setup IDT
-    SETUP_ISR_HANDLERS();           // isr init
+    SETUP_ISR_HANDLERS();
     IRQ_INIT();
-    VBE_DRAW_TRIANGLE(100, 100, 150, 300, 125, 70, VBE_WHITE); VBE_STOP_DRAWING();
-    __asm__ volatile ("sti");        // Enable interrupts
-    VBE_DRAW_LINE(0,0,100,100,VBE_RED);
+    VBE_FLUSH_SCREEN();
+    VBE_DRAW_TRIANGLE(100, 100, 150, 300, 125, 70, VBE_WHITE);
     VBE_STOP_DRAWING();
+    __asm__ volatile ("sti");        // Enable interrupts
     ASM_VOLATILE("hlt");
+    VBE_DRAW_TRIANGLE(100, 100, 150, 300, 125, 70, VBE_WHITE);
+    VBE_DRAW_LINE(0,0,100,100,VBE_RED);
+    VBE_DRAW_RECTANGLE(500, 500, 100, 50, VBE_BLUE);
+    VBE_STOP_DRAWING();
 
-    if(!vesa_check()) {
-        ASM_VOLATILE("hlt");
-    }
-    if(!vbe_check()) {
-        ASM_VOLATILE("hlt");
-    }
-
-    /*
-    ATAPI driver. Initialize and read RTOSKRNL into memory
-    */
     VBE_MODE* mode = GET_VBE_MODE();
-
     VBE_DRAW_ELLIPSE(
         mode->XResolution / 2, 
         mode->YResolution / 2, 
@@ -118,7 +95,7 @@ U0 kernel_after_gdt(U0) {
     VBE_DRAW_CHARACTER(100, 100, 0, VBE_WHITE, VBE_VIOLET);
     VBE_STOP_DRAWING();
 
-    ASM_VOLATILE("cli; hlt");
+    for(;;) ASM_VOLATILE("hlt");
 }
     
 __attribute__((noreturn, section(".text")))

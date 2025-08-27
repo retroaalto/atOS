@@ -21,6 +21,7 @@ REMARKS
 
 ---*/
 #include "GDT.h"
+#include "../../../../STD/ASM.h"
 
 typedef struct __attribute__((packed)) {
     U16 limit0;
@@ -55,21 +56,17 @@ void gdt_set_gate(U32 num, U32 base, U32 limit, U8 access, U8 gran) {
 }
 
 U0 GDT_INIT(U0) {
-    // __asm__ volatile("hlt");
     // Null descriptor
     gdt_set_gate(0, 0, 0, 0, 0);                  
     // Kernel code segment
-    gdt_set_gate(1, 0, 0xFFFFF, READABLE_RNG0_KRNL, GRANULARITY); 
+    gdt_set_gate(1, 0, 0xFFFFFFFF, READABLE_RNG0_KRNL, GRANULARITY); 
     // Kernel data segment
-    gdt_set_gate(2, 0, 0xFFFFF, WRITABLE_RNG0_KRNL, GRANULARITY); 
+    gdt_set_gate(2, 0, 0xFFFFFFFF, WRITABLE_RNG0_KRNL, GRANULARITY); 
 
     g_GDTDescriptor->limit = GDT_ENTRY_COUNT * sizeof(GDTENTRY) - 1;
     g_GDTDescriptor->base  = g_GDT;
 
-    // Load GDT
     __asm__ volatile("lgdt %0" : : "m"(g_GDTDescriptor));
-
-    return;
 }
 
 

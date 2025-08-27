@@ -35,31 +35,31 @@ U0 ___memcpy(void* dest, const void* src, U32 n) {
     }
 }
 
-// U0 __memcpy_safe_chunks(void* dest, const void* src, U32 n) {
-//     U8* d = (U8*)dest;
-//     const U8* s = (const U8*)src;
+U0 __memcpy_safe_chunks(void* dest, const void* src, U32 n) {
+    U8* d = (U8*)dest;
+    const U8* s = (const U8*)src;
 
-//     // Copy leading bytes until dest is 4-byte aligned
-//     while (((U32)d & 3) && n) {
-//         *d++ = *s++;
-//         n--;
-//     }
+    // Copy leading bytes until dest is 4-byte aligned
+    while (((U32)d & 3) && n) {
+        *d++ = *s++;
+        n--;
+    }
 
-//     // Copy 4 bytes at a time
-//     U32* d32 = (U32*)d;
-//     const U32* s32 = (const U32*)s;
-//     while (n >= 4) {
-//         *d32++ = *s32++;
-//         n -= 4;
-//     }
+    // Copy 4 bytes at a time
+    U32* d32 = (U32*)d;
+    const U32* s32 = (const U32*)s;
+    while (n >= 4) {
+        *d32++ = *s32++;
+        n -= 4;
+    }
 
-//     // Copy remaining bytes
-//     d = (U8*)d32;
-//     s = (const U8*)s32;
-//     while (n--) {
-//         *d++ = *s++;
-//     }
-// }
+    // Copy remaining bytes
+    d = (U8*)d32;
+    s = (const U8*)s32;
+    while (n--) {
+        *d++ = *s++;
+    }
+}
 
 
 BOOL vbe_check(U0) {
@@ -76,8 +76,22 @@ BOOL vbe_check(U0) {
     if (mode->XResolution < SCREEN_WIDTH || mode->YResolution < SCREEN_HEIGHT) {
         return FALSE;
     }
+    for(U32 i = 0; i < 10; i++) {
+        if(i % 2 == 0)
+            VBE_CLEAR_SCREEN(VBE_GREEN);
+        else
+            VBE_CLEAR_SCREEN(VBE_BLACK);
+        VBE_STOP_DRAWING();
+    }
     return TRUE;
 }
+
+BOOLEAN VBE_FLUSH_SCREEN(U0) {
+    VBE_CLEAR_SCREEN(VBE_BLACK);
+    UPDATE_VRAM();
+    return TRUE;
+}
+
 
 U0 UPDATE_VRAM(U0) {
     VBE_MODE* mode = GET_VBE_MODE();
@@ -87,6 +101,7 @@ U0 UPDATE_VRAM(U0) {
     U32 copy_size = mode->BytesPerScanLineLinear * mode->YResolution;
     if (copy_size > FRAMEBUFFER_SIZE) copy_size = FRAMEBUFFER_SIZE;
     ___memcpy((void*)mode->PhysBasePtr, (void*)FRAMEBUFFER_ADDRESS, copy_size);
+    // __memcpy_safe_chunks((void*)mode->PhysBasePtr, (void*)FRAMEBUFFER_ADDRESS, copy_size);
 }
 
 U0 VBE_STOP_DRAWING(U0) {
@@ -240,7 +255,24 @@ BOOLEAN VBE_DRAW_LINE(U32 x0_in, U32 y0_in, U32 x1_in, U32 y1_in, VBE_PIXEL_COLO
     return TRUE;
 }
 
+BOOLEAN VBE_CLEAR_SCREEN(VBE_PIXEL_COLOUR colour) {
+    VBE_MODE* mode = GET_VBE_MODE();
+    if (!mode) return FALSE;
 
+    U32 bytes_per_pixel = (mode->BitsPerPixel + 7) / 8;
+    U32 total_bytes = mode->BytesPerScanLineLinear * mode->YResolution;
+    U32 total_pixels = total_bytes / bytes_per_pixel;
+    U32 pos = 0;
+
+    for (U32 i = 0; i < total_pixels; i++) {
+        if (!VBE_DRAW_FRAMEBUFFER(pos, colour)) {
+            return FALSE;
+        }
+        pos += bytes_per_pixel;
+    }
+
+    return TRUE;
+}
 
 
 

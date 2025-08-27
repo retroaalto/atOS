@@ -28,10 +28,7 @@ REMARKS
 #include "../ISR/ISR.h"
 
 #define PIC_REMAP_OFFSET 0x20
-
 U0 IRQ_INIT(U0);
-extern IRQHandler g_IRQHandlers[16];
-__attribute__((noreturn)) void irq_default_handler(struct regs* r);
 void pic_send_eoi(U8 irq);
-void pic_remap();
+void pic_remap(U8 offset1, U8 offset2);
 #endif // IRQ_H

@@ -151,7 +151,7 @@ BUFFER_OFFSET equ 0x4000
 %define SECTOR_SIZE             2048        ; 2KB per sector
 %define VOL_DESC_START          16          ; Volume descriptor starts at sector 16
 PVD_OFFSET equ              VOL_DESC_START*SECTOR_SIZE/SECTOR_SIZE
-
+%define stack 0x00009300
 extentLocationLE_LBA: dd 0
 extentLengthLE: dd 0
 extentLocationLE_LBA_KRNL: dd 0

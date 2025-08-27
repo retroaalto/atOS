@@ -26,7 +26,7 @@ typedef struct __attribute__((packed)) {
 } IDTDESCRIPTOR;
 
 IDTENTRY *idt = (IDTENTRY *)(IDT_MEM_BASE);
-IDTDESCRIPTOR *idt_desc = (IDTDESCRIPTOR *)(IDT_MEM_BASE + sizeof(IDTENTRY) * IDT_COUNT);
+static IDTDESCRIPTOR idt_desc;
 
 
 void idt_set_gate(U32 index, U0* handler, U16 sel, U8 flags) {
@@ -37,20 +37,11 @@ void idt_set_gate(U32 index, U0* handler, U16 sel, U8 flags) {
     idt[index].base1   = ((U32)handler >> 16) & 0xFFFF;
 }
 
-void IDT_ENABLEGATE(int interrupt)
-{
-    FLAG_SET(idt[interrupt].type_attr, IDT_FLAG_PRESENT);
-}
-
-void IDT_DISABLEGATE(int interrupt)
-{
-    FLAG_UNSET(idt[interrupt].type_attr, IDT_FLAG_PRESENT);
-}
-
 U0 IDT_INIT(U0) {
     SETUP_ISRS();
-    idt_desc->size = sizeof(IDTENTRY) * IDT_COUNT - 1;
-    idt_desc->base = idt;
+    idt_desc.size = sizeof(IDTENTRY) * IDT_COUNT - 1;
+    idt_desc.base = idt;
+    
     __asm__ volatile("lidt %0" : : "m"(idt_desc));
     return;
 }

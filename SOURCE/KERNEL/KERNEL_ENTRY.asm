@@ -606,7 +606,8 @@ PModeMain:
     mov fs, ax
     mov gs, ax
     mov ss, ax       ; stack segment
-    mov esp, 0x00080000      ; Stack at 512KB (adjust if you want)
+    mov esp, stack   ; Stack at 512KB (adjust if you want)
+
 
     ; --- Load IDT ---
     %define KCODE_SEL 0x08
@@ -631,9 +632,10 @@ fill_loop:
 
     lidt [IDTR]
 
+    mov eax, 0xb8000
+    mov [eax], byte 'a'
 
-    ; Jump to kernel at 0x2000 (flat)
-    jmp 0x08:KERNEL_LOAD_ADDRESS
+    jmp KERNEL_LOAD_ADDRESS
 
     jmp hang32
 hang32:
