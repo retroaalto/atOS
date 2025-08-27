@@ -27,7 +27,24 @@ REMARKS
      use the 5:6:5 colour format and its macros.
 
     When compiling include VBE.c and VESA.c
-    
+
+FUNCTIONS
+    NOTE: Always update video ram after done drawing if not told otherwise
+
+    BOOL vbe_check(...);                    // Checks VBE compatibility
+    BOOLEAN VBE_DRAW_CHARACTER(...);        // Draws a character on the screen
+    BOOLEAN VBE_DRAW_STRING(...);           // Draws a string on the screen
+    U0 UPDATE_VRAM(...);                    // Updates the video RAM
+    U0 VBE_STOP_DRAWING(...);               // Updates the video RAM
+    BOOLEAN VBE_CLEAR_SCREEN(...);          // Clears the screen with given colour
+    BOOLEAN VBE_FLUSH_SCREEN(...);          // Clears screen with black
+    BOOLEAN VBE_DRAW_PIXEL(...);            // Draws a pixel on the screen
+    BOOLEAN VBE_DRAW_FRAMEBUFFER(...);      // Draws a pixel in the framebuffer
+    BOOLEAN VBE_DRAW_ELLIPSE(...);          // Draws an ellipse on the screen
+    BOOLEAN VBE_DRAW_LINE(...);             // Draws a line on the screen
+    BOOLEAN VBE_DRAW_RECTANGLE(...);        // Draws a rectangle on the screen
+    BOOLEAN VBE_DRAW_TRIANGLE(...);         // Draws a triangle on the screen
+    BOOLEAN VBE_DRAW_TRIANGLE_FILLED(...);  // Draws a filled triangle on the screen
 ---*/
 #ifndef VBE_H
 #define VBE_H
@@ -68,6 +85,8 @@ Blue min-max: 0-31
         g = (colour >> 5) & 0x3F; \
         b = colour & 0x1F; \
     } while (0)
+
+#define VBE_SEE_THROUGH VBE_COLOUR(0, 1, 2)
 
 // Reds
 #define VBE_RED          VBE_COLOUR(31, 0, 0)
@@ -248,17 +267,77 @@ REMARKS:
 BOOL vbe_check(U0);
 
 
-// memcpy copied from STD/MEM.h to avoid "bloating" the size of KRNL
-U0 ___memcpy(void* dest, const void* src, U32 n);
-
 // Allows for 127 characters; Extended ASCII is implemented as 16x16 in the VIDEODRIVER
-#define VBE_MAX_CHARS 127
+#define UNUSABLE_CHARS 33 // Used for saving space for KRNL.
+#define VBE_MAX_CHARS 127 - UNUSABLE_CHARS
 #define VBE_CHAR_HEIGHT 8
 #define VBE_CHAR_WIDTH 8
 typedef U8 VBE_LETTERS_TYPE;
 
-// TODO: comments 
+/*+++
+BOOLEAN VBE_DRAW_CHARACTER(U32 x, U32 y, U8 c, VBE_PIXEL_COLOUR fg, VBE_PIXEL_COLOUR bg)
+
+DESCRIPTION
+    Draws a character on the framebuffer.
+
+PARAMETERS
+    U32    x
+        The x-coordinate to draw the character.
+    U32    y
+        The y-coordinate to draw the character.
+    U8     c
+        The ASCII code of the character to draw.
+    VBE_PIXEL_COLOUR fg
+        The foreground color.
+    VBE_PIXEL_COLOUR bg
+        The background color.
+
+RETURN
+    TRUE if successful, FALSE otherwise.
+
+AUTHORS
+    Antonako1
+
+REVISION HISTORY
+    2025/08/27 - Antonako1
+        Initial version.
+
+REMARKS
+    This draws a character in the framebuffer.
+---*/
 BOOLEAN VBE_DRAW_CHARACTER(U32 x, U32 y, U8 c, VBE_PIXEL_COLOUR fg, VBE_PIXEL_COLOUR bg);
+
+/*+++
+BOOLEAN VBE_DRAW_STRING(U32 x, U32 y, const char* str, VBE_PIXEL_COLOUR fg, VBE_PIXEL_COLOUR bg)
+
+DESCRIPTION
+    Draws a string on the framebuffer.
+
+PARAMETERS
+    U32    x
+        The x-coordinate to draw the string.
+    U32    y
+        The y-coordinate to draw the string.
+    const char* str
+        The string to draw.
+    VBE_PIXEL_COLOUR fg
+        The foreground color.
+    VBE_PIXEL_COLOUR bg
+        The background color.
+
+RETURN
+    TRUE if successful, FALSE otherwise.
+
+AUTHORS
+    Antonako1
+
+REVISION HISTORY
+    2025/08/27 - Antonako1
+        Initial version.
+
+REMARKS
+    This draws a string in the framebuffer.
+---*/
 BOOLEAN VBE_DRAW_STRING(U32 x, U32 y, const char* str, VBE_PIXEL_COLOUR fg, VBE_PIXEL_COLOUR bg);
 
 /*+++
@@ -308,9 +387,55 @@ REMARKS
 ---*/
 U0 VBE_STOP_DRAWING(U0);
 
-// TODO: comments 
+/*+++
+BOOLEAN VBE_CLEAR_SCREEN(VBE_PIXEL_COLOUR colour)
+
+DESCRIPTION
+    Clears the screen and fills it with the specified color.
+
+PARAMETERS
+    VBE_PIXEL_COLOUR colour
+        The color to fill the screen with.
+
+RETURN
+    TRUE if successful, FALSE otherwise.
+
+AUTHORS
+    Antonako1
+
+REVISION HISTORY
+    2025/08/19 - Antonako1
+        Initial version.
+
+REMARKS
+    This function is called to refresh the screen contents.
+    Requires framebuffer refresh
+---*/
 BOOLEAN VBE_CLEAR_SCREEN(VBE_PIXEL_COLOUR colour);
-// TODO: comments 
+
+/*+++
+BOOLEAN VBE_FLUSH_SCREEN(U0);
+
+DESCRIPTION
+    Flushes the framebuffer to the screen.
+
+PARAMETERS
+    U0
+
+RETURN
+    None.
+
+AUTHORS
+    Antonako1
+
+REVISION HISTORY
+    2025/08/19 - Antonako1
+        Initial version.
+
+REMARKS
+    This function is called to clear screen with black
+    Refreshes the framebuffer itself.
+---*/
 BOOLEAN VBE_FLUSH_SCREEN(U0);
 
 /*+++
@@ -473,6 +598,37 @@ REMARKS
 ---*/
 BOOLEAN VBE_DRAW_RECTANGLE(U32 x, U32 y, U32 width, U32 height, VBE_PIXEL_COLOUR colours);
 
+/*+++
+BOOLEAN VBE_DRAW_RECTANGLE_FILLED(U32 x, U32 y, U32 width, U32 height, VBE_PIXEL_COLOUR colours)
+
+DESCRIPTION
+    Draws a filled rectangle on the framebuffer.
+
+PARAMETERS
+    U32    x
+        The x-coordinate of the top-left corner.
+    U32    y
+        The y-coordinate of the top-left corner.
+    U32    width
+        The width of the rectangle.
+    U32    height
+        The height of the rectangle.
+    VBE_PIXEL_COLOUR colours
+        The color information for the rectangle.
+
+RETURN
+    TRUE if successful, FALSE otherwise.
+
+AUTHORS
+    Antonako1
+
+REVISION HISTORY
+    2025/08/27 - Antonako1
+        Initial version.
+
+REMARKS
+    This draws a filled rectangle in the framebuffer.
+---*/
 BOOLEAN VBE_DRAW_RECTANGLE_FILLED(U32 x, U32 y, U32 width, U32 height, VBE_PIXEL_COLOUR colours);
 
 /*+++
@@ -512,36 +668,41 @@ REMARKS
 ---*/
 BOOLEAN VBE_DRAW_TRIANGLE(U32 x1, U32 y1, U32 x2, U32 y2, U32 x3, U32 y3, VBE_PIXEL_COLOUR colours);
 
-BOOLEAN VBE_DRAW_TRIANGLE_FILLED(U32 x1, U32 y1, U32 x2, U32 y2, U32 x3, U32 y3, VBE_PIXEL_COLOUR colours);
+/*+++
+BOOLEAN VBE_DRAW_TRIANGLE_FILLED(U32 x1, U32 y1, U32 x2, U32 y2, U32 x3, U32 y3, VBE_PIXEL_COLOUR colours)
 
-#define VBE_DRAW_LINE_THICKNESS(x1, y1, x2, y2, colours, thickness)              \
-    do {                                                                         \
-        I32 _dx = (I32)(x2) - (I32)(x1);                                         \
-        I32 _dy = (I32)(y2) - (I32)(y1);                                         \
-        float _len = sqrtf((float)(_dx * _dx + _dy * _dy));                      \
-        if (_len == 0) {                                                         \
-            VBE_DRAW_RECTANGLE((x1) - (thickness)/2, (y1) - (thickness)/2,       \
-                               thickness, thickness, colours);                   \
-        } else {                                                                 \
-            float _px = -_dy / _len;  /* perpendicular unit x */                  \
-            float _py =  _dx / _len;  /* perpendicular unit y */                  \
-            float _ox = _px * ((float)(thickness) / 2.0f);                       \
-            float _oy = _py * ((float)(thickness) / 2.0f);                       \
-                                                                                  \
-            /* Rectangle corners around the line */                               \
-            I32 _x1a = (I32)((x1) + _ox);                                        \
-            I32 _y1a = (I32)((y1) + _oy);                                        \
-            I32 _x1b = (I32)((x1) - _ox);                                        \
-            I32 _y1b = (I32)((y1) - _oy);                                        \
-            I32 _x2a = (I32)((x2) + _ox);                                        \
-            I32 _y2a = (I32)((y2) + _oy);                                        \
-            I32 _x2b = (I32)((x2) - _ox);                                        \
-            I32 _y2b = (I32)((y2) - _oy);                                        \
-                                                                                  \
-            /* Draw filled quad as two triangles */                               \
-            VBE_DRAW_TRIANGLE(_x1a, _y1a, _x2a, _y2a, _x1b, _y1b, colours);      \
-            VBE_DRAW_TRIANGLE(_x2a, _y2a, _x2b, _y2b, _x1b, _y1b, colours);      \
-        }                                                                        \
-    } while (0)
+DESCRIPTION
+    Draws a filled triangle on the framebuffer.
+
+PARAMETERS
+    U32    x1
+        The x-coordinate of the first vertex.
+    U32    y1
+        The y-coordinate of the first vertex.
+    U32    x2
+        The x-coordinate of the second vertex.
+    U32    y2
+        The y-coordinate of the second vertex.
+    U32    x3
+        The x-coordinate of the third vertex.
+    U32    y3
+        The y-coordinate of the third vertex.
+    VBE_PIXEL_COLOUR colours
+        The color information for the triangle.
+
+RETURN
+    TRUE if successful, FALSE otherwise.
+
+AUTHORS
+    Antonako1
+
+REVISION HISTORY
+    2025/08/27 - Antonako1
+        Initial version.
+
+REMARKS
+    This draws a filled triangle in the framebuffer.
+---*/
+BOOLEAN VBE_DRAW_TRIANGLE_FILLED(U32 x1, U32 y1, U32 x2, U32 y2, U32 x3, U32 y3, VBE_PIXEL_COLOUR colours);
 
 #endif

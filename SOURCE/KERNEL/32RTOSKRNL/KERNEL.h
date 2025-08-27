@@ -25,9 +25,11 @@ REMARKS
 #include "../../STD/ATOSMINDEF.h"
 #include "./DRIVERS/VIDEO/VBE.h"
 #include "./DRIVERS/DISK/ATAPI/ATAPI.h"
-#include "./DRIVERS/DISK/ATA/ATA.h"
+// #include "./DRIVERS/DISK/ATA/ATA.h"
+#include "./DRIVERS/DISK/ATA_SHARED.h"
 #include "../../STD/ASM.h"
 #include "./CPU/INTERRUPTS.h"
+#include "./FS/ISO9660/ISO9660.h"
 
 #ifndef KERNEL_ENTRY
 #define KERNEL_ENTRY

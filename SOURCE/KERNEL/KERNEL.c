@@ -23,6 +23,26 @@ REMARKS
 ---*/
 #include "./32RTOSKRNL/KERNEL.h"
 
+void itoa(U32 value, U8 *buffer, U32 base) {
+    U32 i = 0;
+    if (value == 0) {
+        buffer[i++] = '0';
+    } else {
+        while (value != 0) {
+            U32 digit = value % base;
+            buffer[i++] = (digit < 10) ? (digit + '0') : (digit - 10 + 'A');
+            value /= base;
+        }
+    }
+    buffer[i] = '\0';
+    for (U32 j = 0; j < i / 2; j++) {
+        U8 temp = buffer[j];
+        buffer[j] = buffer[i - j - 1];
+        buffer[i - j - 1] = temp;
+    }
+}
+
+
 U0 kernel_after_gdt(U0);
 __attribute__((noreturn))
 void kernel_entry_main(U0) {
@@ -39,7 +59,7 @@ U0 kernel_after_gdt(U0) {
     IDT_INIT();                       // Setup IDT
     SETUP_ISR_HANDLERS();
     IRQ_INIT();
-    #warning todo: tss_init();
+    // todo: tss_init();
     // tss_init();
     VBE_FLUSH_SCREEN();
     __asm__ volatile ("sti");        // Enable interrupts
@@ -56,7 +76,63 @@ U0 kernel_after_gdt(U0) {
     VBE_DRAW_ELLIPSE(600, 600, 30, 30, VBE_WHITE);
     VBE_DRAW_ELLIPSE(600, 600, 20, 20, VBE_BLACK);
     VBE_DRAW_ELLIPSE(600, 600, 10, 10, VBE_RED);
+
+    U32 row = 0;
+    U32 status;
+    #define rowinc row += VBE_CHAR_HEIGHT + 2
+    status = ATAPI_CHECK();
+    if (status == ATAPI_FAILED) {
+        VBE_DRAW_STRING(0, row, "ATAPI check failed", VBE_WHITE, VBE_BLACK);
+        UPDATE_VRAM();
+        rowinc;
+    } else {
+        VBE_DRAW_CHARACTER(0, row, status, VBE_WHITE, VBE_BLACK);
+        UPDATE_VRAM();
+        rowinc;
+
+        U16 buffer[ATAPI_SECTORS(1)] = {0}; // 1 sector = 1024 bytes
+        U32 read = 0;
+        if ((read = READ_CDROM(status, 16, 1, buffer)) != ATAPI_FAILED) {
+            U8 *bytes = (U8*)buffer;
+            for (int i = 0; i < 1000; i++) {
+                if(i % 10 == 0)
+                    rowinc;
+                VBE_DRAW_CHARACTER(i * 40, row, bytes[i], VBE_WHITE, VBE_BLACK);
+            }
+            UPDATE_VRAM();
+        } else {
+            VBE_DRAW_STRING(0, row, "CD-ROM read failed", VBE_WHITE, VBE_BLACK);
+            UPDATE_VRAM();
+            rowinc;
+        }
+    }
+
+    ASM_VOLATILE("cli;hlt");
+    if(!ISO9660_IMAGE_CHECK()) {
+        VBE_DRAW_STRING(0, row, "Invalid ISO9660 image", VBE_WHITE, VBE_BLACK);
+        UPDATE_VRAM();
+        rowinc;
+    } else {
+        VBE_DRAW_STRING(0, row, "Valid ISO9660 image", VBE_WHITE, VBE_BLACK);
+        UPDATE_VRAM();
+        rowinc;
+    }
+
+    U8 *drive_letter = (U8*)0x00008000;
+    U32 *RTOSKRNL_ADDRESS = (U32*)MEM_RTOSKRNL_BASE; // Main kernel address
+    U32 RTOSKRNL_SIZE = MEM_RTOSKRNL_END - MEM_RTOSKRNL_BASE;
     
+    // Read RTOSKRNL.BIN;1 from disk
+    BOOLEAN res = ISO9660_READFILE_TO_MEMORY("RTOSKRNL.BIN;1", RTOSKRNL_ADDRESS, &RTOSKRNL_SIZE);
+    if(!res) {
+        VBE_DRAW_STRING(0, 0, "Failed to load RTOSKRNL.BIN;1", VBE_WHITE, VBE_BLACK);
+        UPDATE_VRAM();
+    } else {
+        // Jump to RTOSKRNL.BIN;1
+        // __asm__ volatile ("jmp %0" : : "r"(RTOSKRNL_ADDRESS));
+    }
+
+    ASM_VOLATILE("cli;hlt");
 
     const char ascii_set[] = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
     for (U32 i = 0; i < sizeof(ascii_set); i++) {
@@ -70,55 +146,21 @@ U0 kernel_after_gdt(U0) {
     VBE_STOP_DRAWING();
     const char str[] = "Hello from atOS's kernel entry!";
     for (U32 i = 0; i < sizeof(str); i++) {
-        VBE_DRAW_CHARACTER(10 + i * 8, 10, str[i % sizeof(str)], VBE_WHITE, VBE_BLACK);
+        VBE_DRAW_CHARACTER(10 + i * 8, 10, str[i % sizeof(str)], VBE_WHITE, VBE_SEE_THROUGH);
         VBE_STOP_DRAWING();
     }
     const char str2[] = "This is a test of the VBE graphics functions.";
     for (U32 i = 0; i < sizeof(str2); i++) {
-        VBE_DRAW_CHARACTER(10 + i * 8, 20, str2[i % sizeof(str2)], VBE_WHITE, VBE_BLACK);
+        VBE_DRAW_CHARACTER(10 + i * 8, 20, str2[i % sizeof(str2)], VBE_WHITE, VBE_SEE_THROUGH);
         VBE_STOP_DRAWING();
     }
     const char str3[] = "See KERNEL.c!";
     for (U32 i = 0; i < sizeof(str3); i++) {
-        VBE_DRAW_CHARACTER(10 + i * 8, 30, str3[i % sizeof(str3)], VBE_WHITE, VBE_BLACK);
+        VBE_DRAW_CHARACTER(10 + i * 8, 30, str3[i % sizeof(str3)], VBE_WHITE, VBE_SEE_THROUGH);
         VBE_STOP_DRAWING();
     }
 
-    U32 ball_diameter = 30;
-    F32 ball_x = 800;
-    F32 ball_y = 50;         // start higher up
-    F32 velocity_y = 0;      // current vertical velocity
-    F32 gravity = 0.8f;      // pull down
-    F32 bounce = -0.7f;      // lose some energy when bouncing
-    F32 floor_y = 200;       // ground position
 
-    for (U32 i = 0; i < 600; i++) {
-        // Clear previous frame
-        VBE_DRAW_RECTANGLE_FILLED(ball_x-ball_diameter, 0, 400, floor_y, VBE_CORAL);
-
-        // Draw the ball
-        VBE_DRAW_ELLIPSE((U32)ball_x, (U32)ball_y, ball_diameter/2, ball_diameter/2, VBE_RED);
-
-        // Physics update
-        velocity_y += gravity;         // apply gravity
-        ball_y += velocity_y;          // update position
-
-        if (ball_y + ball_diameter/2 >= floor_y) {
-            ball_y = floor_y - ball_diameter/2; // snap to floor
-            velocity_y *= bounce;               // bounce up with reduced speed
-        }
-
-        // Horizontal drift
-        ball_x += 1;
-        if(i % 2 == 0) {
-            VBE_STOP_DRAWING();
-        }
-    }
-
-    // Read RTOSKRNL.BIN;1 from disk
-    // U32 *RTOSKRNL_ADDRESS = READ_ISO9660("RTOSKRNL.BIN;1");
-    // Jump to RTOSKRNL.BIN;1
-    // __asm__ volatile ("jmp %0" : : "r"(RTOSKRNL_ADDRESS));
 
     for(;;) ASM_VOLATILE("hlt");
 }

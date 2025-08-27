@@ -503,6 +503,13 @@ KRNL_TO_MEMORY:
     popa 
 
 START_32BIT_PROTECTED_MODE:
+    xor eax, eax
+    mov ax, 0x0800
+    mov es, ax
+    mov di, 0x0000
+    xor eax, eax
+    mov al, [drive_number]
+    stosb
 
 
     ; hlt
@@ -631,6 +638,8 @@ fill_loop:
     ; hlt
     mov eax, 0xb8000
     mov [eax], byte 'x'
+
+    
     jmp KERNEL_LOAD_ADDRESS
 
     jmp hang32

@@ -33,12 +33,10 @@
 #define MEM_E820_BASE              0x00008000
 #define MEM_E820_END               0x00008FFF
 
-// GDT / IDT
-#define MEM_GDT_BASE               0x00009000
-#define MEM_GDT_END                0x000090FF  // 256 bytes, 32 entries
-#define MEM_IDT_BASE               0x00009100 +1
-#define MEM_IDT_END                0x000092FF  // 256 entries × 8 bytes
-
+#define MEM_DRIVE_LETTER_BASE      0x00008000
+#define MEM_DRIVE_LETTER_END       0x00008001
+#define EARLY_FREE_DATA_BASE       0x00008002
+#define EARLY_FREE_DATA_END        0x000093FF
 // Early Stack
 #define MEM_STACK_BASE             0x00009300
 #define MEM_STACK_END              0x00009FFF
@@ -47,13 +45,17 @@
 #define MEM_TEMP_BASE              0x0000A000
 #define MEM_TEMP_END               0x0000FFFF
 
-// Kernel main binary
+// Kernel entry point
 #define MEM_KRNL_BASE              0x00020000
 #define MEM_KRNL_END               0x003FFFFF  // 3.5 MiB size
 
+// RTOS kernel
+#define MEM_RTOSKRNL_BASE              0x00024000
+#define MEM_RTOSKRNL_END               0x00424000
+
 // Kernel Heap
-#define MEM_KERNEL_HEAP_BASE       0x00400000
-#define MEM_KERNEL_HEAP_END        0x005FFFFF
+#define MEM_KERNEL_HEAP_BASE       0x00600000
+#define MEM_KERNEL_HEAP_END        0x007FFFFF
 
 // Program / Temp
 #define MEM_PROGRAM_TMP_BASE       0x00600000
