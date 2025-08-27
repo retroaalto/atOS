@@ -94,11 +94,10 @@ kernel:
 		$(OUTPUT_KERNEL_DIR)/IRQ.o \
 		$(OUTPUT_KERNEL_DIR)/INTERRUPTS.o \
 
-
 	@echo "KRNL.BIN compiled successfully."
 	@size=$$(stat -c%s "$(OUTPUT_KERNEL_DIR)/KRNL.BIN"); \
-	if [ $$size -gt 24000 ]; then \
-		echo "\033[1;33mWARNING: KRNL.BIN size is $$size bytes, which exceeds 24000 bytes!\033[0m"; \
+	if [ $$size -gt 16384 ]; then \
+		echo "\033[1;33mWARNING: KRNL.BIN size is $$size bytes, which exceeds 16384 bytes!\033[0m"; \
 	fi
 
 	@echo "Compiling 32RTOSKRNL.BIN (32-bit asm kernel)..."
@@ -120,8 +119,8 @@ iso: bootloader kernel
 	cp -f $(OUTPUT_BOOTLOADER_DIR)/BOOTLOADER.BIN $(INPUT_ISO_DIR)/BOOTLOADER.BIN
 	cp -f $(SOURCE_DIR)/BASE.txt $(INPUT_ISO_DIR)/BASE.txt
 	cp -f $(OUTPUT_KERNEL_DIR)/KERNEL.BIN $(INPUT_ISO_DIR)/KERNEL.BIN
-	cp -f $(OUTPUT_KERNEL_DIR)/KRNL.BIN $(INPUT_ISO_DIR)/KRNL.BIN
 	cp -f $(OUTPUT_KERNEL_DIR)/32RTOSKRNL.BIN $(INPUT_ISO_DIR_SYSTEM)/32RTOSKRNL.BIN
+	cp -f $(OUTPUT_KERNEL_DIR)/KRNL.BIN $(INPUT_ISO_DIR)/KRNL.BIN
 
 	@echo "Building ISO..."
 	mkdir -p $(OUTPUT_ISO_DIR)

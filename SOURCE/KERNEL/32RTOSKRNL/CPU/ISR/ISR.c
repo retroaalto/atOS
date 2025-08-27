@@ -24,8 +24,19 @@ REMARKS
 
 ISRHandler g_Handlers[IDT_COUNT];
 
+
+#include "../../DRIVERS/VIDEO/VBE.h"
 // This is the c-level exception handler
 void isr_common_handler(I32 num, U32 errcode) {
+    (void)errcode; (void)num;
+    // for (;;) 
+        // __asm__ volatile(
+            // "cli\n\t"
+            // "hlt\n\t"
+        // );
+}
+
+void double_fault_handler(I32 num, U32 errcode) {
     (void)errcode; (void)num;
     for (;;) 
         __asm__ volatile(
@@ -46,6 +57,12 @@ void irq_common_handler(I32 num, U32 errcode) {
 void isr_dispatch_c(int vector, U32 errcode, regs *regs_ptr) {
     (void)regs_ptr;
     // For CPU exceptions (0-31) call isr_common_handler
+    switch (vector)
+    {
+    case 8:
+        double_fault_handler(vector, errcode);
+        break;
+    }
     if (vector < 32) {
         isr_common_handler(vector, errcode);
     } else if (vector >= 32 && vector < 48) {

@@ -1,14 +1,1003 @@
 #include "./VBE.h"
 #include "../../../../STD/MATH.h"
-U8 VBE_LETTERS[VBE_MAX_CHARS][VBE_CHAR_HEIGHT] = {
-    {0b00011000,
-    0b00100100,
-    0b01000010,
-    0b01000010,
-    0b01111110,
-    0b01000010,
-    0b01000010,
-    0b01000010}
+
+/*
+8x8 characters
+
+0b11111110
+0b11111110
+0b11111110
+0b11111110
+0b11111110
+0b11111110
+0b11111110
+0b00000000
+
+Right is left empty
+Bottom is left empty
+
+Most are borrowed from https://gist.github.com/rothwerx/700f275d078b3483509f
+*/
+#define INVISIBLE_CHARACTER {0, 0, 0, 0, 0, 0, 0, 0}
+#define CHARACTER(...) { __VA_ARGS__ }
+VBE_LETTERS_TYPE VBE_LETTERS[VBE_MAX_CHARS][VBE_CHAR_HEIGHT] = {
+    INVISIBLE_CHARACTER, // 0
+    INVISIBLE_CHARACTER, // 1
+    INVISIBLE_CHARACTER, // 2
+    INVISIBLE_CHARACTER, // 3
+    INVISIBLE_CHARACTER, // 4
+    INVISIBLE_CHARACTER, // 5
+    INVISIBLE_CHARACTER, // 6
+    INVISIBLE_CHARACTER, // 7
+    INVISIBLE_CHARACTER, // 8
+    INVISIBLE_CHARACTER, // 9
+    INVISIBLE_CHARACTER, // 10
+    INVISIBLE_CHARACTER, // 11
+    INVISIBLE_CHARACTER, // 12
+    INVISIBLE_CHARACTER, // 13
+    INVISIBLE_CHARACTER, // 14
+    INVISIBLE_CHARACTER, // 15
+    INVISIBLE_CHARACTER, // 16
+    INVISIBLE_CHARACTER, // 17
+    INVISIBLE_CHARACTER, // 18
+    INVISIBLE_CHARACTER, // 19
+    INVISIBLE_CHARACTER, // 20
+    INVISIBLE_CHARACTER, // 21
+    INVISIBLE_CHARACTER, // 22
+    INVISIBLE_CHARACTER, // 23
+    INVISIBLE_CHARACTER, // 24
+    INVISIBLE_CHARACTER, // 25
+    INVISIBLE_CHARACTER, // 26
+    INVISIBLE_CHARACTER, // 27
+    INVISIBLE_CHARACTER, // 28
+    INVISIBLE_CHARACTER, // 29
+    INVISIBLE_CHARACTER, // 30
+    INVISIBLE_CHARACTER, // 31
+    INVISIBLE_CHARACTER, // 32 (SPACE)
+    CHARACTER(
+        0b00110000,
+        0b01111000,
+        0b01111000,
+        0b00110000,
+        0b00110000,
+        0b00000000,
+        0b00110000,
+        0b00000000,
+    ), // !
+    CHARACTER(
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+    ), // TODO: " 
+    CHARACTER(
+        0b01101100,
+        0b01101100,
+        0b11111110,
+        0b01101100,
+        0b11111110,
+        0b01101100,
+        0b01101100,
+        0b00000000,
+    ), // #
+    CHARACTER(
+        0b00110000,
+        0b01111100,
+        0b11000000,
+        0b01111000,
+        0b00001100,
+        0b11111000,
+        0b00110000,
+        0b00000000,
+    ), // $
+    CHARACTER(
+        0b00000000,
+        0b11000110,
+        0b11001100,
+        0b00011000,
+        0b00110000,
+        0b01100110,
+        0b11000110,
+        0b00000000,
+    ), // %
+    CHARACTER(
+        0b00111000,
+        0b01101100,
+        0b00111000,
+        0b01110110,
+        0b11011100,
+        0b11001100,
+        0b01110110,
+        0b00000000,
+    ), // &
+    CHARACTER(
+        0b00111000,
+        0b00010000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+    ), // '
+    CHARACTER(
+        0b00111000,
+        0b01100000,
+        0b01000000,
+        0b01000000,
+        0b01000000,
+        0b01100000,
+        0b00111000,
+        0b00000000,
+    ), // (
+    CHARACTER(
+        0b01110000,
+        0b00011000,
+        0b00001000,
+        0b00001000,
+        0b00001000,
+        0b00011000,
+        0b01110000,
+        0b00000000,
+    ), // )
+    CHARACTER(
+        0b00000000,
+        0b00101010,
+        0b00011100,
+        0b00111110,
+        0b00011100,
+        0b00101010,
+        0b00000000,
+        0b00000000,
+    ), // *
+    CHARACTER(
+        0b00000000,
+        0b00010000,
+        0b00010000,
+        0b01111100,
+        0b00010000,
+        0b00010000,
+        0b00000000,
+        0b00000000,
+    ), // +
+    CHARACTER(
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b01100000,
+        0b11000000,
+        0b00000000,
+
+    ), // ,
+    CHARACTER(
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b11111100,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+    ), // -
+    CHARACTER(
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b01100000,
+        0b01100000,
+        0b00000000,
+
+    ), // .
+    CHARACTER(
+        0b00000110,
+        0b00001100,
+        0b00011000,
+        0b00110000,
+        0b01100000,
+        0b11000000,
+        0b10000000,
+        0b00000000,
+
+    ), // /   
+    CHARACTER(
+        0b01111000,
+        0b11001100,
+        0b11011100,
+        0b11111100,
+        0b11101100,
+        0b11001100,
+        0b01111100,
+        0b00000000,
+    ), // 0
+    CHARACTER(
+        0b00110000,
+        0b01110000,
+        0b00110000,
+        0b00110000,
+        0b00110000,
+        0b00110000,
+        0b11111100,
+        0b00000000,
+    ), // 1
+    CHARACTER(
+        0b01111000,
+        0b11001100,
+        0b00001100,
+        0b00111000,
+        0b01100000,
+        0b11001100,
+        0b11111100,
+        0b00000000,
+    ), // 2
+    CHARACTER(
+        0b01111000,
+        0b11001100,
+        0b00001100,
+        0b00111000,
+        0b00001100,
+        0b11001100,
+        0b01111000,
+        0b00000000,
+    ), // 3
+    CHARACTER(
+        0b00011100,
+        0b00111100,
+        0b01101100,
+        0b11001100,
+        0b11111110,
+        0b00001100,
+        0b00011110,
+        0b00000000,
+    ), // 4
+    CHARACTER(
+        0b11111100,
+        0b11000000,
+        0b11111000,
+        0b00001100,
+        0b00001100,
+        0b11001100,
+        0b01111000,
+        0b00000000,
+    ), // 5
+    CHARACTER(
+        0b00111000,
+        0b01100000,
+        0b11000000,
+        0b11111000,
+        0b11001100,
+        0b11001100,
+        0b01111000,
+        0b00000000,
+    ), // 6
+    CHARACTER(
+        0b11111100,
+        0b11001100,
+        0b00001100,
+        0b00011000,
+        0b00110000,
+        0b00110000,
+        0b00110000,
+        0b00000000,
+    ), // 7
+    CHARACTER(
+        0b01111000,
+        0b11001100,
+        0b11001100,
+        0b01111000,
+        0b11001100,
+        0b11001100,
+        0b01111000,
+        0b00000000,
+    ), // 8
+    CHARACTER(
+        0b01111000,
+        0b11001100,
+        0b11001100,
+        0b01111100,
+        0b00001100,
+        0b00011000,
+        0b01110000,
+        0b00000000,
+    ), // 9
+    CHARACTER(
+        0b00110000,
+        0b00110000,
+        0b00110000,
+        0b00000000,
+        0b00110000,
+        0b00110000,
+        0b00110000,
+        0b00000000,
+    ), // :
+    CHARACTER(
+        0b00110000,
+        0b00110000,
+        0b00110000,
+        0b00000000,
+        0b00110000,
+        0b00110000,
+        0b01100000,
+        0b00000000,
+    ), // ;
+    CHARACTER(
+        0b00000000,
+        0b00001110,
+        0b00111000,
+        0b01110000,
+        0b11100000,
+        0b00111000,
+        0b00001110,
+        0b00000000,
+    ), // <
+    CHARACTER(
+        0b00000000,
+        0b00000000,
+        0b11111100,
+        0b00000000,
+        0b11111100,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+    ), // =
+    CHARACTER(
+        0b00000000,
+        0b11100000,
+        0b00111000,
+        0b00011100,
+        0b00001110,
+        0b00111000,
+        0b11100000,
+        0b00000000,
+    ), // >
+    CHARACTER(
+        0b01111000,
+        0b11001100,
+        0b00001100,
+        0b00011000,
+        0b00110000,
+        0b00000000,
+        0b00110000,
+        0b00000000,
+    ), //?
+    CHARACTER(
+        0b00111100,
+        0b01100010,
+        0b11001110,
+        0b11011010,
+        0b11010010,
+        0b11011110,
+        0b01100110,
+        0b00000000,
+    ), // @
+    CHARACTER(
+        0b00110000,
+        0b01111000,
+        0b11001100,
+        0b11001100,
+        0b11111100,
+        0b11001100,
+        0b11001100,
+        0b00000000,
+    ), // A
+    CHARACTER(
+        0b11111100,
+        0b01100110,
+        0b01100110,
+        0b01111100,
+        0b01100110,
+        0b01100110,
+        0b11111100,
+        0b00000000,
+    ), // B
+    CHARACTER(
+        0b00111100,
+        0b01100110,
+        0b11000000,
+        0b11000000,
+        0b11000000,
+        0b01100110,
+        0b00111100,
+        0b00000000,
+    ), // C
+    CHARACTER(
+        0b11111000,
+        0b01101100,
+        0b01100110,
+        0b01100110,
+        0b01100110,
+        0b01101100,
+        0b11111000,
+        0b00000000,
+    ), // D
+    CHARACTER(
+        0b11111110,
+        0b01100010,
+        0b01101000,
+        0b01111000,
+        0b01101000,
+        0b01100010,
+        0b11111110,
+        0b00000000,
+    ), // E
+    CHARACTER(
+        0b11111110,
+        0b01100010,
+        0b01101000,
+        0b01111000,
+        0b01101000,
+        0b01100000,
+        0b11110000,
+        0b00000000,
+    ), // F
+    CHARACTER(
+        0b00111100,
+        0b01100110,
+        0b11000000,
+        0b11000000,
+        0b11001110,
+        0b01100110,
+        0b00111110,
+        0b00000000,
+    ), // G
+    CHARACTER(
+        0b11001100,
+        0b11001100,
+        0b11001100,
+        0b11111100,
+        0b11001100,
+        0b11001100,
+        0b11001100,
+        0b00000000,
+    ), // H
+    CHARACTER(
+        0b01111000,
+        0b00110000,
+        0b00110000,
+        0b00110000,
+        0b00110000,
+        0b00110000,
+        0b01111000,
+        0b00000000,
+    ), // I
+    CHARACTER(
+        0b00011110,
+        0b00001100,
+        0b00001100,
+        0b00001100,
+        0b11001100,
+        0b11001100,
+        0b01111000,
+        0b00000000,
+    ), // J
+    CHARACTER(
+        0b11110110,
+        0b01100110,
+        0b01101100,
+        0b01111000,
+        0b01101100,
+        0b01100110,
+        0b11110110,
+        0b00000000,
+    ), // K
+    CHARACTER(
+        0b11110000,
+        0b01100000,
+        0b01100000,
+        0b01100000,
+        0b01100010,
+        0b01100110,
+        0b11111110,
+        0b00000000,
+    ), // L
+    CHARACTER(
+        0b11000110,
+        0b11101110,
+        0b11111110,
+        0b11111110,
+        0b11010110,
+        0b11000110,
+        0b11000110,
+        0b00000000,
+    ), // M
+    CHARACTER(
+        0b11000110,
+        0b11100110,
+        0b11110110,
+        0b11011110,
+        0b11001110,
+        0b11000110,
+        0b11000110,
+        0b00000000,
+    ), // N
+    CHARACTER(
+        0b00111000,
+        0b01101100,
+        0b11000110,
+        0b11000110,
+        0b11000110,
+        0b01101100,
+        0b00111000,
+        0b00000000,
+    ), // O
+    CHARACTER(
+        0b11111100,
+        0b01100110,
+        0b01100110,
+        0b01111100,
+        0b01100000,
+        0b01100000,
+        0b11110000,
+        0b00000000,
+    ), // P
+    CHARACTER(
+        0b01111000,
+        0b11001100,
+        0b11001100,
+        0b11001100,
+        0b11011100,
+        0b01111000,
+        0b00011100,
+        0b00000000,
+    ), // Q
+    CHARACTER(
+        0b11111100,
+        0b01100110,
+        0b01100110,
+        0b01111100,
+        0b01101100,
+        0b01100110,
+        0b11110110,
+        0b00000000,
+    ), // R
+    CHARACTER(
+        0b01111000,
+        0b11001100,
+        0b11100000,
+        0b01110000,
+        0b00011100,
+        0b11001100,
+        0b01111000,
+        0b00000000,
+    ), // S
+    CHARACTER(
+        0b11111100,
+        0b10110100,
+        0b00110000,
+        0b00110000,
+        0b00110000,
+        0b00110000,
+        0b01111000,
+        0b00000000,
+    ), // T
+    CHARACTER(
+        0b11001100,
+        0b11001100,
+        0b11001100,
+        0b11001100,
+        0b11001100,
+        0b11001100,
+        0b11111100,
+        0b00000000,
+    ), // U
+    CHARACTER(
+        0b11001100,
+        0b11001100,
+        0b11001100,
+        0b11001100,
+        0b11001100,
+        0b01111000,
+        0b00110000,
+        0b00000000,
+    ), // V
+    CHARACTER(
+        0b11000110,
+        0b11000110,
+        0b11000110,
+        0b11010110,
+        0b11111110,
+        0b11101110,
+        0b11000110,
+        0b00000000,
+    ), // W
+    CHARACTER(
+        0b11000110,
+        0b11000110,
+        0b01101100,
+        0b00111000,
+        0b00111000,
+        0b01101100,
+        0b11000110,
+        0b00000000,
+    ), // X
+    CHARACTER(
+        0b11001100,
+        0b11001100,
+        0b11001100,
+        0b01111000,
+        0b00110000,
+        0b00110000,
+        0b01111000,
+        0b00000000,
+    ), // Y
+    CHARACTER(
+        0b11111110,
+        0b11000110,
+        0b10001100,
+        0b00011000,
+        0b00110010,
+        0b01100110,
+        0b11111110,
+        0b00000000,
+    ), // Z
+    CHARACTER(
+        0b01111000,
+        0b01000000,
+        0b01000000,
+        0b01000000,
+        0b01000000,
+        0b01000000,
+        0b01111000,
+        0b00000000,
+    ), // [
+    CHARACTER(
+        0b10000000,
+        0b11000000,
+        0b01100000,
+        0b00110000,
+        0b00011000,
+        0b00001100,
+        0b00000110,
+        0b00000000,
+    ), // \ 
+
+    CHARACTER(
+        0b01111000,
+        0b00001000,
+        0b00001000,
+        0b00001000,
+        0b00001000,
+        0b00001000,
+        0b01111000,
+        0b00000000,
+    ), // ]
+    CHARACTER(
+        0b00110000,
+        0b01111000,
+        0b11001100,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+    ), // ^
+    CHARACTER(
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b11111100,
+        0b00000000,
+    ), // _
+    CHARACTER(
+        0b11100000,
+        0b00110000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+    ), // `
+    CHARACTER(
+        0b00000000,
+        0b00000000,
+        0b01111000,
+        0b00001100,
+        0b01111100,
+        0b11001100,
+        0b01110110,
+        0b00000000,
+    ), // a
+    CHARACTER(
+        0b11100000,
+        0b01100000,
+        0b01100000,
+        0b01111100,
+        0b01100110,
+        0b01100110,
+        0b11011100,
+        0b00000000,
+    ), // b
+    CHARACTER(
+        0b00000000,
+        0b00000000,
+        0b01111000,
+        0b11001100,
+        0b11000000,
+        0b11001100,
+        0b01111000,
+        0b00000000,
+    ), // c
+    CHARACTER(
+        0b00011100,
+        0b00001100,
+        0b00001100,
+        0b01111100,
+        0b11001100,
+        0b11001100,
+        0b01110110,
+        0b00000000,
+    ), // d
+    CHARACTER(
+        0b00000000,
+        0b00000000,
+        0b01111000,
+        0b11001100,
+        0b11111100,
+        0b11000000,
+        0b01111000,
+        0b00000000,
+    ), // e
+    CHARACTER(
+        0b00111000,
+        0b01101100,
+        0b01100000,
+        0b11110000,
+        0b01100000,
+        0b01100000,
+        0b11110000,
+        0b00000000,
+    ), // f
+    CHARACTER(
+        0b00000000,
+        0b00000000,
+        0b01110110,
+        0b11001100,
+        0b11001100,
+        0b01111100,
+        0b00001100,
+        0b11111000,
+    ), // g
+    CHARACTER(
+        0b11100000,
+        0b01100000,
+        0b01101100,
+        0b01110110,
+        0b01100110,
+        0b01100110,
+        0b11100110,
+        0b00000000,
+    ), // h
+    CHARACTER(
+        0b00110000,
+        0b00000000,
+        0b01110000,
+        0b00110000,
+        0b00110000,
+        0b00110000,
+        0b01111000,
+        0b00000000,
+    ), // i
+    CHARACTER(
+        0b00001100,
+        0b00000000,
+        0b00001100,
+        0b00001100,
+        0b00001100,
+        0b11001100,
+        0b11001100,
+        0b01111000,
+    ), // j
+    CHARACTER(
+        0b11100000,
+        0b01100000,
+        0b01100110,
+        0b01101100,
+        0b01111000,
+        0b01101100,
+        0b11100110,
+        0b00000000,
+    ), // k
+    CHARACTER(
+        0b01110000,
+        0b00110000,
+        0b00110000,
+        0b00110000,
+        0b00110000,
+        0b00110000,
+        0b01111000,
+        0b00000000,
+    ), // l
+    CHARACTER(
+        0b00000000,
+        0b00000000,
+        0b11001100,
+        0b11111110,
+        0b11111110,
+        0b11010110,
+        0b11000110,
+        0b00000000,
+    ), // m
+    CHARACTER(
+        0b00000000,
+        0b00000000,
+        0b11111000,
+        0b11001100,
+        0b11001100,
+        0b11001100,
+        0b11001100,
+        0b00000000,
+    ), // n
+    CHARACTER(
+        0b00000000,
+        0b00000000,
+        0b01111000,
+        0b11001100,
+        0b11001100,
+        0b11001100,
+        0b01111000,
+        0b00000000,
+    ), // o
+    CHARACTER(
+        0b00000000,
+        0b00000000,
+        0b11011100,
+        0b01100110,
+        0b01100110,
+        0b01111100,
+        0b01100000,
+        0b11110000,
+    ), // p
+    CHARACTER(
+        0b00000000,
+        0b00000000,
+        0b01110110,
+        0b11001100,
+        0b11001100,
+        0b01111100,
+        0b00001100,
+        0b00011110,
+    ), // q
+    CHARACTER(
+        0b00000000,
+        0b00000000,
+        0b10011100,
+        0b01110110,
+        0b01100110,
+        0b01100000,
+        0b11110000,
+        0b00000000,
+    ), // r
+    CHARACTER(
+        0b00000000,
+        0b00000000,
+        0b01111100,
+        0b11000000,
+        0b01111000,
+        0b00001100,
+        0b11111000,
+        0b00000000,
+    ), // s
+    CHARACTER(
+        0b00010000,
+        0b00110000,
+        0b01111100,
+        0b00110000,
+        0b00110000,
+        0b00110100,
+        0b00011000,
+        0b00000000,
+    ), // t
+    CHARACTER(
+        0b00000000,
+        0b00000000,
+        0b11001100,
+        0b11001100,
+        0b11001100,
+        0b11001100,
+        0b01110110,
+        0b00000000,
+    ), // u
+    CHARACTER(
+        0b00000000,
+        0b00000000,
+        0b11001100,
+        0b11001100,
+        0b11001100,
+        0b01111000,
+        0b00110000,
+        0b00000000,
+    ), // v
+    CHARACTER(
+        0b00000000,
+        0b00000000,
+        0b11000110,
+        0b11000110,
+        0b11010110,
+        0b11111110,
+        0b01101100,
+        0b00000000,
+    ), // w
+    CHARACTER(
+        0b00000000,
+        0b00000000,
+        0b11000110,
+        0b01101100,
+        0b00111000,
+        0b01101100,
+        0b11000110,
+        0b00000000,
+    ), // x
+    CHARACTER(
+        0b00000000,
+        0b00000000,
+        0b11001100,
+        0b11001100,
+        0b11001100,
+        0b01111100,
+        0b00001100,
+        0b11111000,
+    ), // y
+    CHARACTER(
+        0b00000000,
+        0b00000000,
+        0b11111100,
+        0b10011000,
+        0b00110000,
+        0b01100100,
+        0b11111100,
+        0b00000000,
+    ), // z
+    CHARACTER(
+        0b00001110,
+        0b00011000,
+        0b00011000,
+        0b01100000,
+        0b00011000,
+        0b00011000,
+        0b00001110,
+        0b00000000,
+    ), // {
+    CHARACTER(
+        0b00010000,
+        0b00010000,
+        0b00010000,
+        0b00010000,
+        0b00010000,
+        0b00010000,
+        0b00010000,
+        0b00000000,
+    ), // |
+    CHARACTER(
+        0b01110000,
+        0b00011000,
+        0b00011000,
+        0b00000110,
+        0b00011000,
+        0b00011000,
+        0b01110000,
+        0b00000000,
+    ), // }
+    CHARACTER(
+        0b00000000,
+        0b01110110,
+        0b11011100,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+    ), // ~
 };
 
 BOOLEAN VBE_DRAW_CHARACTER(U32 x, U32 y, U8 c, VBE_PIXEL_COLOUR fg, VBE_PIXEL_COLOUR bg) {
@@ -17,7 +1006,7 @@ BOOLEAN VBE_DRAW_CHARACTER(U32 x, U32 y, U8 c, VBE_PIXEL_COLOUR fg, VBE_PIXEL_CO
     if(c >= (U32)VBE_MAX_CHARS) return FALSE; // Invalid character
     // Draw the character
     for (U32 i = 0; i < 8; i++) {
-        U8 row = VBE_LETTERS[c][i];
+        VBE_LETTERS_TYPE row = VBE_LETTERS[c][i];
         for (U32 j = 0; j < 8; j++) {
             VBE_PIXEL_COLOUR colour = (row & (1 << (7 - j))) ? fg : bg;
             VBE_DRAW_PIXEL(CREATE_VBE_PIXEL_INFO(x + j, y + i, colour));
@@ -298,14 +1287,126 @@ BOOLEAN VBE_DRAW_TRIANGLE(U32 x1, U32 y1, U32 x2, U32 y2, U32 x3, U32 y3, VBE_PI
     return TRUE;
 }
 
-BOOLEAN VBE_DRAW_RECTANGLE_FILLED(U32 x, U32 y, U32 width, U32 height, VBE_PIXEL_COLOUR colours) {
-    if (width == 0 || height == 0) {
-        return TRUE;
-    }
-    (void)x; (void)y; (void)width; (void)height; (void)colours;
+#include <stddef.h> /* for NULL if needed */
 
-    return TRUE;
+/* assume these types/macros exist in your codebase */
+#ifndef TRUE
+#define TRUE  1
+#define FALSE 0
+#endif
+
+/* prototypes already exist in your codebase:
+   BOOLEAN VBE_DRAW_PIXEL(VBE_PIXEL_INFO pixel_info);
+   extern const U32 SCREEN_WIDTH, SCREEN_HEIGHT;
+   VBE_PIXEL_INFO has members: U32 X, Y; VBE_PIXEL_COLOUR Colour;
+*/
+
+BOOLEAN VBE_DRAW_RECTANGLE_FILLED(U32 x, U32 y, U32 width, U32 height, VBE_PIXEL_COLOUR colours) {
+    if (width == 0 || height == 0) return FALSE;
+
+    /* calculate clipping boundaries */
+    U32 x0 = x;
+    U32 y0 = y;
+    U32 x1 = x + width;   /* exclusive */
+    U32 y1 = y + height;  /* exclusive */
+
+    /* clip to screen */
+    if (x0 >= SCREEN_WIDTH || y0 >= SCREEN_HEIGHT) return FALSE;
+    if (x1 > SCREEN_WIDTH) x1 = SCREEN_WIDTH;
+    if (y1 > SCREEN_HEIGHT) y1 = SCREEN_HEIGHT;
+
+    if (x0 >= x1 || y0 >= y1) return FALSE;
+
+    VBE_PIXEL_INFO p;
+    p.Colour = colours;
+    BOOLEAN any = FALSE;
+
+    for (U32 yy = y0; yy < y1; ++yy) {
+        p.Y = yy;
+        for (U32 xx = x0; xx < x1; ++xx) {
+            p.X = xx;
+            if (VBE_DRAW_PIXEL(p)) any = TRUE;
+        }
+    }
+
+    return any;
 }
+
+
+BOOLEAN VBE_DRAW_TRIANGLE_FILLED(U32 x1, U32 y1, U32 x2, U32 y2, U32 x3, U32 y3, VBE_PIXEL_COLOUR colours) {
+    /* Compute bounding box (inclusive) */
+    U32 minx = x1;
+    if (x2 < minx) minx = x2;
+    if (x3 < minx) minx = x3;
+
+    U32 maxx = x1;
+    if (x2 > maxx) maxx = x2;
+    if (x3 > maxx) maxx = x3;
+
+    U32 miny = y1;
+    if (y2 < miny) miny = y2;
+    if (y3 < miny) miny = y3;
+
+    U32 maxy = y1;
+    if (y2 > maxy) maxy = y2;
+    if (y3 > maxy) maxy = y3;
+
+    /* Quick reject if bbox completely off-screen */
+    if (maxx < 0 || maxy < 0) return FALSE; /* defensive, though U32 can't be <0 */
+    if (minx >= SCREEN_WIDTH || miny >= SCREEN_HEIGHT) return FALSE;
+
+    /* Clip bounding box to screen */
+    if (minx >= SCREEN_WIDTH) return FALSE;
+    if (miny >= SCREEN_HEIGHT) return FALSE;
+
+    U32 bx0 = minx;
+    U32 by0 = miny;
+    U32 bx1 = maxx;
+    U32 by1 = maxy;
+
+    if (bx0 >= SCREEN_WIDTH) bx0 = SCREEN_WIDTH - 1;
+    if (by0 >= SCREEN_HEIGHT) by0 = SCREEN_HEIGHT - 1;
+    if (bx1 >= SCREEN_WIDTH) bx1 = SCREEN_WIDTH - 1;
+    if (by1 >= SCREEN_HEIGHT) by1 = SCREEN_HEIGHT - 1;
+
+    /* Use integer edge functions (64-bit to avoid overflow) */
+    const I32 ax = (I32)x1;
+    const I32 ay = (I32)y1;
+    const I32 bx = (I32)x2;
+    const I32 by = (I32)y2;
+    const I32 cx = (I32)x3;
+    const I32 cy = (I32)y3;
+
+    VBE_PIXEL_INFO p;
+    p.Colour = colours;
+    BOOLEAN any = FALSE;
+
+    for (U32 yy = bx0 /* dummy init */; yy <= bx1; ++yy) { /* we will overwrite loops below */
+        break;
+    }
+    /* iterate y then x within clipped bbox */
+    for (U32 yy = by0; yy <= by1; ++yy) {
+        for (U32 xx = bx0; xx <= bx1; ++xx) {
+            /* compute edge functions relative to point (xx, yy) */
+            I32 px = (I32)xx;
+            I32 py = (I32)yy;
+
+            I32 e0 = (bx - ax) * (py - ay) - (by - ay) * (px - ax); /* edge AB */
+            I32 e1 = (cx - bx) * (py - by) - (cy - by) * (px - bx); /* edge BC */
+            I32 e2 = (ax - cx) * (py - cy) - (ay - cy) * (px - cx); /* edge CA */
+
+            /* point is inside if all edge functions have same sign (or zero) */
+            if ((e0 >= 0 && e1 >= 0 && e2 >= 0) || (e0 <= 0 && e1 <= 0 && e2 <= 0)) {
+                p.X = xx;
+                p.Y = yy;
+                if (VBE_DRAW_PIXEL(p)) any = TRUE;
+            }
+        }
+    }
+
+    return any;
+}
+
 
 
 /* Saved for later:

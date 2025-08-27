@@ -251,11 +251,11 @@ BOOL vbe_check(U0);
 // memcpy copied from STD/MEM.h to avoid "bloating" the size of KRNL
 U0 ___memcpy(void* dest, const void* src, U32 n);
 
-// Allows for 255 characters
-#define VBE_MAX_CHARS 255
+// Allows for 127 characters; Extended ASCII is implemented as 16x16 in the VIDEODRIVER
+#define VBE_MAX_CHARS 127
 #define VBE_CHAR_HEIGHT 8
 #define VBE_CHAR_WIDTH 8
-extern U8 VBE_LETTERS[VBE_MAX_CHARS][VBE_CHAR_HEIGHT];
+typedef U8 VBE_LETTERS_TYPE;
 
 BOOLEAN VBE_DRAW_CHARACTER(U32 x, U32 y, U8 c, VBE_PIXEL_COLOUR fg, VBE_PIXEL_COLOUR bg);
 

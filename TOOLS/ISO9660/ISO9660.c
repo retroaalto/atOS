@@ -230,11 +230,23 @@ bool read_directory(FILE *iso, uint32_t lba, uint32_t size, char *target, char *
             if (strcmp(name, target) == 0) {
                 printf("File found: %s\n", name);
                 // printf("LEN: %u... %lu... %lu\n", record->length, record->extentLocationLE_LBA, record->extentLengthLE);
-                printf("ExtentLengthLE: %lu. ExtentLocationLE: %lu\n", record->extentLengthLE, record->extentLocationLE_LBA);
-                char buffer[1024];
+                uint32_t calc = (record->extentLengthLE + 511) >> 9;
+                printf("ExtentLengthLE: %d. ExtentLocationLE: %d\n", calc, record->extentLocationLE_LBA);
+
+                // Copy contents to another file
+                FILE *out = fopen("out.bin", "wb");
+                if (!out) {
+                    perror("Failed to open output file");
+                    return false;
+                }
+
                 fseek(iso, record->extentLocationLE_LBA * size, SEEK_SET);
-                fread(buffer, 1024, 1, iso);
-                printf("'%.*s'\n", 1024, buffer);
+                for (uint32_t i = 0; i < calc; i++) {
+                    char buffer[512];
+                    fread(buffer, 512, 1, iso);
+                    fwrite(buffer, 512, 1, out);
+                }
+                fclose(out);
                 return true;
             }
         }

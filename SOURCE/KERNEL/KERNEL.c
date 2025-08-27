@@ -27,6 +27,7 @@ REMARKS
 U0 kernel_after_gdt(U0);
 __attribute__((noreturn))
 void kernel_entry_main(U0) {
+    vesa_check();
     vbe_check();
     
     VBE_DRAW_ELLIPSE(600, 600, 200, 50, VBE_PURPLE2);
@@ -38,14 +39,16 @@ void kernel_entry_main(U0) {
 }
 
 U0 kernel_after_gdt(U0) {
+    
     IDT_INIT();                       // Setup IDT
     SETUP_ISR_HANDLERS();
     IRQ_INIT();
+    #warning todo: tss_init();
+    // tss_init();
     VBE_FLUSH_SCREEN();
     VBE_DRAW_TRIANGLE(100, 100, 150, 300, 125, 70, VBE_WHITE);
     VBE_STOP_DRAWING();
     __asm__ volatile ("sti");        // Enable interrupts
-    ASM_VOLATILE("hlt");
     VBE_DRAW_TRIANGLE(100, 100, 150, 300, 125, 70, VBE_WHITE);
     VBE_DRAW_LINE(0,0,100,100,VBE_RED);
     VBE_DRAW_RECTANGLE(500, 500, 100, 50, VBE_BLUE);
@@ -71,7 +74,6 @@ U0 kernel_after_gdt(U0) {
     VBE_DRAW_LINE(500, 500, 100, 100, VBE_GREEN);
     VBE_DRAW_LINE(100, 100, 300, 200, VBE_RED);
     VBE_DRAW_RECTANGLE(50, 50, 100, 100, VBE_RED);
-
     VBE_DRAW_LINE(200, 200, 500, 500, VBE_RED);
     VBE_DRAW_LINE(530, 22, 40, 12, VBE_GREEN);
     
@@ -89,11 +91,78 @@ U0 kernel_after_gdt(U0) {
 
         VBE_DRAW_LINE(i * 10, 0, i * 10, mode->YResolution, VBE_AQUA);
     }
+    for (U32 i = 0; i < 10; i++) {
+        U32 radius = 10 - i;
+        U32 centerY = mode->YResolution / 2;
+        U32 centerX = mode->XResolution / 2;
+        // Draw from left to right
+        VBE_DRAW_LINE(0, centerY - radius, mode->XResolution, centerY - radius, VBE_AQUA);
+        VBE_DRAW_LINE(0, centerY + radius, mode->XResolution, centerY + radius, VBE_AQUA);
+
+        VBE_DRAW_LINE(0, centerY - radius, mode->XResolution, centerY - radius, VBE_AQUA);
+        VBE_DRAW_LINE(0, centerY + radius, mode->XResolution, centerY + radius, VBE_AQUA);
+
+        VBE_DRAW_LINE(0, centerY - radius, mode->XResolution, centerY - radius, VBE_AQUA);
+    }
         
     VBE_DRAW_TRIANGLE(100, 100, 150, 100, 125, 50, VBE_RED);
-
-    VBE_DRAW_CHARACTER(100, 100, 0, VBE_WHITE, VBE_VIOLET);
+    VBE_DRAW_RECTANGLE_FILLED(0,0, mode->XResolution, 200, VBE_BLACK);
+    VBE_DRAW_TRIANGLE_FILLED(100, 100, 150, 100, 125, 50, VBE_RED);
     VBE_STOP_DRAWING();
+
+    const char ascii_set[] = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
+    for (U32 i = 0; i < sizeof(ascii_set); i++) {
+        VBE_DRAW_CHARACTER(10 + i * 8, 10, ascii_set[i], VBE_WHITE, VBE_BLACK);
+    }
+    VBE_STOP_DRAWING();
+    // Little drawing animation:
+    VBE_DRAW_RECTANGLE_FILLED(0,0, mode->XResolution, 200, VBE_BLACK);
+    VBE_STOP_DRAWING();
+    const char str[] = "Hello from atOS-RT's kernel entry!";
+    for (U32 i = 0; i < sizeof(str); i++) {
+        VBE_DRAW_CHARACTER(10 + i * 8, 10, str[i % sizeof(str)], VBE_WHITE, VBE_BLACK);
+        VBE_STOP_DRAWING();
+    }
+    const char str2[] = "This is a test of the VBE graphics functions.";
+    for (U32 i = 0; i < sizeof(str2); i++) {
+        VBE_DRAW_CHARACTER(10 + i * 8, 20, str2[i % sizeof(str2)], VBE_WHITE, VBE_BLACK);
+        VBE_STOP_DRAWING();
+    }
+    const char str3[] = "See KERNEL.c!";
+    for (U32 i = 0; i < sizeof(str3); i++) {
+        VBE_DRAW_CHARACTER(10 + i * 8, 30, str3[i % sizeof(str3)], VBE_WHITE, VBE_BLACK);
+        VBE_STOP_DRAWING();
+    }
+
+    U32 ball_diameter = 30;
+    F32 ball_x = 800;
+    F32 ball_y = 50;         // start higher up
+    F32 velocity_y = 0;      // current vertical velocity
+    F32 gravity = 0.8f;      // pull down
+    F32 bounce = -0.7f;      // lose some energy when bouncing
+    F32 floor_y = 200;       // ground position
+
+    for (U32 i = 0; i < 600; i++) {
+        // Clear previous frame
+        VBE_DRAW_RECTANGLE_FILLED(ball_x-ball_diameter, 0, 400, floor_y, VBE_CORAL);
+
+        // Draw the ball
+        VBE_DRAW_ELLIPSE((U32)ball_x, (U32)ball_y, ball_diameter/2, ball_diameter/2, VBE_RED);
+
+        // Physics update
+        velocity_y += gravity;         // apply gravity
+        ball_y += velocity_y;          // update position
+
+        if (ball_y + ball_diameter/2 >= floor_y) {
+            ball_y = floor_y - ball_diameter/2; // snap to floor
+            velocity_y *= bounce;               // bounce up with reduced speed
+        }
+
+        // Horizontal drift
+        ball_x += 1;
+
+        VBE_STOP_DRAWING();
+    }
 
     for(;;) ASM_VOLATILE("hlt");
 }

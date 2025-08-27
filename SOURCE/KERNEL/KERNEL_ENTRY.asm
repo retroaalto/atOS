@@ -432,8 +432,10 @@ start:
         ; call PRINT_LINEFEED
 
         ; length
-        mov eax, dword [si+10]         ; little-endian length at offset 14
-        mov [extentLengthLE_KRNL], eax
+        mov ax, word [si+10]         ; little-endian length at offset 14
+        mov [extentLengthLE_KRNL], ax
+        mov ax, word [si+12]
+        mov [extentLocationLE_LBA_KRNL+2], ax
         ; call PRINT_HEX
         ; call PRINT_LINEFEED
 
@@ -472,26 +474,18 @@ KRNL_TO_MEMORY:
     ; If kernel length > 64KB, use 32-bit registers
     ; Add 511 and divide by 512 (sector size)
     mov eax, [extentLengthLE_KRNL]
-    ; push eax
-    ; call PRINT_HEX
-    ; call PRINT_LINEFEED
-    ; pop eax
     add eax, 511
     shr eax, 9
-    mov cx, ax ; sectors to read
-    ; xor eax, eax
+    call PRINT_HEX
+    call PRINT_LINEFEED
+    mov ecx, eax ; sectors to read
+
     mov eax, [extentLocationLE_LBA_KRNL]
-
-    ; mov eax, ecx
-    ; call PRINT_HEX
-    ; call PRINT_LINEFEED
-
-    ; offset = bx
-    xor ebx, ebx
-    mov edx, ebx
+    call PRINT_HEX
+    call PRINT_LINEFEED
+    mov dx, KERNEL_LOAD_SEGMENT
     mov bx, KERNEL_LOAD_OFFSET
     ; segment = dx
-    mov dx, KERNEL_LOAD_SEGMENT
     call READ_DISK
     cmp eax, 0
     jne DISK_ERROR1
@@ -633,8 +627,10 @@ fill_loop:
     lidt [IDTR]
 
     mov eax, 0xb8000
-    mov [eax], byte 'a'
-
+    mov [eax], byte 'y'
+    ; hlt
+    mov eax, 0xb8000
+    mov [eax], byte 'x'
     jmp KERNEL_LOAD_ADDRESS
 
     jmp hang32

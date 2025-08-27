@@ -25,7 +25,7 @@ typedef struct __attribute__((packed)) {
     IDTENTRY *base;
 } IDTDESCRIPTOR;
 
-IDTENTRY *idt = (IDTENTRY *)(IDT_MEM_BASE);
+static IDTENTRY idt[IDT_COUNT];
 static IDTDESCRIPTOR idt_desc;
 
 
