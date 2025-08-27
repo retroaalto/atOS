@@ -1,12 +1,12 @@
 /*+++
     Source/KERNEL/32RTOSKRNL/CPU/IRQ/IRQ.h - Interrupt Request (IRQ) Definitions
 
-    Part of atOS-RT
+    Part of atOS
 
     Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 DESCRIPTION
-    32-bit interrupt request (IRQ) definitions for atOS-RT.
+    32-bit interrupt request (IRQ) definitions for atOS.
 
 AUTHORS
     Antonako1

@@ -1,4 +1,4 @@
-# Disk Drivers for atOS-RT
+# Disk Drivers for atOS
 
 ## ATA
 

@@ -1,4 +1,4 @@
-# atOS-RT Standard Library for NASM and C
+# atOS Standard Library for NASM and C
 
 - ASM.h
     - 

@@ -1,12 +1,12 @@
 /*+++
     Source/STD/STDIO.h - Standard Input/Output Definitions
 
-    Part of atOS-RT
+    Part of atOS
 
     Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 DESCRIPTION
-    Standard input/output definitions for atOS-RT.
+    Standard input/output definitions for atOS.
 
 AUTHORS
     Antonako1

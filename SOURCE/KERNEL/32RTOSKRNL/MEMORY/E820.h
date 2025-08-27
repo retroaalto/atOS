@@ -1,12 +1,12 @@
 /*+++
     Source/KERNEL/32RTOSKRNL/MEMORY/E820.h - E820 Memory Map Definitions
 
-    Part of atOS-RT
+    Part of atOS
 
     Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 DESCRIPTION
-    32-bit E820 memory map definitions for atOS-RT.
+    32-bit E820 memory map definitions for atOS.
 
 AUTHORS
     Antonako1

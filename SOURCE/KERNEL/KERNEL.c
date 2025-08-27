@@ -1,12 +1,12 @@
 /*+++
     Source/KERNEL/KERNEL.c - 32-bit Kernel Entry Point
 
-    Part of atOS-RT
+    Part of atOS
 
     Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 DESCRIPTION
-    32-bit kernel entry point for atOS-RT.
+    32-bit kernel entry point for atOS.
 
 AUTHORS
     Antonako1
@@ -118,7 +118,7 @@ U0 kernel_after_gdt(U0) {
     // Little drawing animation:
     VBE_DRAW_RECTANGLE_FILLED(0,0, mode->XResolution, 200, VBE_BLACK);
     VBE_STOP_DRAWING();
-    const char str[] = "Hello from atOS-RT's kernel entry!";
+    const char str[] = "Hello from atOS's kernel entry!";
     for (U32 i = 0; i < sizeof(str); i++) {
         VBE_DRAW_CHARACTER(10 + i * 8, 10, str[i % sizeof(str)], VBE_WHITE, VBE_BLACK);
         VBE_STOP_DRAWING();

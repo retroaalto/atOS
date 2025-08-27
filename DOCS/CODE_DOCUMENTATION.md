@@ -6,7 +6,7 @@ Files should have consistent header:
 /*+++
     <PATH> - <ABOUT>
 
-    Part of atOS-RT
+    Part of atOS
 
     Licensed under the MIT License. See LICENSE file in the project root for full license information.
 ---*/
@@ -18,7 +18,7 @@ Files should have consistent header:
 /*+++
     <PATH> - <ABOUT>
 
-    Part of atOS-RT
+    Part of atOS
 
     Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
