@@ -1,6 +1,8 @@
 # atOS-RT - atOS Revised Technology
 
-A custom 32-bit operating system written in C and assembly language, designed without security constraints to allow deep low-level exploration and experimentation.
+Currently in early development
+
+A custom 32-bit operating system written in C and assembly language. Boots via ISO image and runs in raw binary, designed without security constraints to allow deep low-level exploration and experimentation.
 
 ---
 
@@ -19,7 +21,7 @@ A custom 32-bit operating system written in C and assembly language, designed wi
 
 ## Overview
 
-**atOS-RT** is a 32-bit operating system built in **C** and **assembly language** from the ground up. This open-source project is crafted for enthusiasts and developers who want to dive deep into low-level system programming without the typical security restrictions of modern OSes. With atOS-RT, you have complete freedom to explore and modify every aspect of the system.
+**atOS-RT** is a 32-bit operating system built in **C** and **Assembly language** from the ground up. This open-source project is crafted for enthusiasts and developers who want to dive deep into low-level system programming without the typical security restrictions of modern OSes. With atOS-RT, you have complete freedom to explore and modify every aspect of the system.
 
 ---
 
@@ -27,7 +29,7 @@ A custom 32-bit operating system written in C and assembly language, designed wi
 
 * **32-bit Architecture**: Targeted specifically for 32-bit x86 processors.
 * **Custom Programming Language**: Includes a unique integrated language for OS-level application development.
-* **No Security Constraints**: Designed for ultimate flexibility, allowing unrestricted operations—ideal for experimental and educational purposes.
+* **No Security Constraints**: Designed for ultimate flexibility, allowing unrestricted operations — ideal for experimental and educational purposes.
 * **Open Source**: Released under the MIT License, encouraging developers to explore, contribute, and learn how operating systems function at a low level.
 
 ---
@@ -115,7 +117,7 @@ Not needed. Not supported. Print to screen.
 
 ### Documentation
 
-Find documentation in the DOCS directory and within each source directory's README.
+Find documentation in the DOCS directory, within each source directory's README and source files.
 
 ## License
 
