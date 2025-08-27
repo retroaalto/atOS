@@ -1075,6 +1075,22 @@ BOOL vbe_check(U0) {
     return TRUE;
 }
 
+U32 strlen(const char* str) {
+    U32 length = 0;
+    while (str[length] != '\0') {
+        length++;
+    }
+    return length;
+}
+
+BOOLEAN VBE_DRAW_STRING(U32 x, U32 y, const char* str, VBE_PIXEL_COLOUR fg, VBE_PIXEL_COLOUR bg) {
+    U32 length = strlen(str);
+    for (U32 i = 0; i < length; i++) {
+        VBE_DRAW_CHARACTER(x + i * VBE_CHAR_WIDTH, y, str[i], fg, bg);
+    }
+    return TRUE;
+}
+
 BOOLEAN VBE_FLUSH_SCREEN(U0) {
     VBE_CLEAR_SCREEN(VBE_BLACK);
     UPDATE_VRAM();
@@ -1352,9 +1368,11 @@ BOOLEAN VBE_DRAW_TRIANGLE_FILLED(U32 x1, U32 y1, U32 x2, U32 y2, U32 x3, U32 y3,
     if (y3 > maxy) maxy = y3;
 
     /* Quick reject if bbox completely off-screen */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wtype-limits"
     if (maxx < 0 || maxy < 0) return FALSE; /* defensive, though U32 can't be <0 */
+#pragma GCC diagnostic pop
     if (minx >= SCREEN_WIDTH || miny >= SCREEN_HEIGHT) return FALSE;
-
     /* Clip bounding box to screen */
     if (minx >= SCREEN_WIDTH) return FALSE;
     if (miny >= SCREEN_HEIGHT) return FALSE;

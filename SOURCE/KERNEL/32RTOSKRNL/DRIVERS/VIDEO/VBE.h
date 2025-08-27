@@ -218,7 +218,7 @@ typedef struct {
 #define GET_VBE_MODE() ((VBE_MODE*)(VBE_MODE_LOAD_ADDRESS_PHYS))
 
 /*+++
-STATIC INLINE BOOL vbe_check(U0)
+BOOL vbe_check(U0)
 
 DESCRIPTION
     Checks the validity of the VBE mode.
@@ -257,7 +257,9 @@ U0 ___memcpy(void* dest, const void* src, U32 n);
 #define VBE_CHAR_WIDTH 8
 typedef U8 VBE_LETTERS_TYPE;
 
+// TODO: comments 
 BOOLEAN VBE_DRAW_CHARACTER(U32 x, U32 y, U8 c, VBE_PIXEL_COLOUR fg, VBE_PIXEL_COLOUR bg);
+BOOLEAN VBE_DRAW_STRING(U32 x, U32 y, const char* str, VBE_PIXEL_COLOUR fg, VBE_PIXEL_COLOUR bg);
 
 /*+++
 U0 UPDATE_VRAM(U0);
@@ -306,7 +308,9 @@ REMARKS
 ---*/
 U0 VBE_STOP_DRAWING(U0);
 
+// TODO: comments 
 BOOLEAN VBE_CLEAR_SCREEN(VBE_PIXEL_COLOUR colour);
+// TODO: comments 
 BOOLEAN VBE_FLUSH_SCREEN(U0);
 
 /*+++

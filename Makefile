@@ -21,12 +21,15 @@ KRNL_INCLUDES ?= \
 	-I$(SOURCE_KERNEL_DIR)/32RTOSKRNL/CPU/ISR/ \
 	-I$(SOURCE_KERNEL_DIR)/32RTOSKRNL/CPU/IRQ/ \
 	-I$(SOURCE_KERNEL_DIR)/32RTOSKRNL/MEMORY/ \
+	-I$(SOURCE_KERNEL_DIR)/32RTOSKRNL/FS/ \
+	-I$(SOURCE_KERNEL_DIR)/32RTOSKRNL/FS/FAT32/ \
+	-I$(SOURCE_KERNEL_DIR)/32RTOSKRNL/FS/ISO9660/ \
 
 
 
 CComp         ?= gcc
 CompArgs 	  ?= -Wno-comment -Wno-comments -m32 -ffreestanding -fno-pic -fno-pie -nostdlib -O0 -Wall -Wextra -fno-stack-protector -fno-builtin -fno-inline
-KRNLCompArgs  ?= $(CompArgs) $(KRNL_INCLUDES)
+KRNLCompArgs  ?= $(CompArgs) $(KRNL_INCLUDES) -DKERNEL_ENTRY
 
 INPUT_ISO_DIR_SYSTEM ?= $(INPUT_ISO_DIR)/ATOS
 INPUT_ISO_DIR_USER ?= $(INPUT_ISO_DIR)/USER
@@ -80,6 +83,10 @@ kernel:
 
 	$(CComp) $(KRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/CPU/INTERRUPTS.c -o $(OUTPUT_KERNEL_DIR)/INTERRUPTS.o
 
+	$(CComp) $(KRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/FS/FAT32/FAT32.c -o $(OUTPUT_KERNEL_DIR)/FAT32.o
+
+	$(CComp) $(KRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/FS/ISO9660/ISO9660.c -o $(OUTPUT_KERNEL_DIR)/ISO9660.o
+
 # Link all object files into KRNL.BIN
 	
 	$(CComp) -m32 -nostdlib -ffreestanding \
@@ -93,6 +100,8 @@ kernel:
 		$(OUTPUT_KERNEL_DIR)/ISR.o \
 		$(OUTPUT_KERNEL_DIR)/IRQ.o \
 		$(OUTPUT_KERNEL_DIR)/INTERRUPTS.o \
+		$(OUTPUT_KERNEL_DIR)/FAT32.o \
+		$(OUTPUT_KERNEL_DIR)/ISO9660.o \
 
 	@echo "KRNL.BIN compiled successfully."
 	@size=$$(stat -c%s "$(OUTPUT_KERNEL_DIR)/KRNL.BIN"); \

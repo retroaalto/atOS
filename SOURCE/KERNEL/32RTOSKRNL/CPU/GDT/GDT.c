@@ -64,7 +64,10 @@ U0 GDT_INIT(U0) {
     gdt_set_gate(2, 0, 0xFFFFFFFF, WRITABLE_RNG0_KRNL, GRANULARITY); 
 
     g_GDTDescriptor.limit = GDT_ENTRY_COUNT * sizeof(GDTENTRY) - 1;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wint-conversion"
     g_GDTDescriptor.base  = g_GDT;
+#pragma GCC diagnostic pop
 
     __asm__ volatile("lgdt %0" : : "m"(g_GDTDescriptor));
 }

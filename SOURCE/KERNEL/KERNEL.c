@@ -21,7 +21,6 @@ REVISION HISTORY
 REMARKS
     None
 ---*/
-#define KERNEL_ENTRY
 #include "./32RTOSKRNL/KERNEL.h"
 
 U0 kernel_after_gdt(U0);
@@ -29,13 +28,10 @@ __attribute__((noreturn))
 void kernel_entry_main(U0) {
     vesa_check();
     vbe_check();
-    
-    VBE_DRAW_ELLIPSE(600, 600, 200, 50, VBE_PURPLE2);
-    VBE_DRAW_ELLIPSE(650, 710, 180, 50, VBE_AQUA); VBE_STOP_DRAWING();
-
     GDT_INIT();                      // Setup GDT
     // setup in asm, can still be called
     kernel_after_gdt();
+    for(;;) ASM_VOLATILE("cli; hlt");
 }
 
 U0 kernel_after_gdt(U0) {
@@ -46,75 +42,29 @@ U0 kernel_after_gdt(U0) {
     #warning todo: tss_init();
     // tss_init();
     VBE_FLUSH_SCREEN();
-    VBE_DRAW_TRIANGLE(100, 100, 150, 300, 125, 70, VBE_WHITE);
-    VBE_STOP_DRAWING();
     __asm__ volatile ("sti");        // Enable interrupts
-    VBE_DRAW_TRIANGLE(100, 100, 150, 300, 125, 70, VBE_WHITE);
-    VBE_DRAW_LINE(0,0,100,100,VBE_RED);
-    VBE_DRAW_RECTANGLE(500, 500, 100, 50, VBE_BLUE);
-    VBE_STOP_DRAWING();
 
     VBE_MODE* mode = GET_VBE_MODE();
-    VBE_DRAW_ELLIPSE(
-        mode->XResolution / 2, 
-        mode->YResolution / 2, 
-        mode->XResolution / 2, 
-        mode->YResolution / 2, 
-        VBE_CRIMSON
-    );
-    VBE_DRAW_ELLIPSE(100, 100, 90, 90, VBE_WHITE);
-    VBE_DRAW_ELLIPSE(100, 100, 80, 80, VBE_BLACK);
-    VBE_DRAW_ELLIPSE(100, 100, 70, 70, VBE_WHITE);
-    VBE_DRAW_ELLIPSE(100, 100, 60, 60, VBE_BLACK);
-    VBE_DRAW_ELLIPSE(100, 100, 50, 50, VBE_WHITE);
-    VBE_DRAW_ELLIPSE(100, 100, 40, 40, VBE_BLACK);
-    VBE_DRAW_ELLIPSE(100, 100, 30, 30, VBE_WHITE);
-    VBE_DRAW_ELLIPSE(100, 100, 20, 20, VBE_BLACK);
-    VBE_DRAW_ELLIPSE(100, 100, 10, 10, VBE_RED);
-    VBE_DRAW_LINE(500, 500, 100, 100, VBE_GREEN);
-    VBE_DRAW_LINE(100, 100, 300, 200, VBE_RED);
-    VBE_DRAW_RECTANGLE(50, 50, 100, 100, VBE_RED);
-    VBE_DRAW_LINE(200, 200, 500, 500, VBE_RED);
-    VBE_DRAW_LINE(530, 22, 40, 12, VBE_GREEN);
+    U32 *video_buffer = (U32*)mode->PhysBasePtr;
+    video_buffer[0] = 0x00FF0000;
+    VBE_DRAW_ELLIPSE(600, 600, 90, 90, VBE_WHITE);
+    VBE_DRAW_ELLIPSE(600, 600, 80, 80, VBE_BLACK);
+    VBE_DRAW_ELLIPSE(600, 600, 70, 70, VBE_WHITE);
+    VBE_DRAW_ELLIPSE(600, 600, 60, 60, VBE_BLACK);
+    VBE_DRAW_ELLIPSE(600, 600, 50, 50, VBE_WHITE);
+    VBE_DRAW_ELLIPSE(600, 600, 40, 40, VBE_BLACK);
+    VBE_DRAW_ELLIPSE(600, 600, 30, 30, VBE_WHITE);
+    VBE_DRAW_ELLIPSE(600, 600, 20, 20, VBE_BLACK);
+    VBE_DRAW_ELLIPSE(600, 600, 10, 10, VBE_RED);
     
-    
-    for (U32 i = 0; i < 10; i++) {
-        U32 radius = 10 - i;
-        U32 centerY = mode->YResolution / 2;
-        U32 centerX = mode->XResolution / 2;
-    
-        VBE_DRAW_LINE(centerX - radius, centerY, centerX + radius, centerY, VBE_AQUA);
-        VBE_DRAW_LINE(centerX, centerY - radius, centerX, centerY + radius, VBE_AQUA);
-    
-        VBE_DRAW_LINE(centerX - radius, centerY - radius, centerX + radius, centerY + radius, VBE_AQUA);
-        VBE_DRAW_LINE(centerX - radius, centerY + radius, centerX + radius, centerY - radius, VBE_AQUA);
-
-        VBE_DRAW_LINE(i * 10, 0, i * 10, mode->YResolution, VBE_AQUA);
-    }
-    for (U32 i = 0; i < 10; i++) {
-        U32 radius = 10 - i;
-        U32 centerY = mode->YResolution / 2;
-        U32 centerX = mode->XResolution / 2;
-        // Draw from left to right
-        VBE_DRAW_LINE(0, centerY - radius, mode->XResolution, centerY - radius, VBE_AQUA);
-        VBE_DRAW_LINE(0, centerY + radius, mode->XResolution, centerY + radius, VBE_AQUA);
-
-        VBE_DRAW_LINE(0, centerY - radius, mode->XResolution, centerY - radius, VBE_AQUA);
-        VBE_DRAW_LINE(0, centerY + radius, mode->XResolution, centerY + radius, VBE_AQUA);
-
-        VBE_DRAW_LINE(0, centerY - radius, mode->XResolution, centerY - radius, VBE_AQUA);
-    }
-        
-    VBE_DRAW_TRIANGLE(100, 100, 150, 100, 125, 50, VBE_RED);
-    VBE_DRAW_RECTANGLE_FILLED(0,0, mode->XResolution, 200, VBE_BLACK);
-    VBE_DRAW_TRIANGLE_FILLED(100, 100, 150, 100, 125, 50, VBE_RED);
-    VBE_STOP_DRAWING();
 
     const char ascii_set[] = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
     for (U32 i = 0; i < sizeof(ascii_set); i++) {
         VBE_DRAW_CHARACTER(10 + i * 8, 10, ascii_set[i], VBE_WHITE, VBE_BLACK);
     }
     VBE_STOP_DRAWING();
+    
+    
     // Little drawing animation:
     VBE_DRAW_RECTANGLE_FILLED(0,0, mode->XResolution, 200, VBE_BLACK);
     VBE_STOP_DRAWING();
@@ -160,9 +110,15 @@ U0 kernel_after_gdt(U0) {
 
         // Horizontal drift
         ball_x += 1;
-
-        VBE_STOP_DRAWING();
+        if(i % 2 == 0) {
+            VBE_STOP_DRAWING();
+        }
     }
+
+    // Read RTOSKRNL.BIN;1 from disk
+    // U32 *RTOSKRNL_ADDRESS = READ_ISO9660("RTOSKRNL.BIN;1");
+    // Jump to RTOSKRNL.BIN;1
+    // __asm__ volatile ("jmp %0" : : "r"(RTOSKRNL_ADDRESS));
 
     for(;;) ASM_VOLATILE("hlt");
 }
