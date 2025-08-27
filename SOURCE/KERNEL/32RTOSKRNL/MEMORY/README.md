@@ -4,7 +4,7 @@
 | `0x00001000`  | `0x00001FFF` | Bootloader                         | 4 KiB     | Still resides here temporarily.                                   |
 | `0x00002000`  | `0x00007FFF` | Temporary Kernel Stub              | 24 KiB    | Early 32-bit kernel entry, small stub.                            |
 | `0x00008000`  | `0x00008FFF` | Free / Early Data                  | 4 KiB     | Temporary usage.                                                  |
-| `0x00009000`  | `0x000093FF` | GDT + IDT                          | 1 KiB     | 256 B GDT + 2 KB IDT. Completely in low memory.                   |
+| `0x00009000`  | `0x000093FF` | GDT + IDT                          | 1 KiB     | 256 B GDT + 2 KB IDT. Completely in low memory. !NOT USED!                  |
 | `0x00009400`  | `0x00009FFF` | Stack                              | 1.5 KiB   | Early kernel stack. Can increase if needed.                       |
 | `0x0000A000`  | `0x0000FFFF` | Free / Temp Buffers                | 24 KiB    | Can be used for early allocations.                                |
 | `0x00010000`  | `0x0001FFFF` | Optional extra low memory mappings | 64 KiB    | Optional, for MMIO or temporary data.                             |

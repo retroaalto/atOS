@@ -34,7 +34,7 @@ typedef struct __attribute__((packed)) {
 
 typedef struct __attribute__((packed)) {
     U16 limit;
-    GDTENTRY *base;
+    U32 base;
 } GDTDESCRIPTOR;
 
 #define GDT_ENTRY_COUNT 3
@@ -43,8 +43,8 @@ typedef struct __attribute__((packed)) {
 #define WRITABLE_RNG0_KRNL 0x92
 #define GRANULARITY 0xCF
 
-GDTENTRY *g_GDT = (GDTENTRY *)(MEM_GDT_BASE);
-GDTDESCRIPTOR *g_GDTDescriptor = (GDTDESCRIPTOR *)(MEM_GDT_BASE + sizeof(GDTENTRY) * GDT_ENTRY_COUNT);
+static GDTENTRY g_GDT[GDT_ENTRY_COUNT];
+static GDTDESCRIPTOR g_GDTDescriptor;
 
 void gdt_set_gate(U32 num, U32 base, U32 limit, U8 access, U8 gran) {
     g_GDT[num].base0       = base & 0xFFFF;
@@ -63,8 +63,8 @@ U0 GDT_INIT(U0) {
     // Kernel data segment
     gdt_set_gate(2, 0, 0xFFFFFFFF, WRITABLE_RNG0_KRNL, GRANULARITY); 
 
-    g_GDTDescriptor->limit = GDT_ENTRY_COUNT * sizeof(GDTENTRY) - 1;
-    g_GDTDescriptor->base  = g_GDT;
+    g_GDTDescriptor.limit = GDT_ENTRY_COUNT * sizeof(GDTENTRY) - 1;
+    g_GDTDescriptor.base  = g_GDT;
 
     __asm__ volatile("lgdt %0" : : "m"(g_GDTDescriptor));
 }
