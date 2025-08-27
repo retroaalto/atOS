@@ -1,7 +1,7 @@
 /*+++
     SOURCE/STD/MATH.h - Standard Math Library
 
-    Part of atOS-RT
+    Part of atOS
 
     Licensed under the MIT License. See LICENSE file in the project root for full license information.
 ---*/

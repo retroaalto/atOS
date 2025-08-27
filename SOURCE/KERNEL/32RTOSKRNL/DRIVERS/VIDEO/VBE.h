@@ -1,12 +1,12 @@
 /*+++
     Source/KERNEL/32RTOSKRNL/DRIVERS/VIDEO/VBE.h - VESA BIOS Extensions (VBE) Definitions
 
-    Part of atOS-RT
+    Part of atOS
 
     Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 DESCRIPTION
-    32-bit VESA BIOS Extensions (VBE) definitions for atOS-RT.
+    32-bit VESA BIOS Extensions (VBE) definitions for atOS.
 
 AUTHORS
     Antonako1

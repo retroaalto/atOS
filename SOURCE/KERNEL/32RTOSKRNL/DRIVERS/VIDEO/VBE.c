@@ -1065,7 +1065,7 @@ BOOL vbe_check(U0) {
     if (mode->XResolution < SCREEN_WIDTH || mode->YResolution < SCREEN_HEIGHT) {
         return FALSE;
     }
-    for(U32 i = 0; i < 10; i++) {
+    for(U32 i = 0; i < 2; i++) {
         if(i % 2 == 0)
             VBE_CLEAR_SCREEN(VBE_GREEN);
         else

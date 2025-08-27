@@ -7,4 +7,4 @@ Source for compiler and assembler
 
 Compiler compiles into assembly, and assembler assembles assembly into binary
 
-When compiling the compiler, it will output the program found inside atOS-RT: `ATLC.BIN`
+When compiling the compiler, it will output the program found inside atOS: `ATLC.BIN`

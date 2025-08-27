@@ -1,12 +1,12 @@
 /*+++
     Source/KERNEL/32RTOSKRNL/CPU/ISR/ISR.c - Interrupt Service Routine (ISR) Implementation
 
-    Part of atOS-RT
+    Part of atOS
 
     Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 DESCRIPTION
-    32-bit interrupt service routine (ISR) implementation for atOS-RT.
+    32-bit interrupt service routine (ISR) implementation for atOS.
 
 AUTHORS
     Antonako1

@@ -1,12 +1,12 @@
 /*+++
     Source/STD/MEM.h - Memory Management Definitions
 
-    Part of atOS-RT
+    Part of atOS
 
     Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 DESCRIPTION
-    Memory management definitions for atOS-RT.
+    Memory management definitions for atOS.
 
 AUTHORS
     Antonako1

@@ -1,6 +1,6 @@
 # System Calls
 
-System calls in **atOS-RT** are invoked using the `int 0x80` software interrupt. This interface allows user programs to safely call kernel routines for various system services.
+System calls in **atOS** are invoked using the `int 0x80` software interrupt. This interface allows user programs to safely call kernel routines for various system services.
 
 SYSCALL_MIN.inc is a definition file, designed for non-kernel usage. It has 
 

@@ -1,14 +1,14 @@
 ## Developing Your Own Programs
 
-You can develop custom programs for **atOS-RT** either directly inside the OS or externally using NASM or C. This section focuses on external development.
+You can develop custom programs for **atOS** either directly inside the OS or externally using NASM or C. This section focuses on external development.
 
 ---
 
-### Developing Outside atOS-RT (Using C)
+### Developing Outside atOS (Using C)
 
 
 
-### Developing Outside atOS-RT (Using NASM)
+### Developing Outside atOS (Using NASM)
 
 To include your NASM-based program in the ISO image, follow these steps:
 
@@ -22,7 +22,7 @@ This process ensures your custom program is assembled and embedded into the fina
 
 ### Helpful Include Files
 
-The following `.inc` files contain useful definitions, constants, and macros for working with atOS-RT features such as system calls and graphics. Each file is documented in a corresponding `README.md` located in its directory.
+The following `.inc` files contain useful definitions, constants, and macros for working with atOS features such as system calls and graphics. Each file is documented in a corresponding `README.md` located in its directory.
 
 | Path                                                 | Description                                                                   |
 | ---------------------------------------------------- | ----------------------------------------------------------------------------- |

@@ -1,4 +1,4 @@
-# atOS-RT - atOS Revised Technology
+# atOS - a 32-bit operating system
 
 Currently in early development
 
@@ -10,7 +10,7 @@ A custom 32-bit operating system written in C and assembly language. Boots via I
 
 * [Overview](#overview)
 * [Features](#features)
-* [Running atOS-RT](#running-atos-rt)
+* [Running atOS](#running-atos)
 * [Development](#development)
   * [Dependencies](#dependencies)
   * [Building](#building)
@@ -21,7 +21,7 @@ A custom 32-bit operating system written in C and assembly language. Boots via I
 
 ## Overview
 
-**atOS-RT** is a 32-bit operating system built in **C** and **Assembly language** from the ground up. This open-source project is crafted for enthusiasts and developers who want to dive deep into low-level system programming without the typical security restrictions of modern OSes. With atOS-RT, you have complete freedom to explore and modify every aspect of the system.
+**atOS** is a 32-bit operating system built in **C** and **Assembly language** from the ground up. This open-source project is crafted for enthusiasts and developers who want to dive deep into low-level system programming without the typical security restrictions of modern OSes. With atOS, you have complete freedom to explore and modify every aspect of the system.
 
 ---
 
@@ -34,7 +34,7 @@ A custom 32-bit operating system written in C and assembly language. Boots via I
 
 ---
 
-## Running atOS-RT
+## Running atOS
 
 Run the provided ISO image in a virtual machine environment. QEMU is recommended for simplicity, though other VMs may work.
 
@@ -56,17 +56,17 @@ On Debian/Ubuntu-based systems:
 sudo apt install qemu-system-x86
 ```
 
-### Running atOS-RT
+### Running atOS
 
 
-Run atOS-RT with qemu:
+Run atOS with qemu:
 
 ```bash
 qemu-img create -f raw hdd.img 256M
 qemu-system-i386 \
   -boot d \
   -vga std \
-  -cdrom atOS-RT.iso \
+  -cdrom atOS.iso \
   -drive file=hdd.img,format=raw,if=ide,index=0,media=disk \
   -m 512
 ```
@@ -75,7 +75,7 @@ qemu-system-i386 \
 
 ## Development
 
-Interested in contributing or exploring atOS-RT’s internals? Here's how to get started.
+Interested in contributing or exploring atOS’s internals? Here's how to get started.
 
 ### Dependencies
 

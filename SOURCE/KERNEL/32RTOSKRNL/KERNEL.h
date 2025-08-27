@@ -1,12 +1,12 @@
 /*+++
     Source/KERNEL/32RTOSKRNL/KERNEL.h - 32-bit Kernel Entry master header
 
-    Part of atOS-RT
+    Part of atOS
 
     Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 DESCRIPTION
-    32-bit kernel entry point master header for atOS-RT.
+    32-bit kernel entry point master header for atOS.
 
 AUTHORS
     Antonako1
