@@ -39,7 +39,15 @@ void normalize_path(U8 *path) {
     }
 }
 
-BOOLEAN strcmp(const char *str1, const char *str2) {
+U32 __strlen(const U8 *str) {
+    const U8 *s = str;
+    while (*s) {
+        s++;
+    }
+    return s - str;
+}
+
+BOOLEAN strcmp(const U8 *str1, const U8 *str2) {
     while (*str1 && (*str1 == *str2)) {
         str1++;
         str2++;
@@ -112,7 +120,6 @@ BOOLEAN SEARCH_FILE(
     U8 record_name[21];
 
     // Load root directory record
-    IsoDirectoryRecord *root_dir = (IsoDirectoryRecord *)buffer;
     if(
         READ_CDROM(
             ATAPI_STATUS,
@@ -144,16 +151,15 @@ BOOLEAN SEARCH_FILE(
         } else {
             // Inside a directory
             if(strcmp(record_name, target)) {
-                U32 calc = CALC_SECTOR(record->extentLengthLE);
                 U8 *slash = strchr(original_target, '/');
                 if(!slash) return FALSE;
-                memmove(original_target, slash + 1, strlen(slash));
-                memcpy(target, original_target, strlen(original_target));
+                memmove(original_target, slash + 1, __strlen(slash));
+                memcpy(target, original_target, __strlen(original_target));
                 slash = strchr(target, '/');
                 if (slash) {
                     *slash = '\0';
                 } else {
-                    target[strlen(original_target)] = '\0';
+                    target[__strlen(original_target)] = '\0';
                 }
                 return SEARCH_FILE(record->extentLocationLE_LBA, record->extentLengthLE, rks, target, original_target, buffer, ATAPI_STATUS);
             }
