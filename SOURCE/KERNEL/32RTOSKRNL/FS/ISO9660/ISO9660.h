@@ -2,18 +2,15 @@
 #define ISO9660_H
 
 #include "../../../STD/ATOSMINDEF.h"
-#include "../../DRIVERS/DISK/ATAPI/ATAPI.h"
-#ifndef KERNEL_ENTRY
-#include "../FAT32/FAT32.h"
-#endif // KERNEL_ENTRY
+#include "../../DRIVERS/DISK/ATA_ATAPI.h"
 
 #define ISO9660_SECTOR_SIZE 2048
 #define ISO9660_VOLUME_DESCRIPTOR_START 16
 #define ISO9660_PVD_OFFSET ((ISO9660_VOLUME_DESCRIPTOR_START*ISO9660_SECTOR_SIZE)/ISO9660_SECTOR_SIZE)
 #define ISO9660_MAX_PATH 256
 
-typedef char strD;
-typedef char strA;
+typedef U8 strD;
+typedef U8 strA;
 
 typedef struct _DateTime {
     strD year[4];
@@ -117,15 +114,13 @@ typedef struct _PrimaryVolumeDescriptor {
 __attribute__((packed))
 PrimaryVolumeDescriptor;
 
+#ifndef ISO9660_ONLY_DEFINES
 BOOLEAN ISO9660_IMAGE_CHECK(U0);
 BOOLEAN ISO9660_READ_PRIMARYVOLUMEDESCRIPTOR(PrimaryVolumeDescriptor *descriptor);
 BOOLEAN ISO9660_NORMALIZE_PATH(CHAR *path);
 BOOLEAN ISO9660_READ_DIRECTORY_RECORD(CHAR *path, IsoDirectoryRecord *record, U32 size);
 BOOLEAN ISO9660_READFILE_TO_MEMORY(CHAR *path, U0 *outBuffer, U32 outSize);
 
-
-#ifndef KERNEL_ENTRY
-#warning "Compiling ISO9660 functions"
-#endif // KERNEL_ENTRY
+#endif
 
 #endif // ISO9660_H

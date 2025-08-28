@@ -23,19 +23,7 @@ REMARKS
 #include "GDT.h"
 #include "../../../../STD/ASM.h"
 
-typedef struct __attribute__((packed)) {
-    U16 limit0;
-    U16 base0;
-    U8  base1;
-    U8  access;
-    U8  granularity;
-    U8  base2;
-} GDTENTRY;
 
-typedef struct __attribute__((packed)) {
-    U16 limit;
-    U32 base;
-} GDTDESCRIPTOR;
 
 #define GDT_ENTRY_COUNT 3
 

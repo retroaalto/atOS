@@ -58,7 +58,7 @@
 #define MEM_KERNEL_HEAP_END        0x007FFFFF
 
 // Program / Temp
-#define MEM_PROGRAM_TMP_BASE       0x00600000
+#define MEM_PROGRAM_TMP_BASE       0x00800000
 #define MEM_PROGRAM_TMP_END        0x00DFFFFF
 
 // Paging Structures

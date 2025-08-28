@@ -21,11 +21,12 @@ REMARKS
 #include "../IDT/IDT.h"
 #include "../../../../STD/ASM.h"
 #include "../INTERRUPTS.h"
-
-ISRHandler g_Handlers[IDT_COUNT];
-
-
 #include "../../DRIVERS/VIDEO/VBE.h"
+#include "../PIC.h"
+
+static ISRHandler g_Handlers[IDT_COUNT];
+
+
 // This is the c-level exception handler
 void isr_common_handler(I32 num, U32 errcode) {
     (void)errcode; (void)num;
@@ -45,9 +46,13 @@ void double_fault_handler(I32 num, U32 errcode) {
         );
 }
 
+
 void irq_common_handler(I32 num, U32 errcode) {
     (void)errcode; // Not used
     if(num >= 32 && num < 48) {
+        if(g_Handlers[num]) {
+            g_Handlers[num](num, errcode);
+        }
         pic_send_eoi(num - 32);
     }
 }
@@ -56,17 +61,15 @@ void irq_common_handler(I32 num, U32 errcode) {
 // This function is called from assembly
 void isr_dispatch_c(int vector, U32 errcode, regs *regs_ptr) {
     (void)regs_ptr;
+
     // For CPU exceptions (0-31) call isr_common_handler
     switch (vector)
     {
-    case 8:
-        double_fault_handler(vector, errcode);
-        break;
+    case 8: double_fault_handler(vector, errcode); break;
+    case 32: timer_handler(vector, errcode); break;
     }
-    if (vector < 32) {
-        isr_common_handler(vector, errcode);
-    } else if (vector >= 32 && vector < 48) {
-        irq_common_handler(vector - 32, errcode);
+    if (vector >= 32 && vector < 48) {
+        irq_common_handler(vector, errcode);
     } else {
         isr_common_handler(vector, errcode);
     }
@@ -74,7 +77,7 @@ void isr_dispatch_c(int vector, U32 errcode, regs *regs_ptr) {
 
 void irq_dispatch_c(int irq, U32 errcode, regs *regs_ptr) {
     (void)regs_ptr;
-    // call irq_common_handler(irq)
+    irq += PIC_REMAP_OFFSET;
     irq_common_handler(irq, errcode);
 }
 
@@ -82,7 +85,6 @@ void irq_dispatch_c(int irq, U32 errcode, regs *regs_ptr) {
 void ISR_REGISTER_HANDLER(U32 int_no, ISRHandler handler) {
     if(int_no < IDT_COUNT) {
         g_Handlers[int_no] = handler;
-    } else {
     }
 }
 U0 SETUP_ISRS(U0) {
@@ -93,8 +95,8 @@ U0 SETUP_ISRS(U0) {
         isr8,isr9,isr10,isr11,isr12,isr13,isr14,isr15,
         isr16,isr17,isr18,isr19,isr20,isr21,isr22,isr23,
         isr24,isr25,isr26,isr27,isr28,isr29,isr30,isr31,
-        irq32, irq33, irq34, irq35, irq36, irq37, irq38, 
-        irq39, irq40, irq41, irq42, irq43, irq44, irq45, irq46, irq47,
+        irq32, irq33, irq34, irq35, irq36, irq37, irq38, irq39,
+        irq40, irq41, irq42, irq43, irq44, irq45, irq46, irq47,
         isr48
     };
     for(U32 i = 0; i < IDT_COUNT; i++) {
@@ -105,14 +107,28 @@ U0 SETUP_ISRS(U0) {
     }
 }
 
-VOID SETUP_ISR_HANDLERS(VOID) {    
+VOID SETUP_ISR_HANDLERS(VOID) {
+    void *handlers[4] = {
+        double_fault_handler,
+        isr_common_handler,
+        timer_handler,
+        irq_common_handler
+    };
     for(int i = 0; i < IDT_COUNT; i++) {
         if(i < 32) {
-            ISR_REGISTER_HANDLER(i, isr_common_handler); // CPU exceptions
+            if(i == 8) {
+                ISR_REGISTER_HANDLER(i, handlers[0]);
+            } else {
+                ISR_REGISTER_HANDLER(i, handlers[1]); // CPU exceptions
+            }
         } else if(i >= 32 && i < 48) {
-            ISR_REGISTER_HANDLER(i, irq_common_handler);
+            if(i == 32) {
+                ISR_REGISTER_HANDLER(i, handlers[2]);
+            } else {
+                ISR_REGISTER_HANDLER(i, handlers[3]);
+            }
         } else {
-            ISR_REGISTER_HANDLER(i, isr_common_handler); // Reserved / unused
+            ISR_REGISTER_HANDLER(i, handlers[1]); // Reserved / unused
         }
     }
 }

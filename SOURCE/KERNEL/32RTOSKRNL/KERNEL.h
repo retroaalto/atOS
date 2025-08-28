@@ -24,12 +24,9 @@ REMARKS
 #define KERNEL_H
 #include "../../STD/ATOSMINDEF.h"
 #include "./DRIVERS/VIDEO/VBE.h"
-#include "./DRIVERS/DISK/ATAPI/ATAPI.h"
-// #include "./DRIVERS/DISK/ATA/ATA.h"
-#include "./DRIVERS/DISK/ATA_SHARED.h"
+#include "./DRIVERS/DISK/ATA_ATAPI.h"
 #include "../../STD/ASM.h"
 #include "./CPU/INTERRUPTS.h"
-#include "./FS/ISO9660/ISO9660.h"
 
 #ifndef KERNEL_ENTRY
 #define KERNEL_ENTRY
@@ -47,5 +44,19 @@ U0 kernel_entry_main(U0);
 /* Startup function called by bootloader / linker script */
 __attribute__((noreturn, section(".text")))
 void _start(void);
+
+
+/*
+Struct of pointers, saved into RAM, so that RTOSKRNL can access these values
+*/
+typedef struct _PTR_LIST {
+    GDTDESCRIPTOR *GDT_PTR;
+    IDTDESCRIPTOR *IDT_PTR;
+    ISRHandler **ISRHandlers; // Size of [IDT_COUNT]
+    U32 *ISR_PTR;
+    U32 *IRQ_PTR;
+    U32 *PIT_TICKS;
+    U32 *PIT_SECONDS;
+} PTR_LIST;
 
 #endif /* KERNEL_H */

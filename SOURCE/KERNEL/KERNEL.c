@@ -22,26 +22,148 @@ REMARKS
     None
 ---*/
 #include "./32RTOSKRNL/KERNEL.h"
+#define ISO9660_ONLY_DEFINES
+#include "./32RTOSKRNL/FS/ISO9660/ISO9660.h"
 
-void itoa(U32 value, U8 *buffer, U32 base) {
-    U32 i = 0;
-    if (value == 0) {
-        buffer[i++] = '0';
-    } else {
-        while (value != 0) {
-            U32 digit = value % base;
-            buffer[i++] = (digit < 10) ? (digit + '0') : (digit - 10 + 'A');
-            value /= base;
+typedef struct {
+    U32 ExtentLengthLE;
+    U32 ExtentLocationLE_LBA;
+} RTOSKRNL;
+
+void normalize_path(U8 *path) {
+    for (int i = 0; path[i]; i++) {
+        if (path[i] == ';') {
+            path[i] = '\0';
+            break;
         }
-    }
-    buffer[i] = '\0';
-    for (U32 j = 0; j < i / 2; j++) {
-        U8 temp = buffer[j];
-        buffer[j] = buffer[i - j - 1];
-        buffer[i - j - 1] = temp;
     }
 }
 
+BOOLEAN strcmp(const char *str1, const char *str2) {
+    while (*str1 && (*str1 == *str2)) {
+        str1++;
+        str2++;
+    }
+    return (*str1 == *str2);
+}
+
+U8 *strncpy(U8 *dest, const U8 *src, U32 n) {
+    U8 *d = dest;
+    const U8 *s = src;
+    while (n && *s) {
+        *d++ = *s++;
+        n--;
+    }
+    while (n--) {
+        *d++ = 0;
+    }
+    return dest;
+}
+
+U32 CALC_SECTOR(U32 extent_length) {
+    return (extent_length + 511) >> 9;
+}
+
+U0 *strchr(const U8 *str, U8 c) {
+    while (*str) {
+        if (*str == c) {
+            return (U8 *)str;
+        }
+        str++;
+    }
+    return NULL;
+}
+
+U0 *memmove(void* dest, const void* src, U32 n) {
+    U8* d = (U8*)dest;
+    const U8* s = (const U8*)src;
+    if (d < s) {
+        for (U32 i = 0; i < n; i++) {
+            d[i] = s[i];
+        }
+    } else if (d > s) {
+        for (U32 i = n; i > 0; i--) {
+            d[i - 1] = s[i - 1];
+        }
+    }
+    return dest;
+}
+
+U0 *memcpy(void* dest, const void* src, U32 n) {
+    U8* d = (U8*)dest;
+    const U8* s = (const U8*)src;
+    for (U32 i = 0; i < n; i++) {
+        d[i] = s[i];
+    }
+    return dest;
+}
+
+// Searches for a file inside the ISO9660 filesystem's root directory
+BOOLEAN SEARCH_FILE(
+    U32 lba,
+    U32 extentLength, 
+    RTOSKRNL *rks, 
+    U8 *target, 
+    U8 *original_target,
+    U0 *buffer, 
+    U32 ATAPI_STATUS
+) {
+    U32 offset = 0;
+    U8 record_name[21];
+
+    // Load root directory record
+    IsoDirectoryRecord *root_dir = (IsoDirectoryRecord *)buffer;
+    if(
+        READ_CDROM(
+            ATAPI_STATUS,
+            lba,
+            1,
+            buffer
+        ) == ATAPI_FAILED
+    ) {
+        return FALSE;
+    }
+
+    U32 i = 0;
+    while(offset < extentLength) {
+        IsoDirectoryRecord *record = (IsoDirectoryRecord *)((U8*)(buffer + offset));
+        strncpy(record_name, record->fileIdentifier, record->fileNameLength);
+        record_name[record->fileNameLength] = '\0';  // Null-terminate the string
+        normalize_path(record_name);
+        U8 test[20];
+        memcpy(test, record->fileIdentifier, record->fileNameLength);
+        test[record->fileNameLength] = '\0';
+        if(record->length == 0) break;
+        if (!(record->fileFlags & 0b00000010)) {
+            // Inside a file
+            if (strcmp(record_name, target)) {
+                rks->ExtentLengthLE = record->extentLengthLE;
+                rks->ExtentLocationLE_LBA = record->extentLocationLE_LBA;
+                return TRUE;
+            }
+        } else {
+            // Inside a directory
+            if(strcmp(record_name, target)) {
+                U32 calc = CALC_SECTOR(record->extentLengthLE);
+                U8 *slash = strchr(original_target, '/');
+                if(!slash) return FALSE;
+                memmove(original_target, slash + 1, strlen(slash));
+                memcpy(target, original_target, strlen(original_target));
+                slash = strchr(target, '/');
+                if (slash) {
+                    *slash = '\0';
+                } else {
+                    target[strlen(original_target)] = '\0';
+                }
+                return SEARCH_FILE(record->extentLocationLE_LBA, record->extentLengthLE, rks, target, original_target, buffer, ATAPI_STATUS);
+            }
+        }
+        offset += record->length;
+        i += VBE_CHAR_HEIGHT + 2;
+    }
+
+    return TRUE;
+}
 
 U0 kernel_after_gdt(U0);
 __attribute__((noreturn))
@@ -51,7 +173,7 @@ void kernel_entry_main(U0) {
     GDT_INIT();                      // Setup GDT
     // setup in asm, can still be called
     kernel_after_gdt();
-    for(;;) ASM_VOLATILE("cli; hlt");
+    HLT;
 }
 
 U0 kernel_after_gdt(U0) {
@@ -60,109 +182,92 @@ U0 kernel_after_gdt(U0) {
     SETUP_ISR_HANDLERS();
     IRQ_INIT();
     // todo: tss_init();
-    // tss_init();
-    VBE_FLUSH_SCREEN();
     __asm__ volatile ("sti");        // Enable interrupts
-
-    VBE_MODE* mode = GET_VBE_MODE();
-    U32 *video_buffer = (U32*)mode->PhysBasePtr;
-    video_buffer[0] = 0x00FF0000;
-    VBE_DRAW_ELLIPSE(600, 600, 90, 90, VBE_WHITE);
-    VBE_DRAW_ELLIPSE(600, 600, 80, 80, VBE_BLACK);
-    VBE_DRAW_ELLIPSE(600, 600, 70, 70, VBE_WHITE);
-    VBE_DRAW_ELLIPSE(600, 600, 60, 60, VBE_BLACK);
-    VBE_DRAW_ELLIPSE(600, 600, 50, 50, VBE_WHITE);
-    VBE_DRAW_ELLIPSE(600, 600, 40, 40, VBE_BLACK);
-    VBE_DRAW_ELLIPSE(600, 600, 30, 30, VBE_WHITE);
-    VBE_DRAW_ELLIPSE(600, 600, 20, 20, VBE_BLACK);
-    VBE_DRAW_ELLIPSE(600, 600, 10, 10, VBE_RED);
-
+    
     U32 row = 0;
-    U32 status;
+    U32 atapi_status;
     #define rowinc row += VBE_CHAR_HEIGHT + 2
-    status = ATAPI_CHECK();
-    if (status == ATAPI_FAILED) {
+    atapi_status = ATAPI_CHECK();
+    if (atapi_status == ATAPI_FAILED) {
         VBE_DRAW_STRING(0, row, "ATAPI check failed", VBE_WHITE, VBE_BLACK);
         UPDATE_VRAM();
         rowinc;
-    } else {
-        VBE_DRAW_CHARACTER(0, row, status, VBE_WHITE, VBE_BLACK);
-        UPDATE_VRAM();
-        rowinc;
-
-        U16 buffer[ATAPI_SECTORS(1)] = {0}; // 1 sector = 1024 bytes
-        U32 read = 0;
-        if ((read = READ_CDROM(status, 16, 1, buffer)) != ATAPI_FAILED) {
-            U8 *bytes = (U8*)buffer;
-            for (int i = 0; i < 1000; i++) {
-                if(i % 10 == 0)
-                    rowinc;
-                VBE_DRAW_CHARACTER(i * 40, row, bytes[i], VBE_WHITE, VBE_BLACK);
-            }
-            UPDATE_VRAM();
-        } else {
-            VBE_DRAW_STRING(0, row, "CD-ROM read failed", VBE_WHITE, VBE_BLACK);
-            UPDATE_VRAM();
-            rowinc;
-        }
+        HLT;
     }
 
-    ASM_VOLATILE("cli;hlt");
-    if(!ISO9660_IMAGE_CHECK()) {
-        VBE_DRAW_STRING(0, row, "Invalid ISO9660 image", VBE_WHITE, VBE_BLACK);
-        UPDATE_VRAM();
-        rowinc;
-    } else {
-        VBE_DRAW_STRING(0, row, "Valid ISO9660 image", VBE_WHITE, VBE_BLACK);
-        UPDATE_VRAM();
-        rowinc;
-    }
-
-    U8 *drive_letter = (U8*)0x00008000;
+    // Read ATOS/32RTOSKR.BIN;1 from disk
+    // We will read the binary with ATAPI operations, 
+    // not with DISK/ISO9660, to save the binary size of this file
+    // Read buffer address will be 0x00800000 (MEM_PROGRAM_TMP_BASE)
     U32 *RTOSKRNL_ADDRESS = (U32*)MEM_RTOSKRNL_BASE; // Main kernel address
-    U32 RTOSKRNL_SIZE = MEM_RTOSKRNL_END - MEM_RTOSKRNL_BASE;
-    
-    // Read RTOSKRNL.BIN;1 from disk
-    BOOLEAN res = ISO9660_READFILE_TO_MEMORY("RTOSKRNL.BIN;1", RTOSKRNL_ADDRESS, &RTOSKRNL_SIZE);
-    if(!res) {
-        VBE_DRAW_STRING(0, 0, "Failed to load RTOSKRNL.BIN;1", VBE_WHITE, VBE_BLACK);
+    PrimaryVolumeDescriptor *pvd = (PrimaryVolumeDescriptor*)MEM_PROGRAM_TMP_BASE;
+    // Read buffer will be just after PVD in memory
+    U8 *read_buffer = (U8*)(MEM_PROGRAM_TMP_BASE + 2048);
+    // Buffers limited to 21 to save binary size
+    U8 filename[21] = "ATOS\0"; 
+    U8 original_target[21] = "ATOS/32RTOSKR.BIN\0";
+
+    RTOSKRNL rks = { 0 };
+    // Read PVD at lba 16
+    if(READ_CDROM(atapi_status, 16, 1, (U8*)pvd) == ATAPI_FAILED) {
+        VBE_DRAW_STRING(0, row, "CDROM read failed", VBE_WHITE, VBE_BLACK);
         UPDATE_VRAM();
-    } else {
-        // Jump to RTOSKRNL.BIN;1
-        // __asm__ volatile ("jmp %0" : : "r"(RTOSKRNL_ADDRESS));
+        rowinc;
+        HLT;
+    }
+    // check PVD legitimacy
+    if(
+        pvd->TypeCode != 1 ||
+        pvd->standardIdentifier[0] != 'C' ||
+        pvd->standardIdentifier[1] != 'D' ||
+        pvd->standardIdentifier[2] != '0' ||
+        pvd->standardIdentifier[3] != '0' ||
+        pvd->standardIdentifier[4] != '1' ||
+        pvd->version != 1
+    ) {
+        VBE_DRAW_STRING(0, row, "Invalid PVD", VBE_WHITE, VBE_BLACK);
+        UPDATE_VRAM();
+        rowinc;
+        HLT;
     }
 
-    ASM_VOLATILE("cli;hlt");
-
-    const char ascii_set[] = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
-    for (U32 i = 0; i < sizeof(ascii_set); i++) {
-        VBE_DRAW_CHARACTER(10 + i * 8, 10, ascii_set[i], VBE_WHITE, VBE_BLACK);
-    }
-    VBE_STOP_DRAWING();
-    
-    
-    // Little drawing animation:
-    VBE_DRAW_RECTANGLE_FILLED(0,0, mode->XResolution, 200, VBE_BLACK);
-    VBE_STOP_DRAWING();
-    const char str[] = "Hello from atOS's kernel entry!";
-    for (U32 i = 0; i < sizeof(str); i++) {
-        VBE_DRAW_CHARACTER(10 + i * 8, 10, str[i % sizeof(str)], VBE_WHITE, VBE_SEE_THROUGH);
-        VBE_STOP_DRAWING();
-    }
-    const char str2[] = "This is a test of the VBE graphics functions.";
-    for (U32 i = 0; i < sizeof(str2); i++) {
-        VBE_DRAW_CHARACTER(10 + i * 8, 20, str2[i % sizeof(str2)], VBE_WHITE, VBE_SEE_THROUGH);
-        VBE_STOP_DRAWING();
-    }
-    const char str3[] = "See KERNEL.c!";
-    for (U32 i = 0; i < sizeof(str3); i++) {
-        VBE_DRAW_CHARACTER(10 + i * 8, 30, str3[i % sizeof(str3)], VBE_WHITE, VBE_SEE_THROUGH);
-        VBE_STOP_DRAWING();
+    if(!SEARCH_FILE(
+        pvd->rootDirectoryRecord.extentLocationLE_LBA,
+        pvd->rootDirectoryRecord.extentLengthLE,
+        &rks,
+        filename,
+        original_target,
+        read_buffer,
+        atapi_status
+    )
+    ) {
+        rowinc;
+        VBE_DRAW_STRING(0, row, "File not found", VBE_WHITE, VBE_BLACK);
+        UPDATE_VRAM();
+        rowinc;
+        HLT;
     }
 
+    #warning Fill PTR_LIST!
+    // Fill PTR_LIST
+    U32 sectors = CALC_SECTOR(rks.ExtentLengthLE);
+    if(
+        READ_CDROM(
+            atapi_status,
+            rks.ExtentLocationLE_LBA,
+            sectors,
+            (U8*)RTOSKRNL_ADDRESS
+        ) == ATAPI_FAILED
+    ) {
+        VBE_DRAW_STRING(0, row, "Failed to read 32RTOSKRNL", VBE_WHITE, VBE_BLACK);
+        UPDATE_VRAM();
+        rowinc;
+        HLT;
+    }
 
-
-    for(;;) ASM_VOLATILE("hlt");
+    // Jump to ATOS/32RTOSKR.BIN;1
+    __asm__ volatile ("jmp %0" : : "r"(RTOSKRNL_ADDRESS));
+    HLT;
 }
     
 __attribute__((noreturn, section(".text")))

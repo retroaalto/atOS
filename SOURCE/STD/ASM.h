@@ -5,6 +5,7 @@
 
 #define ASM_VOLATILE(...) \
     __asm__ volatile(__VA_ARGS__)
+#define HLT for(;;) ASM_VOLATILE("cli; hlt")
 
 #define LN "\n\t"
 #define ASL(line) line LN

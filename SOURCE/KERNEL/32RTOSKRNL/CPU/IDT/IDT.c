@@ -12,18 +12,9 @@
 #endif
 #define IDT_COUNT 256
 
-typedef struct __attribute__((packed)) {
-    U16 base0;
-    U16 selector;
-    U8  reserved;
-    U8  type_attr;
-    U16 base1;
-} IDTENTRY;
 
-typedef struct __attribute__((packed)) {
-    U16 size;
-    IDTENTRY *base;
-} IDTDESCRIPTOR;
+
+
 
 static IDTENTRY idt[IDT_COUNT];
 static IDTDESCRIPTOR idt_desc;
