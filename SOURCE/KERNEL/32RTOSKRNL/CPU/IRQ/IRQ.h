@@ -27,8 +27,7 @@ REMARKS
 #include "../../MEMORY/MEMORY.h"
 #include "../ISR/ISR.h"
 
-#define PIC_REMAP_OFFSET 0x20
+
 U0 IRQ_INIT(U0);
-void pic_send_eoi(U8 irq);
-void pic_remap(U8 offset1, U8 offset2);
+
 #endif // IRQ_H

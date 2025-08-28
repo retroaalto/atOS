@@ -1,8 +1,12 @@
 {
     "files.associations": {
+        "*.H": "c",
+        "*.C": "c",
+        "*.asm": "nasm",
         "stdlib.h": "c",
         "string.h": "c",
         "iso9660.h": "c",
-        "stdio.h": "c"
+        "stdio.h": "c",
+        "compare": "c"
     }
 }

@@ -23,19 +23,7 @@ REMARKS
 #include "GDT.h"
 #include "../../../../STD/ASM.h"
 
-typedef struct __attribute__((packed)) {
-    U16 limit0;
-    U16 base0;
-    U8  base1;
-    U8  access;
-    U8  granularity;
-    U8  base2;
-} GDTENTRY;
 
-typedef struct __attribute__((packed)) {
-    U16 limit;
-    U32 base;
-} GDTDESCRIPTOR;
 
 #define GDT_ENTRY_COUNT 3
 
@@ -64,7 +52,10 @@ U0 GDT_INIT(U0) {
     gdt_set_gate(2, 0, 0xFFFFFFFF, WRITABLE_RNG0_KRNL, GRANULARITY); 
 
     g_GDTDescriptor.limit = GDT_ENTRY_COUNT * sizeof(GDTENTRY) - 1;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wint-conversion"
     g_GDTDescriptor.base  = g_GDT;
+#pragma GCC diagnostic pop
 
     __asm__ volatile("lgdt %0" : : "m"(g_GDTDescriptor));
 }

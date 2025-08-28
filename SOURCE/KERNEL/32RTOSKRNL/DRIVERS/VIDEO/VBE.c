@@ -21,39 +21,6 @@ Most are borrowed from https://gist.github.com/rothwerx/700f275d078b3483509f
 #define INVISIBLE_CHARACTER {0, 0, 0, 0, 0, 0, 0, 0}
 #define CHARACTER(...) { __VA_ARGS__ }
 VBE_LETTERS_TYPE VBE_LETTERS[VBE_MAX_CHARS][VBE_CHAR_HEIGHT] = {
-    INVISIBLE_CHARACTER, // 0
-    INVISIBLE_CHARACTER, // 1
-    INVISIBLE_CHARACTER, // 2
-    INVISIBLE_CHARACTER, // 3
-    INVISIBLE_CHARACTER, // 4
-    INVISIBLE_CHARACTER, // 5
-    INVISIBLE_CHARACTER, // 6
-    INVISIBLE_CHARACTER, // 7
-    INVISIBLE_CHARACTER, // 8
-    INVISIBLE_CHARACTER, // 9
-    INVISIBLE_CHARACTER, // 10
-    INVISIBLE_CHARACTER, // 11
-    INVISIBLE_CHARACTER, // 12
-    INVISIBLE_CHARACTER, // 13
-    INVISIBLE_CHARACTER, // 14
-    INVISIBLE_CHARACTER, // 15
-    INVISIBLE_CHARACTER, // 16
-    INVISIBLE_CHARACTER, // 17
-    INVISIBLE_CHARACTER, // 18
-    INVISIBLE_CHARACTER, // 19
-    INVISIBLE_CHARACTER, // 20
-    INVISIBLE_CHARACTER, // 21
-    INVISIBLE_CHARACTER, // 22
-    INVISIBLE_CHARACTER, // 23
-    INVISIBLE_CHARACTER, // 24
-    INVISIBLE_CHARACTER, // 25
-    INVISIBLE_CHARACTER, // 26
-    INVISIBLE_CHARACTER, // 27
-    INVISIBLE_CHARACTER, // 28
-    INVISIBLE_CHARACTER, // 29
-    INVISIBLE_CHARACTER, // 30
-    INVISIBLE_CHARACTER, // 31
-    INVISIBLE_CHARACTER, // 32 (SPACE)
     CHARACTER(
         0b00110000,
         0b01111000,
@@ -1003,6 +970,8 @@ VBE_LETTERS_TYPE VBE_LETTERS[VBE_MAX_CHARS][VBE_CHAR_HEIGHT] = {
 BOOLEAN VBE_DRAW_CHARACTER(U32 x, U32 y, U8 c, VBE_PIXEL_COLOUR fg, VBE_PIXEL_COLOUR bg) {
     VBE_MODE* mode = GET_VBE_MODE();
     if (x >= (U32)(mode->XResolution + VBE_CHAR_WIDTH) || y >= (U32)(mode->YResolution + VBE_CHAR_HEIGHT)) return FALSE;
+
+    c -= UNUSABLE_CHARS; // Align char according to VBE_MAX_CHARS
     if(c >= (U32)VBE_MAX_CHARS) return FALSE; // Invalid character
     // Draw the character
     for (U32 i = 0; i < 8; i++) {
@@ -1075,6 +1044,22 @@ BOOL vbe_check(U0) {
     return TRUE;
 }
 
+U32 strlen(const char* str) {
+    U32 length = 0;
+    while (str[length] != '\0') {
+        length++;
+    }
+    return length;
+}
+
+BOOLEAN VBE_DRAW_STRING(U32 x, U32 y, const char* str, VBE_PIXEL_COLOUR fg, VBE_PIXEL_COLOUR bg) {
+    U32 length = strlen(str);
+    for (U32 i = 0; i < length; i++) {
+        VBE_DRAW_CHARACTER(x + i * VBE_CHAR_WIDTH, y, str[i], fg, bg);
+    }
+    return TRUE;
+}
+
 BOOLEAN VBE_FLUSH_SCREEN(U0) {
     VBE_CLEAR_SCREEN(VBE_BLACK);
     UPDATE_VRAM();
@@ -1100,6 +1085,7 @@ U0 VBE_STOP_DRAWING(U0) {
 BOOLEAN VBE_DRAW_FRAMEBUFFER(U32 pos, VBE_PIXEL_COLOUR colour) {
     VBE_MODE* mode = (VBE_MODE*)(VBE_MODE_LOAD_ADDRESS_PHYS);
     U8* framebuffer = (U8*)(FRAMEBUFFER_ADDRESS);
+    if(colour == VBE_SEE_THROUGH) return TRUE;
 
     if (!framebuffer || !mode) return FALSE;
 
@@ -1352,9 +1338,11 @@ BOOLEAN VBE_DRAW_TRIANGLE_FILLED(U32 x1, U32 y1, U32 x2, U32 y2, U32 x3, U32 y3,
     if (y3 > maxy) maxy = y3;
 
     /* Quick reject if bbox completely off-screen */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wtype-limits"
     if (maxx < 0 || maxy < 0) return FALSE; /* defensive, though U32 can't be <0 */
+#pragma GCC diagnostic pop
     if (minx >= SCREEN_WIDTH || miny >= SCREEN_HEIGHT) return FALSE;
-
     /* Clip bounding box to screen */
     if (minx >= SCREEN_WIDTH) return FALSE;
     if (miny >= SCREEN_HEIGHT) return FALSE;
