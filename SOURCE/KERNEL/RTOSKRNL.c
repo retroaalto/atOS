@@ -22,7 +22,7 @@ TODO:
 
 __attribute__((noreturn))
 void rtos_kernel(U0) {
-    VBE_DRAW_STRING(0, 0, "HELLOOOO! FROM MAIN RTOS KERNEL!!", VBE_AQUA, VBE_RED);
+    VBE_DRAW_STRING(0, 0, "AA! FROM MAIN RTOS KERNEL!!", VBE_AQUA, VBE_RED);
     VBE_DRAW_ELLIPSE(10, 10, 50, 30, VBE_YELLOW);
     VBE_STOP_DRAWING();
     HLT;
