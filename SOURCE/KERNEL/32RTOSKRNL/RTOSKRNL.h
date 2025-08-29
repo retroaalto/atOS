@@ -3,18 +3,29 @@
 #ifndef RTOS_KERNEL
 #define RTOS_KERNEL
 #endif // RTOS_KERNEL
-#include "../../STD/ASM.h"
-#include "../../STD/ATOSMINDEF.h"
-#include "./DRIVERS/VIDEO/VBE.h"
-#include "./DRIVERS/PS2/PS2.h"
-#include "./DRIVERS/PS2/KEYBOARD/PS2_KEYBOARD.h"
-#include "./RTOSKRNL/RTOSKRNL_INTERNAL.h"
-#include "./KERNEL.h"
+#include <STD/ASM.h>
+#include <STD/ATOSMINDEF.h>
+#include <DRIVERS/VIDEO/VBE.h>
+#include <DRIVERS/VIDEO/VESA.h>
+#include <DRIVERS/VIDEO/VOUTPUT.h>
+#include <DRIVERS/PS2/KEYBOARD.h>
+
+#include <RTOSKRNL/RTOSKRNL_INTERNAL.h>
+
+#include <MEMORY/E820.h>
+
+#include <CPU/PIC.h>
+#include <CPU/INTERRUPTS.h>
+#include <CPU/GDT/GDT.h>
+#include <CPU/IDT/IDT.h>
+#include <CPU/ISR/ISR.h>
+#include <CPU/IRQ/IRQ.h>
+#include <DRIVERS/PIT/PIT.h>
 
 __attribute__((noreturn))
-U0 rtos_kernel(PTR_LIST *ptr_list);
+U0 rtos_kernel(U0);
 
 __attribute__((noreturn, section(".text")))
-void _start(PTR_LIST *ptr_list);
+void _start(U0);
 
 #endif // RTOSKRNL_H

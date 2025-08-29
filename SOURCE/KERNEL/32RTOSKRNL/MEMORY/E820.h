@@ -25,9 +25,11 @@ REMARKS
 ---*/
 #ifndef E820_H
 #define E820_H
-#include "../../../STD/ATOSMINDEF.h"
-#define E820_TABLE_PHYS   0x8000u
-#define E820_TABLE_END    0x8FFFu
+#include <STD/ATOSMINDEF.h>
+#include <MEMORY/MEMORY.h>
+
+#define E820_TABLE_PHYS   MEM_E820_BASE
+#define E820_TABLE_END    MEM_E820_END
 #define E820_TABLE_SIZE   (E820_TABLE_END - E820_TABLE_PHYS + 1)u
 
 typedef struct __attribute__((packed)) {
@@ -49,16 +51,9 @@ Only for kernel mode.
 You can use these in your application if you know what you're doing,
   but be aware of potential issues, such as memory corruption and stability.
 ---*/
-#if defined(KERNEL_ENTRY) || defined(RTOSKRNL)
+#if __RTOS__
 static E820_ENTRY e820_entries[128];
 static U32 e820_entry_count;
 
-BOOLEAN E820_INIT(void) {
-    e820_entry_count = 0;
-    for (U32 i = 0; i < 128; i++) {
-        e820_entries[i] = (E820_ENTRY){ 0 };
-    }
-    return TRUE;
-}
-#endif // KERNEL_ENTRY || RTOSKRNL
+#endif // __RTOS__
 #endif // E820_H

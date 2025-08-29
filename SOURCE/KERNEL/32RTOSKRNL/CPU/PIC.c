@@ -1,6 +1,6 @@
 #include "./INTERRUPTS.h"
 #include "./PIC.h"
-#include <ASM.h>
+#include "../../../STD/ASM.h"
 
 #define PIC1_COMMAND_PORT 0x20
 #define PIC1_DATA_PORT 0x21
@@ -37,33 +37,26 @@ enum {
 //     _outb(PIC2_DATA_PORT, 0xFF);
 // }
 
-// void PIC_Mask(int irq) {
-//     uint8_t port;
-
-//     if (irq < 8) {
-//         port = PIC1_DATA_PORT;
-//     }
-//     else {
-//         irq -= 8;
-//         port = PIC2_DATA_PORT;
-//     }
-//     uint8_t mask = _inb(PIC1_DATA_PORT);
-//     _outb(PIC1_DATA_PORT, mask | (1 << irq));
-// }
+void PIC_Mask(int irq) {
+    if(irq < 8) {
+        U8 mask = _inb(PIC1_DATA_PORT);
+        _outb(PIC1_DATA_PORT, mask | (1 << irq));
+    } else {
+        U8 mask = _inb(PIC2_DATA_PORT);
+        _outb(PIC2_DATA_PORT, mask | (1 << (irq - 8)));
+    }
+}
 
 void PIC_Unmask(int irq) {
-    // U8 port = 0;
-
-    // if (irq < 8) {
-    //     port = PIC1_DATA_PORT;
-    // }
-    // else {
-    //     irq -= 8;
-    //     port = PIC2_DATA_PORT;
-    // }
-    U8 mask = _inb(PIC1_DATA_PORT);
-    _outb(PIC1_DATA_PORT, mask & ~(1 << irq));
+    if(irq < 8) {
+        U8 mask = _inb(PIC1_DATA_PORT);
+        _outb(PIC1_DATA_PORT, mask & ~(1 << irq));
+    } else {
+        U8 mask = _inb(PIC2_DATA_PORT);
+        _outb(PIC2_DATA_PORT, mask & ~(1 << (irq - 8)));
+    }
 }
+
 
 void pic_send_eoi(U8 irq) {
     if (irq >= 8) {

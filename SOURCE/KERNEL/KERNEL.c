@@ -182,18 +182,50 @@ void kernel_entry_main(U0) {
     HLT;
 }
 
-static PTR_LIST ptr_list  = { 0 };
+// void itoa(U32 value, U8 *buffer, U32 base) {
+//     const U8 *digits = "0123456789ABCDEF";
+//     U8 *ptr = buffer;
 
+//     // Handle 0 explicitly
+//     if (value == 0) {
+//         *ptr++ = '0';
+//     } else {
+//         // Convert to the specified base
+//         while (value != 0) {
+//             *ptr++ = digits[value % base];
+//             value /= base;
+//         }
+//     }
+//     *ptr-- = '\0';
+
+//     // Reverse the string
+//     U8 temp;
+//     while (buffer < ptr) {
+//         temp = *buffer;
+//         *buffer++ = *ptr;
+//         *ptr-- = temp;
+//     }
+// }
 
 U0 kernel_after_gdt(U0) {
     
     IDT_INIT();                       // Setup IDT
     SETUP_ISR_HANDLERS();
     IRQ_INIT();
-    PIT_INIT();
+    // PIT_INIT();
     // todo: tss_init();
     __asm__ volatile ("sti");        // Enable interrupts
 
+    // U8 buf[100];
+    // U32 *pit_ticks = PIT_GET_TICKS_PTR();
+    // U32 i = 0;
+    // for(;;) {
+    //     if(*pit_ticks % 100 == 0 ) {
+    //         itoa(*pit_ticks, buf, 16);
+    //         VBE_DRAW_STRING(i, 0, buf, VBE_AQUA, VBE_BLACK);
+    //         VBE_UPDATE_VRAM();
+    //     }
+    // }
     
     U32 row = 0;
     U32 atapi_status;
@@ -201,10 +233,13 @@ U0 kernel_after_gdt(U0) {
     atapi_status = ATAPI_CHECK();
     if (atapi_status == ATAPI_FAILED) {
         VBE_DRAW_STRING(0, row, "ATAPI check failed", VBE_WHITE, VBE_BLACK);
-        UPDATE_VRAM();
+        VBE_UPDATE_VRAM();
         rowinc;
         HLT;
     }
+
+
+
 
     // Read ATOS/32RTOSKR.BIN;1 from disk
     // We will read the binary with ATAPI operations, 
@@ -222,7 +257,7 @@ U0 kernel_after_gdt(U0) {
     // Read PVD at lba 16
     if(READ_CDROM(atapi_status, 16, 1, (U8*)pvd) == ATAPI_FAILED) {
         VBE_DRAW_STRING(0, row, "CDROM read failed", VBE_WHITE, VBE_BLACK);
-        UPDATE_VRAM();
+        VBE_UPDATE_VRAM();
         rowinc;
         HLT;
     }
@@ -237,7 +272,7 @@ U0 kernel_after_gdt(U0) {
         pvd->version != 1
     ) {
         VBE_DRAW_STRING(0, row, "Invalid PVD", VBE_WHITE, VBE_BLACK);
-        UPDATE_VRAM();
+        VBE_UPDATE_VRAM();
         rowinc;
         HLT;
     }
@@ -254,7 +289,7 @@ U0 kernel_after_gdt(U0) {
     ) {
         rowinc;
         VBE_DRAW_STRING(0, row, "File not found", VBE_WHITE, VBE_BLACK);
-        UPDATE_VRAM();
+        VBE_UPDATE_VRAM();
         rowinc;
         HLT;
     }
@@ -269,18 +304,10 @@ U0 kernel_after_gdt(U0) {
         ) == ATAPI_FAILED
     ) {
         VBE_DRAW_STRING(0, row, "Failed to read 32RTOSKRNL", VBE_WHITE, VBE_BLACK);
-        UPDATE_VRAM();
+        VBE_UPDATE_VRAM();
         rowinc;
         HLT;
     }
-
-    ptr_list.GDT_PTR = GDT_GET_PTR();
-    ptr_list.IDT_PTR = IDT_GET_PTR();
-    ptr_list.ISRHandlers = ISR_GET_PTR();
-    ptr_list.PIT_TICKS = PIT_GET_TICKS_PTR();
-    ptr_list.PIT_HZ = PIT_GET_HZ_PTR();
-    __asm__ volatile ("mov %0, %%eax" : : "r"(&ptr_list));
-    __asm__ volatile ("push %eax");
     __asm__ volatile ("call *%0" : : "r"(RTOSKRNL_ADDRESS));
     HLT;
 }

@@ -6,7 +6,7 @@ ENTRY(rtos_kernel)
 SECTIONS
 {
     /* Kernel load address in memory */
-    . = 0x00024000;
+    . = 0x00028000;
 
     /* Code section */
     .text : {

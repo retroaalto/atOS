@@ -19,8 +19,6 @@ typedef struct __attribute__((packed)) {
     U16 limit;
     U32 base;
 } GDTDESCRIPTOR;
-#ifndef RTOS_KERNEL
 U0 GDT_INIT(U0);
 GDTDESCRIPTOR *GDT_GET_PTR(void);
-#endif
 #endif

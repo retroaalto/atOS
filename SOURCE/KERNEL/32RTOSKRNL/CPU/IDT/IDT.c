@@ -14,8 +14,6 @@
 
 
 
-
-
 static IDTENTRY idt[IDT_COUNT] = { 0 };
 static IDTDESCRIPTOR idt_desc = { 0 };
 

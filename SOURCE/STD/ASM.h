@@ -10,6 +10,11 @@
 #define LN "\n\t"
 #define ASL(line) line LN
 
+#define HALT ASM_VOLATILE("hlt")
+#define NOP ASM_VOLATILE("nop")
+#define CLI ASM_VOLATILE("cli")
+#define STI ASM_VOLATILE("sti")
+
 /* 
  * Port I/O macros (legacy, kept for compatibility)
  */

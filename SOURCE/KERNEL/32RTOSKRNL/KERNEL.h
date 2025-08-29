@@ -28,17 +28,10 @@ REMARKS
 #define KERNEL_ENTRY
 #endif // KERNEL_ENTRY
 
-#ifdef RTOS_KERNEL
-#include <GDT.h>
-#include <ISR.h>
-#include <IDT.h>
-#else 
 #include "./DRIVERS/VIDEO/VBE.h"
 #include "./DRIVERS/DISK/ATA_ATAPI.h"
 #include "./CPU/INTERRUPTS.h"
-#endif
 
-#ifndef RTOS_KERNEL
 #define RM2LA(seg, off)  (((U32)(seg) << 4) + (U32)(off))
 #define FAR_PTR_TO_LINEAR(ptr)  RM2LA(((ptr) >> 16) & 0xFFFF, (ptr) & 0xFFFF)
 
@@ -52,17 +45,5 @@ U0 kernel_entry_main(U0);
 __attribute__((noreturn, section(".text")))
 void _start(void);
 
-#endif // RTOS_KERNEL
-
-/*
-Struct of pointers, saved into RAM, so that RTOSKRNL can access these values
-*/
-typedef struct _PTR_LIST {
-    GDTDESCRIPTOR *GDT_PTR;
-    IDTDESCRIPTOR *IDT_PTR;
-    ISRHandler *ISRHandlers; // Size of [IDT_COUNT]
-    U32 *PIT_TICKS;
-    U32 *PIT_HZ;
-} PTR_LIST;
 
 #endif /* KERNEL_H */

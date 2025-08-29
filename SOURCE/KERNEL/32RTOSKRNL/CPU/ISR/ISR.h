@@ -53,19 +53,10 @@ typedef struct {
 // #define DF_STACK_SIZE 0x4000
 // extern U8 df_stack[DF_STACK_SIZE];
 
-// typedef void (*ISRHandler)(struct regs* r);
-// typedef void (*IRQHandler)(struct regs* r);
 typedef U0 (*ISRHandler)(I32 num, U32 errcode);
-typedef U0 (*IRQHandler)(I32 num, U32 errcode);
 
 void ISR_REGISTER_HANDLER(U32 int_no, ISRHandler handler);
-
-#ifndef RTOS_KERNEL
 VOID SETUP_ISR_HANDLERS(VOID);
 U0 SETUP_ISRS(U0);
-
-void pit_set_frequency(U32 freq);
-
 ISRHandler *ISR_GET_PTR(void);
-#endif
 #endif // ISR_H

@@ -8,6 +8,7 @@
 | `0x0000A400` | `0x0000FFFF` | MMIO / Temp Buffers | 23.6 KiB | Optional memory-mapped IO, temp buffers                |
 | `0x00018000` | `0x00019FFF` | Free        |    8 KiB | Free |
 | `0x00020000` | `0x00024000` | Kernel entry      | 16 KiB    | Kernel entry point + 4kb safe gap |
+| `0x00028000` | `0x00427FFF` | Main Kernel       | 4 MiB     | Main RTOS kernel               |
 | `0x00428000` | `0x00467FFF` | Safety Gap        | 256 KB    | Reserved gap for safety        |
 | `0x00468000` | `0x00667FFF` | Kernel Heap       | 2 MiB     | RTOS kernel heap               |
 | `0x00844000` | `0x00DFFFFF` | Program / Temp    | 8 MiB     | User programs / temp storage   |

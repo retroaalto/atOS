@@ -1,7 +1,7 @@
 #include "./PIT.h"
 #include <PIC.h>
-#include <ASM.h>
-
+#include "../../../STD/ASM.h"
+#include "../../CPU/ISR/ISR.h"
 #define PIT_CHANNEL0 0x40
 #define PIT_COMMAND  0x43
 #define PIT_FREQUENCY 1193182
@@ -28,6 +28,7 @@ void pit_handler(I32 num, U32 errcode) {
 U0 PIT_INIT(U0) {
     hz = 100;
     pit_set_frequency(hz);
+    ISR_REGISTER_HANDLER(PIC_REMAP_OFFSET + 0, pit_handler);
     PIC_Unmask(0);
     ticks = 0;
 }
