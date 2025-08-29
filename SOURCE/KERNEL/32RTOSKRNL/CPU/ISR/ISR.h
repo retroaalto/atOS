@@ -60,10 +60,12 @@ typedef U0 (*IRQHandler)(I32 num, U32 errcode);
 
 void ISR_REGISTER_HANDLER(U32 int_no, ISRHandler handler);
 
+#ifndef RTOS_KERNEL
 VOID SETUP_ISR_HANDLERS(VOID);
 U0 SETUP_ISRS(U0);
 
-void timer_handler(I32 num, U32 errcode);
 void pit_set_frequency(U32 freq);
 
+ISRHandler *ISR_GET_PTR(void);
+#endif
 #endif // ISR_H

@@ -73,21 +73,6 @@ U32 ATAPI_CHECK() {
 }
 
 
-
-static inline void ata_wait_not_bsy(U32 base) {
-    U8 s;
-    do { s = _inb(base + ATA_COMM_REG); } while (s & STAT_BSY);
-}
-
-static inline BOOLEAN ata_wait_drq_ready(U32 base) {
-    U8 s;
-    do {
-        s = _inb(base + ATA_COMM_REG);
-        if (s & STAT_ERR) return 0;
-    } while (!(s & STAT_DRQ));
-    return 1;
-}
-
 int read_cdrom(U32 atapiWhere, U32 lba, U32 sectors, U16 *buffer) {
     U16 port = 0;
     BOOLEAN slave = 0;

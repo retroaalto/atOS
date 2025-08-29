@@ -38,47 +38,49 @@
 #define EARLY_FREE_DATA_BASE       0x00008002
 #define EARLY_FREE_DATA_END        0x000093FF
 // Early Stack
-#define MEM_STACK_BASE             0x00009300
-#define MEM_STACK_END              0x00009FFF
+#define MEM_STACK_BASE             0x00009400
+#define MEM_STACK_END              0x0000A3FF
 
 // Free / Temporary Buffers
-#define MEM_TEMP_BASE              0x0000A000
-#define MEM_TEMP_END               0x0000FFFF
+#define MEM_MMIO_TEMP_BASE              0x0000A400
+#define MEM_MMIO_TEMP_END               0x0000FFFF
 
+#define MEM_FREE_1_BASE         0x00018000
+#define MEM_FREE_1_END           0x00019FFF
 // Kernel entry point
 #define MEM_KRNL_BASE              0x00020000
-#define MEM_KRNL_END               0x003FFFFF  // 3.5 MiB size
+#define MEM_KRNL_END               0x00024000
 
 // RTOS kernel
-#define MEM_RTOSKRNL_BASE              0x00024000
-#define MEM_RTOSKRNL_END               0x00424000
+#define MEM_RTOSKRNL_BASE          0x00028000
+#define MEM_RTOSKRNL_END           0x00427FFF
 
 // Kernel Heap
-#define MEM_KERNEL_HEAP_BASE       0x00600000
-#define MEM_KERNEL_HEAP_END        0x007FFFFF
+#define MEM_KERNEL_HEAP_BASE       0x00468000
+#define MEM_KERNEL_HEAP_END        0x00667FFF
 
 // Program / Temp
-#define MEM_PROGRAM_TMP_BASE       0x00800000
+#define MEM_PROGRAM_TMP_BASE       0x00844000
 #define MEM_PROGRAM_TMP_END        0x00DFFFFF
 
 // Paging Structures
-#define MEM_PAGING_BASE            0x00E00000
+#define MEM_PAGING_BASE            0x00E44000
 #define MEM_PAGING_END             0x00EFFFFF
 
 // Framebuffer
-#define MEM_FRAMEBUFFER_BASE       0x00F00000
+#define MEM_FRAMEBUFFER_BASE       0x00F44000
 #define MEM_FRAMEBUFFER_END        0x012004EF
 
 // ACPI / APIC
-#define MEM_ACPI_APIC_BASE         0x01201000
+#define MEM_ACPI_APIC_BASE         0x01245000
 #define MEM_ACPI_APIC_END          0x012FFFFF
 
 // Reserved
-#define MEM_RESERVED_BASE          0x01300000
+#define MEM_RESERVED_BASE          0x01344000
 #define MEM_RESERVED_END           0x076FFFFF
 
 // User Space
-#define MEM_USER_SPACE_BASE        0x07700000
+#define MEM_USER_SPACE_BASE        0x07744000
 #define MEM_USER_SPACE_END         0x1FFFFFFF
 
 #endif // MEMORY_H

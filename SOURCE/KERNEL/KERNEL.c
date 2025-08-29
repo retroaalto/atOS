@@ -24,7 +24,7 @@ REMARKS
 #include "./32RTOSKRNL/KERNEL.h"
 #define ISO9660_ONLY_DEFINES
 #include "./32RTOSKRNL/FS/ISO9660/ISO9660.h"
-
+#include <PIT.h>
 typedef struct {
     U32 ExtentLengthLE;
     U32 ExtentLocationLE_LBA;
@@ -182,13 +182,18 @@ void kernel_entry_main(U0) {
     HLT;
 }
 
+static PTR_LIST ptr_list  = { 0 };
+
+
 U0 kernel_after_gdt(U0) {
     
     IDT_INIT();                       // Setup IDT
     SETUP_ISR_HANDLERS();
     IRQ_INIT();
+    PIT_INIT();
     // todo: tss_init();
     __asm__ volatile ("sti");        // Enable interrupts
+
     
     U32 row = 0;
     U32 atapi_status;
@@ -205,7 +210,7 @@ U0 kernel_after_gdt(U0) {
     // We will read the binary with ATAPI operations, 
     // not with DISK/ISO9660, to save the binary size of this file
     // Read buffer address will be 0x00800000 (MEM_PROGRAM_TMP_BASE)
-    U32 *RTOSKRNL_ADDRESS = (U32*)MEM_RTOSKRNL_BASE; // Main kernel address
+    U0 *RTOSKRNL_ADDRESS = (U0*)MEM_RTOSKRNL_BASE; // Main kernel address
     PrimaryVolumeDescriptor *pvd = (PrimaryVolumeDescriptor*)MEM_PROGRAM_TMP_BASE;
     // Read buffer will be just after PVD in memory
     U8 *read_buffer = (U8*)(MEM_PROGRAM_TMP_BASE + 2048);
@@ -254,8 +259,6 @@ U0 kernel_after_gdt(U0) {
         HLT;
     }
 
-    #warning Fill PTR_LIST!
-    // Fill PTR_LIST
     U32 sectors = CALC_SECTOR(rks.ExtentLengthLE);
     if(
         READ_CDROM(
@@ -271,8 +274,14 @@ U0 kernel_after_gdt(U0) {
         HLT;
     }
 
-    // Jump to ATOS/32RTOSKR.BIN;1
-    __asm__ volatile ("jmp %0" : : "r"(RTOSKRNL_ADDRESS));
+    ptr_list.GDT_PTR = GDT_GET_PTR();
+    ptr_list.IDT_PTR = IDT_GET_PTR();
+    ptr_list.ISRHandlers = ISR_GET_PTR();
+    ptr_list.PIT_TICKS = PIT_GET_TICKS_PTR();
+    ptr_list.PIT_HZ = PIT_GET_HZ_PTR();
+    __asm__ volatile ("mov %0, %%eax" : : "r"(&ptr_list));
+    __asm__ volatile ("push %eax");
+    __asm__ volatile ("call *%0" : : "r"(RTOSKRNL_ADDRESS));
     HLT;
 }
     

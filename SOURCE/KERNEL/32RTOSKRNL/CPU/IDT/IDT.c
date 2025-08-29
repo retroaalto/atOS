@@ -16,9 +16,12 @@
 
 
 
-static IDTENTRY idt[IDT_COUNT];
-static IDTDESCRIPTOR idt_desc;
+static IDTENTRY idt[IDT_COUNT] = { 0 };
+static IDTDESCRIPTOR idt_desc = { 0 };
 
+IDTDESCRIPTOR *IDT_GET_PTR(void) {
+    return &idt_desc;
+}
 
 void idt_set_gate(U32 index, U0* handler, U16 sel, U8 flags) {
     idt[index].base0   = (U32)handler & 0xFFFF;
