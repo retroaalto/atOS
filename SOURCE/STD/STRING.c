@@ -141,6 +141,7 @@ U0 *ITOA(S32 value, U8* buffer, U32 base) {
             // Unsupported base
             return NULL;
     }
+    return buffer;
 }
 
 U0 *ITOA_U(U32 value, U8* buffer, U32 base) {
@@ -194,4 +195,5 @@ U0 *ITOA_U(U32 value, U8* buffer, U32 base) {
             // Unsupported base
             return NULL;
     }
+    return buffer;
 }

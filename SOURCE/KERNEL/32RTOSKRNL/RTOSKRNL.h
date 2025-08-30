@@ -5,6 +5,9 @@
 #endif // RTOS_KERNEL
 #include <STD/ASM.h>
 #include <STD/ATOSMINDEF.h>
+#include <STD/STRING.h>
+#include <STD/MEM.h>
+
 #include <DRIVERS/VIDEO/VBE.h>
 #include <DRIVERS/VIDEO/VESA.h>
 #include <DRIVERS/VIDEO/VOUTPUT.h>
@@ -12,7 +15,7 @@
 
 #include <RTOSKRNL/RTOSKRNL_INTERNAL.h>
 
-#include <MEMORY/E820.h>
+#include <MEMORY/E820/E820.h>
 
 #include <CPU/PIC.h>
 #include <CPU/INTERRUPTS.h>

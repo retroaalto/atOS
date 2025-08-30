@@ -5,61 +5,21 @@
 #define EXPECTED_MAX_SIZE 32
 #define MIN_USER_SPACE_SIZE (MEM_USER_SPACE_MIN - MEM_USER_SPACE_BASE)
 
-#define SET_IN_USE(x)     ((x)->Flags |= 0b00000001)
-#define CLEAR_IN_USE(x)   ((x)->Flags &= ~0b00000001)
-#define IS_IN_USE(x)      (((x)->Flags & 0b00000001) != 0)
-typedef struct __attribute__((packed)) {
-    U32 Size;
-    U32 *Address;
-    U8 Flags;
-    U32 Reserved;
-    U32 *Next;
-} MemBlock;
-
-typedef struct __attribute__((packed)) {
-    MemBlock *First;
-    MemBlock *Last;
-} MemBlockArray;
-
-typedef struct {
-    U32 HeapStartAddress;
-    U32 HeapEndAddress;
-    U32 TotalHeap;
-    U32 FreeHeap;
-    U32 AtTableIndex;
-} E820Info;
-
-typedef struct {
-    U32 HeapStartAddress;
-    U32 HeapEndAddress;
-    U0 *NextFreeAddress;
-} HeapState;
-
+#define TYPE_E820_RAM 0x01
+#define TYPE_E820_RESERVED 0x02
+#define TYPE_E820_ACPI_RECLAIMABLE 0x03
+#define TYPE_E820_ACPI_NVS 0x04
 
 // Do NOT modify ever!
 static U32 e820_entry_count;
 static E820_ENTRY e820_entries[EXPECTED_MAX_SIZE];
 static E820Info g_E820Info;
 
-// Free to modify
-static HeapState g_HeapState = {0};
-static MemBlockArray g_MemBlocks = {0};
-static MemBlockArray g_FreedMemBlocks = {0};
-
 // Helper function to check if a 32-bit value fits in 32 bits
 static inline BOOLEAN fits_in_32(U32 hi) { return hi == 0; }
 
-VOID *MAlloc(U32 Size) {
-    if(Size == 0 || Size > g_E820Info.FreeHeap) {
-        return NULLPTR;
-    }
-    
-    g_E820Info.FreeHeap -= Size;
-    return (VOID *)0;
-}
-
-U32 GET_FREE_TOTAL_HEAP(VOID) {
-    return g_E820Info.FreeHeap;
+E820Info *GET_E820_INFO(VOID) {
+    return &g_E820Info;
 }
 
 BOOLEAN E820_INIT(VOID) {
@@ -115,21 +75,5 @@ BOOLEAN E820_INIT(VOID) {
     g_E820Info.TotalHeap = g_E820Info.HeapEndAddress - g_E820Info.HeapStartAddress;
     g_E820Info.FreeHeap = g_E820Info.TotalHeap;
 
-    g_HeapState.HeapStartAddress = g_E820Info.HeapStartAddress;
-    g_HeapState.HeapEndAddress = g_E820Info.HeapEndAddress;
-    g_HeapState.NextFreeAddress = (U32 *)g_HeapState.HeapStartAddress;
-
-    g_MemBlocks.First = NULLPTR;
-    g_MemBlocks.Last = NULLPTR;
-
-    g_FreedMemBlocks.First = NULLPTR;
-    g_FreedMemBlocks.Last = NULLPTR;
-
     return TRUE;
-}
-
-
-void MAllocReset(void) {
-    g_HeapState.NextFreeAddress = g_HeapState.HeapStartAddress;
-    g_E820Info.FreeHeap = g_HeapState.HeapEndAddress - (U32)g_HeapState.NextFreeAddress;
 }

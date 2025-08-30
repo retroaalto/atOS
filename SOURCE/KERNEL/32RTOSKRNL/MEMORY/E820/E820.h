@@ -40,10 +40,15 @@ typedef struct __attribute__((packed)) {
     U32 Type;
 } E820_ENTRY;
 
-#define TYPE_E820_RAM 0x01
-#define TYPE_E820_RESERVED 0x02
-#define TYPE_E820_ACPI_RECLAIMABLE 0x03
-#define TYPE_E820_ACPI_NVS 0x04
+typedef struct {
+    U32 HeapStartAddress;
+    U32 HeapEndAddress;
+    U32 TotalHeap;
+    U32 FreeHeap;
+    U32 AtTableIndex;
+} E820Info;
+
+
 
 
 /*+++
@@ -52,12 +57,7 @@ You can use these in your application if you know what you're doing,
   but be aware of potential issues, such as memory corruption and stability.
 ---*/
 #if __RTOS__
-VOID *MAlloc(U32 Size);
-VOID *CAlloc(U32 Num, U32 Size);
-VOID *ReAlloc(VOID *Ptr, U32 NewSize);
-VOID Free(VOID *Ptr);
-U32 GET_FREE_TOTAL_HEAP(VOID);
-
+E820Info *GET_E820_INFO(VOID);
 BOOLEAN E820_INIT(VOID);
 
 #endif // __RTOS__

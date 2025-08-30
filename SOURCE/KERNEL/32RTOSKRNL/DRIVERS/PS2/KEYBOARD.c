@@ -3,6 +3,7 @@
 #include <DRIVERS/VIDEO/VBE.h>
 #include <RTOSKRNL/RTOSKRNL_INTERNAL.h>
 #include <CPU/ISR/ISR.h>
+#include <STD/BINARY.h>
 
 static CMD_QUEUE cmd_queue;
 static PS2_INFO ps2_info = {0};
@@ -158,7 +159,6 @@ U16 PS2_Identify(VOID) {
 // #define PS2_TEST
 BOOLEAN PS2_KEYBOARD_INIT(VOID) {
     #ifndef PS2_TEST
-    PIC_Mask(1);
     CLI;
     // Initialize USB controllers
 
@@ -176,7 +176,7 @@ BOOLEAN PS2_KEYBOARD_INIT(VOID) {
     // Set up controller configuration byte
     _outb(PS2_CMDPORT, GET_CONTROLLER_CONFIGURATION_BYTE);
     U8 config1 = _inb(PS2_DATAPORT);
-    config1 &= ~0b01010010; // Disable interrupts, translation and clock signal
+    FLAG_UNSET(config1, 0b01010010);
     _outb(PS2_CMDPORT, SET_CONTROLLER_CONFIGURATION_BYTE);  // send “write config byte” command
     _outb(PS2_WRITEPORT, config1);  // write value
 
@@ -185,9 +185,9 @@ BOOLEAN PS2_KEYBOARD_INIT(VOID) {
     _outb(PS2_CMDPORT, GET_CONTROLLER_CONFIGURATION_BYTE);
     U8 config2 = _inb(PS2_DATAPORT);
     // If bit 5 is clear, it exists
-    if((config2 & 0b00100000) == 0) {
+    if(IS_FLAG_UNSET(config2, 0b00100000)) {
         ps2_info.dual_channel = TRUE;
-        config2 &= ~0b00100010; // Clear bit 5 and 1 to disable
+        FLAG_UNSET(config2, 0b00100010);
         _outb(PS2_CMDPORT, SET_CONTROLLER_CONFIGURATION_BYTE);
         _outb(PS2_WRITEPORT, config2);
     }
@@ -204,14 +204,14 @@ BOOLEAN PS2_KEYBOARD_INIT(VOID) {
 
     // Enable first PS/2 port
     _outb(PS2_CMDPORT, ENABLE_FIRST_PS2_PORT);
-    config1 |= 0b00000001; // Enable interrupt for first PS/2 port
+    FLAG_SET(config1, 0b00000001); // Enable interrupt for first PS/2 port
     _outb(PS2_CMDPORT, SET_CONTROLLER_CONFIGURATION_BYTE);
     _outb(PS2_WRITEPORT, config1);
 
     // Enable second PS/2 port if exists
     if(ps2_info.dual_channel) {
         _outb(PS2_CMDPORT, ENABLE_SECOND_PS2_PORT);
-        config2 |= 0b00000010; // Enable interrupt for second PS/2 port
+        FLAG_SET(config2, 0b00000100); // Enable interrupt for second PS/2 port
         _outb(PS2_CMDPORT, SET_CONTROLLER_CONFIGURATION_BYTE);
         _outb(PS2_WRITEPORT, config2);
     }

@@ -40,7 +40,10 @@ void rtos_kernel(U0) {
         DRAW_STRING("Failed to initialize PS2 keyboard", VBE_RED);
         HLT;
     }
-    E820_INIT();
+    if(!E820_INIT()) {
+        DRAW_STRING("Failed to initialize E820. Not enough memory.", VBE_RED);
+        HLT;
+    }
     STI;
     U8 buf[100];
     U32 *pit_ticks = PIT_GET_TICKS_PTR();
@@ -56,10 +59,6 @@ void rtos_kernel(U0) {
 
     CMD_QUEUE *cmd_queue = GET_CMD_QUEUE();
     for(;;) {
-        // if(!IS_CMD_QUEUE_EMPTY()) {
-        //     VBE_DRAW_CHARACTER(300,50,"scancode",VBE_WHITE,VBE_BLACK);
-        //     VBE_UPDATE_VRAM();
-        // }
     }
 
     HLT;
