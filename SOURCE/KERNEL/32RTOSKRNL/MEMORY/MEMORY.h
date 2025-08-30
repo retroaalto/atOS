@@ -45,8 +45,8 @@
 #define MEM_MMIO_TEMP_BASE              0x0000A400
 #define MEM_MMIO_TEMP_END               0x0000FFFF
 
-#define MEM_FREE_1_BASE         0x00018000
-#define MEM_FREE_1_END           0x00019FFF
+#define MEM_FREE_1_BASE             0x00018000
+#define MEM_FREE_1_END              0x00019FFF
 // Kernel entry point
 #define MEM_KRNL_BASE              0x00020000
 #define MEM_KRNL_END               0x00024000
@@ -81,6 +81,6 @@
 
 // User Space
 #define MEM_USER_SPACE_BASE        0x07744000
-#define MEM_USER_SPACE_END         0x1FFFFFFF
-
+#define MEM_USER_SPACE_MIN         0x7A12000
+// Ends in the E820 memory block
 #endif // MEMORY_H

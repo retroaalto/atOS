@@ -126,7 +126,8 @@ kernel:
 	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/DRIVERS/PIT/PIT.c -o $(OUTPUT_KERNEL_DIR)/PIT.o
 	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/CPU/PIC.c -o $(OUTPUT_KERNEL_DIR)/PIC.o
 	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/MEMORY/E820.c -o $(OUTPUT_KERNEL_DIR)/E820.o
-
+	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_DIR)/STD/MEM.c -o $(OUTPUT_KERNEL_DIR)/MEM.o
+	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_DIR)/STD/STRING.c -o $(OUTPUT_KERNEL_DIR)/STRING.o
 
 	$(CComp) -m32 -nostdlib -ffreestanding \
 		-Wl,-T,$(SOURCE_KERNEL_DIR)/rtoskernel.ld,-e,_start,--oformat=binary \
@@ -144,6 +145,8 @@ kernel:
 		$(OUTPUT_KERNEL_DIR)/PIT.o \
 		$(OUTPUT_KERNEL_DIR)/PIC.o \
 		$(OUTPUT_KERNEL_DIR)/E820.o \
+		$(OUTPUT_KERNEL_DIR)/MEM.o \
+		$(OUTPUT_KERNEL_DIR)/STRING.o \
 
 	@echo "32RTOSKRNL.BIN compiled successfully."
 

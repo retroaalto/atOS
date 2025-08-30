@@ -53,56 +53,6 @@ start:
     
     cli
 
-    ; %%%%%%%%%%%%%%%%%%%%%%%%%%%
-    ; VESA/VBE initialization
-    ; %%%%%%%%%%%%%%%%%%%%%%%%%%%
-    ; Get VESA controller info
-    mov ax, VESA_LOAD_SEGMENT
-    mov es, ax
-    mov di, VESA_LOAD_OFFSET
-    mov ax, 4F00h
-    int 10h
-    cmp al, 4Fh
-    jne VESA_ERROR2
-    cmp ah, 0
-    jne VESA_ERROR1
-
-    ; Set VBE mode
-
-%ifdef VBE_ACTIVATE
-    ; Get VBE mode info
-    mov cx, VESA_TARGET_MODE
-    mov ax, VESA_LOAD_SEGMENT
-    mov es, ax
-    mov di, VBE_MODE_OFFSET
-    mov ax, 4F01h
-    int 10h
-    cmp al, 4Fh
-    jne VESA_ERROR2
-    cmp ah, 0
-    jne VESA_ERROR1
-
-    mov ax, 4F02h              ; VBE: Set VBE Mode
-    mov bx, 0x4000 | VESA_TARGET_MODE  ; Bit 14 = 1, mode = 0x117
-    int 10h
-    cmp al, 4Fh
-    jne VESA_ERROR2              ; Check for error
-    cmp ah, 0
-    jne VESA_ERROR1              ; Check for error
-
-    mov ax, 4F03h
-    int 10h
-    cmp al, 4Fh
-    jne VESA_ERROR2
-    cmp ah, 0
-    jne VESA_ERROR1
-
-    ; BX now has mode + flags
-    mov dx, bx
-    and dx, 1FFFh          ; keep only bits 0–12 = pure mode number
-    cmp dx, VESA_TARGET_MODE
-    jne VESA_ERROR1
-%endif ; VBE_ACTIVATE
 
     ;%%%%%%%%%%%%%%%%%%%%%%%%%
     ; Set up memory
@@ -131,9 +81,9 @@ start:
     int 15h
     jc MEM_ERROR1
 
-    pusha
-    call PRINT__
-    popa
+    ; pusha
+    ; call PRINT__
+    ; popa
 
     ; Compares "SMAP" to EAX
     cmp eax, SMAP
@@ -155,7 +105,7 @@ start:
     ;-----------------------------------
     ; Store entry from mem_buf into E820 table
     ;-----------------------------------
-    pusha
+    pusha ; Don't comment this block... breaks bootloader????? tf???
     mov eax, [E820R+16]   ; Type
     call PRINT_HEX
     call PRINT_LINEFEED
@@ -239,10 +189,9 @@ start:
     jne .TRY_E801h
 
     ; Print the E820 entries
-    mov ax, word [num_of_e820_entries]
-    call PRINT_HEX
-    ; call PRINT__
-    call PRINT_LINEFEED
+    ; mov ax, word [num_of_e820_entries]
+    ; call PRINT_HEX
+    ; call PRINT_LINEFEED
 
 
 
@@ -287,8 +236,8 @@ start:
 ;     mov word [e820_entries_ptr], E820_ENTRY_OFFSET
 ;     mov word [e820_entries_ptr+2], E820_ENTRY_SEGMENT
 
-    mov si, msg_e820_done
-    call PRINTLN
+    ; mov si, msg_e820_done
+    ; call PRINTLN
     
     jmp .FIND_KERNEL
 
@@ -476,13 +425,13 @@ KRNL_TO_MEMORY:
     mov eax, [extentLengthLE_KRNL]
     add eax, 511
     shr eax, 9
-    call PRINT_HEX
-    call PRINT_LINEFEED
+    ; call PRINT_HEX
+    ; call PRINT_LINEFEED
     mov ecx, eax ; sectors to read
 
     mov eax, [extentLocationLE_LBA_KRNL]
-    call PRINT_HEX
-    call PRINT_LINEFEED
+    ; call PRINT_HEX
+    ; call PRINT_LINEFEED
     mov dx, KERNEL_LOAD_SEGMENT
     mov bx, KERNEL_LOAD_OFFSET
     ; segment = dx
@@ -490,17 +439,62 @@ KRNL_TO_MEMORY:
     cmp eax, 0
     jne DISK_ERROR1
 
-    ; lea esi, KERNEL_LOAD_ADDRESS
-    ; add esi, 0x781
-    ; add esi, 0x880
-    ; mov eax, [esi]
-    ; call PRINT_HEX
-    ; call PRINT_LINEFEED
-
     pusha
     mov si, msg_kernel_end
     call PRINTLN
     popa 
+
+
+    ; %%%%%%%%%%%%%%%%%%%%%%%%%%%
+    ; VESA/VBE initialization
+    ; %%%%%%%%%%%%%%%%%%%%%%%%%%%
+    ; Get VESA controller info
+    mov ax, VESA_LOAD_SEGMENT
+    mov es, ax
+    mov di, VESA_LOAD_OFFSET
+    mov ax, 4F00h
+    int 10h
+    cmp al, 4Fh
+    jne VESA_ERROR2
+    cmp ah, 0
+    jne VESA_ERROR1
+
+    ; Set VBE mode
+
+%ifdef VBE_ACTIVATE
+    ; Get VBE mode info
+    mov cx, VESA_TARGET_MODE
+    mov ax, VESA_LOAD_SEGMENT
+    mov es, ax
+    mov di, VBE_MODE_OFFSET
+    mov ax, 4F01h
+    int 10h
+    cmp al, 4Fh
+    jne VESA_ERROR2
+    cmp ah, 0
+    jne VESA_ERROR1
+
+    mov ax, 4F02h              ; VBE: Set VBE Mode
+    mov bx, 0x4000 | VESA_TARGET_MODE  ; Bit 14 = 1, mode = 0x117
+    int 10h
+    cmp al, 4Fh
+    jne VESA_ERROR2              ; Check for error
+    cmp ah, 0
+    jne VESA_ERROR1              ; Check for error
+
+    mov ax, 4F03h
+    int 10h
+    cmp al, 4Fh
+    jne VESA_ERROR2
+    cmp ah, 0
+    jne VESA_ERROR1
+
+    ; BX now has mode + flags
+    mov dx, bx
+    and dx, 1FFFh          ; keep only bits 0–12 = pure mode number
+    cmp dx, VESA_TARGET_MODE
+    jne VESA_ERROR1
+%endif ; VBE_ACTIVATE
 
 START_32BIT_PROTECTED_MODE:
     xor eax, eax

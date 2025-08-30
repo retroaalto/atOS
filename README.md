@@ -44,7 +44,7 @@ Requirements for the Virtual Machine.
 
 |     | Recommended | Minimum |
 | --- | ----------- | ------- |
-| RAM | 512 MiB     | 128 MiB |
+| RAM | 256 MiB     | 128 MiB |
 | CPU | 1 Core      | 1 Core  |
 | HDD | 256 MiB     | 128 MiB  |
 

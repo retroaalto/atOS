@@ -57,12 +57,10 @@ void double_fault_handler(I32 num, U32 errcode) {
 
 void irq_common_handler(I32 num, U32 errcode) {
     (void)errcode; // Not used
-    if(num >= 32 && num < 48) {
-        if(g_Handlers[num]) {
-            g_Handlers[num](num, errcode);
-        }
-        pic_send_eoi(num - 32);
+    if(g_Handlers[num + PIC_REMAP_OFFSET]) {
+        g_Handlers[num + PIC_REMAP_OFFSET](num, errcode);
     }
+    pic_send_eoi(num);
 }
 
 
@@ -77,7 +75,6 @@ void isr_dispatch_c(int vector, U32 errcode, regs *regs_ptr) {
 
 void irq_dispatch_c(int irq, U32 errcode, regs *regs_ptr) {
     (void)regs_ptr;
-    irq += PIC_REMAP_OFFSET;
     irq_common_handler(irq, errcode);
 }
 

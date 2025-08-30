@@ -77,8 +77,8 @@ READ_DISK:
 
     push eax
     mov eax, ecx
-    call PRINT_HEX
-    call PRINT_LINEFEED
+    ; call PRINT_HEX
+    ; call PRINT_LINEFEED
     ; mov ds, eax                 ; Set DS to 0 for real mode addressing
     lea si, DAP                 ; Load DAP address into SI
     ; mov eax, [si]
@@ -105,8 +105,8 @@ READ_DISK:
     jc .error                   ; Jump if CF=1 (error)
 
     mov eax, [DAP]          ; Read number of sectors
-    call PRINT_HEX
-    call PRINT_LINEFEED
+    ; call PRINT_HEX
+    ; call PRINT_LINEFEED
 
     popa                        ; Restore registers
     xor eax, eax                ; Success = 0

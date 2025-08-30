@@ -24,32 +24,6 @@ TODO:
 #define DRAW_STRING(text, color) VBE_DRAW_STRING(0, row, text, color, VBE_BLACK); INC_ROW(row); VBE_UPDATE_VRAM();
 
 
-void itoa(U32 value, char *buffer, U32 base) 
-{
-    const char *digits = "0123456789ABCDEF";
-    char *ptr = buffer;
-
-    // Handle 0 explicitly
-    if (value == 0) {
-        *ptr++ = '0';
-    } else {
-        // Convert to the specified base
-        while (value != 0) {
-            *ptr++ = digits[value % base];
-            value /= base;
-        }
-    }
-    *ptr-- = '\0';
-
-    // Reverse the string
-    char temp;
-    while (buffer < ptr) {
-        temp = *buffer;
-        *buffer++ = *ptr;
-        *ptr-- = temp;
-    }
-}
-
 __attribute__((noreturn))
 void rtos_kernel(U0) {
     U32 row = 0;
@@ -66,12 +40,13 @@ void rtos_kernel(U0) {
         DRAW_STRING("Failed to initialize PS2 keyboard", VBE_RED);
         HLT;
     }
+    E820_INIT();
     STI;
     U8 buf[100];
     U32 *pit_ticks = PIT_GET_TICKS_PTR();
     U32 i = 0;
     for(; i < 10; i++) {
-        itoa(*pit_ticks, buf, 16);
+        ITOA(*pit_ticks, buf, 16);
         VBE_DRAW_STRING(400, 0, buf, VBE_AQUA, VBE_BLACK);
         VBE_UPDATE_VRAM();
     }

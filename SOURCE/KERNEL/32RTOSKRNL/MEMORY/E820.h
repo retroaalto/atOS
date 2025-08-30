@@ -52,8 +52,13 @@ You can use these in your application if you know what you're doing,
   but be aware of potential issues, such as memory corruption and stability.
 ---*/
 #if __RTOS__
-static E820_ENTRY e820_entries[128];
-static U32 e820_entry_count;
+VOID *MAlloc(U32 Size);
+VOID *CAlloc(U32 Num, U32 Size);
+VOID *ReAlloc(VOID *Ptr, U32 NewSize);
+VOID Free(VOID *Ptr);
+U32 GET_FREE_TOTAL_HEAP(VOID);
+
+BOOLEAN E820_INIT(VOID);
 
 #endif // __RTOS__
 #endif // E820_H
