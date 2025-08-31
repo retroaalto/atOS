@@ -4,13 +4,12 @@
 #include <RTOSKRNL.h>
 /*
 TODO:
+    E820 & Paging
     Keyboard driver
-    E820
     HDD driver
-    IRQ/ISR handler function re-definitions 
+    Speaker driver
     Syscalls
     Shell ATOSH
-    Speaker driver
     Process Management
     Multitasking?
     Inter-Process Communication
@@ -26,25 +25,34 @@ TODO:
 
 __attribute__((noreturn))
 void rtos_kernel(U0) {
+    VBE_DRAW_LINE(0, 0, 1024, 0, VBE_RED); 
+    VBE_UPDATE_VRAM();
     U32 row = 0;
     CLI;
     // Recalled here, to fix address issues
-    vesa_check();
-    vbe_check();
     GDT_INIT();
     IDT_INIT();
     SETUP_ISR_HANDLERS();
     IRQ_INIT();
+
     PIT_INIT();
+    vesa_check();
+    vbe_check();
+
+
     if(!PS2_KEYBOARD_INIT()) {
         DRAW_STRING("Failed to initialize PS2 keyboard", VBE_RED);
         HLT;
     }
-    if(!E820_INIT()) {
-        DRAW_STRING("Failed to initialize E820. Not enough memory.", VBE_RED);
+    if(!PAGEFRAME_INIT()) {
+        DRAW_STRING("Failed to initialize page frame. Possibly not enough memory.", VBE_RED);
         HLT;
     }
+    // INIT_PAGING();
+
     STI;
+    
+
     U8 buf[100];
     U32 *pit_ticks = PIT_GET_TICKS_PTR();
     U32 i = 0;
@@ -57,7 +65,7 @@ void rtos_kernel(U0) {
     DRAW_STRING("PS2 keyboard initialized successfully", VBE_GREEN);
     DRAW_STRING("RTOS kernel started", VBE_GREEN);
 
-    CMD_QUEUE *cmd_queue = GET_CMD_QUEUE();
+    // CMD_QUEUE *cmd_queue = GET_CMD_QUEUE();
     for(;;) {
     }
 

@@ -19,8 +19,7 @@ REMARKS
 ---*/
 #ifndef ISR_H
 #define ISR_H
-#include "../../../../STD/ATOSMINDEF.h"
-#include "../../MEMORY/MEMORY.h"
+#include "../../../../STD/TYPEDEF.h"
 
 #define IDT_COUNT 256
 

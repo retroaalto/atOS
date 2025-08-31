@@ -30,8 +30,9 @@
 ;     None
 
 %define VBE_ACTIVATE 1
+%define E820_ACPI 1
 [BITS 16]
-[ORG 0x1000:0x0000]
+[ORG 0x2000:0x0000]
 
 start:
     mov [drive_number], dl
@@ -154,15 +155,15 @@ start:
     mov [eax+8], edx                  ; LengthLow
     mov edx, [E820R+12]
     mov [eax+12], edx                 ; LengthHigh
-    mov edx, dword [E820R+16]
+    mov edx, [E820R+16]
     mov [eax+16], edx                 ; Type
 
 %ifdef E820_ACPI
     mov edx, [E820R+20]
-    mov [eax+20], edx                 ; ACPI (optional)
+    mov [eax+20], edx                 ; ACPI
 %endif
 
-
+    
     ; ------------------------------------
     ; 3. Advance e820_entries_ptr (segment:offset)
     ; ------------------------------------
@@ -181,12 +182,14 @@ start:
     ; while ebx != 0 goto: .do_mem
     cmp ebx, 0
     jne .do_mem
+    mov si, msg_greeting_1
+    call PRINTLN
 ;%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 
     ; If E820 is not present, use AX=E801h
     cmp byte [E820_present], 1
     jne .TRY_E801h
+
 
     ; Print the E820 entries
     ; mov ax, word [num_of_e820_entries]
@@ -196,8 +199,9 @@ start:
 
 
     ; reset E820 entry pointer
-    mov word [e820_entries_ptr], E820_ENTRY_OFFSET
-    mov word [e820_entries_ptr+2], E820_ENTRY_SEGMENT
+    ; mov word [e820_entries_ptr], E820_ENTRY_OFFSET
+    ; mov word [e820_entries_ptr+2], E820_ENTRY_SEGMENT
+
 
 
 
@@ -356,7 +360,7 @@ start:
     inc di                   ; Skip length byte
 
     pusha
-    mov si, di
+    mov si, ISO_ERROR
     call PRINTNLN
     popa
 
@@ -366,6 +370,7 @@ start:
         call strncmp
         cmp ax, 1
         jne .to_loop_increment
+        
         
         ; TODO: Load values to save at extentLocationLE_LBA_KRNL and extentLengthLE_KRNL
         mov ax, BUFFER_SEGMENT
@@ -425,8 +430,8 @@ KRNL_TO_MEMORY:
     mov eax, [extentLengthLE_KRNL]
     add eax, 511
     shr eax, 9
-    ; call PRINT_HEX
-    ; call PRINT_LINEFEED
+    call PRINT_HEX
+    call PRINT_LINEFEED
     mov ecx, eax ; sectors to read
 
     mov eax, [extentLocationLE_LBA_KRNL]
@@ -497,17 +502,8 @@ KRNL_TO_MEMORY:
 %endif ; VBE_ACTIVATE
 
 START_32BIT_PROTECTED_MODE:
-    xor eax, eax
-    mov ax, 0x0800
-    mov es, ax
-    mov di, 0x0000
-    xor eax, eax
-    mov al, [drive_number]
-    stosb
-
-
     ; hlt
-    ; cli 
+    cli 
     ; --- Load GDT ---
     lgdt [gdtr]
 
@@ -601,7 +597,7 @@ PModeMain:
     mov fs, ax
     mov gs, ax
     mov ss, ax       ; stack segment
-    mov esp, stack   ; Stack at 512KB (adjust if you want)
+    ; mov esp, stack   ; Stack at 512KB (adjust if you want)
 
 
     ; --- Load IDT ---
@@ -634,7 +630,7 @@ fill_loop:
     mov [eax], byte 'x'
 
     
-    jmp KERNEL_LOAD_ADDRESS
+    jmp 08h:KERNEL_LOAD_ADDRESS
 
     jmp hang32
 hang32:

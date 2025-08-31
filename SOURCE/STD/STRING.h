@@ -1,7 +1,7 @@
 #ifndef STRING_H
 #define STRING_H
 
-#include <STD/ATOSMINDEF.h>
+#include <STD/TYPEDEF.h>
 
 U32 STRLEN(CONST U8* str);
 U32 STRNLEN(CONST U8* str, U32 maxlen);

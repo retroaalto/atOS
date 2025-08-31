@@ -1,7 +1,7 @@
 #ifndef ATA_ATAPI_DRIVER_H
 #define ATA_ATAPI_DRIVER_H
 
-#include "../../../../STD/ATOSMINDEF.h"
+#include "../../../../STD/TYPEDEF.h"
 
 #define ATA_DATA  0
 #define ATA_ERR  1

@@ -1,7 +1,7 @@
 #ifndef STD_ASM_H
 #define STD_ASM_H
 
-#include "./ATOSMINDEF.h"
+#include "./TYPEDEF.h"
 
 #define ASM_VOLATILE(...) \
     __asm__ volatile(__VA_ARGS__)

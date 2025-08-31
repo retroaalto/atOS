@@ -22,7 +22,7 @@ REMARKS
 
 #ifndef KERNEL_H
 #define KERNEL_H
-#include "../../STD/ATOSMINDEF.h"
+#include "../../STD/TYPEDEF.h"
 #include "../../STD/ASM.h"
 #ifndef KERNEL_ENTRY
 #define KERNEL_ENTRY

@@ -13,9 +13,7 @@ U0 *MEMSET(U0* dest, U8 value, U32 size) {
     return dest;
 }
 U0 *MEMZERO(U0* dest, U32 size) {
-    for(U32 i = 0; i < size; i++) {
-        ((U8*)dest)[i] = 0;
-    }
+    MEMSET(dest, 0, size);
     return dest;
 }
 U0 *MEMCMP(CONST U0* ptr1, CONST U0* ptr2, U32 size) {

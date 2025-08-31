@@ -21,13 +21,9 @@ REMARKS
 #include "../IDT/IDT.h"
 #include "../../../../STD/ASM.h"
 #include "../INTERRUPTS.h"
-#include "../../DRIVERS/VIDEO/VBE.h"
 #include "../PIC.h"
 #include "../../DRIVERS/PIT/PIT.h"
 
-// #ifdef __RTOS__
-// #include <VIDEO/VBE.h>
-// #endif
 
 static ISRHandler g_Handlers[IDT_COUNT] = { 0 };
 

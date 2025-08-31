@@ -21,7 +21,7 @@ REMARKS
 #ifndef MEM_H
 #define MEM_H
 
-#include <STD/ATOSMINDEF.h>
+#include <STD/TYPEDEF.h>
 
 U0 *MEMCPY(U0* dest, CONST U0* src, U32 size);
 U0 *MEMSET(U0* dest, U8 value, U32 size);

@@ -2,7 +2,7 @@
 #ifndef VOUTPUT_H
 #define VOUTPUT_H
 #include <DRIVERS/VIDEO/VBE.h>
-#include <STD/ATOSMINDEF.h>
+#include <STD/TYPEDEF.h>
 
 typedef struct {
     U32 x;

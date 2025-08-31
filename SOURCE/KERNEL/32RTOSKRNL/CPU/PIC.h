@@ -1,7 +1,7 @@
 #ifndef PIC_H
 #define PIC_H
 
-#include "../../../STD/ATOSMINDEF.h"
+#include "../../../STD/TYPEDEF.h"
 void PIC_Unmask(int irq);
 void PIC_Mask(int irq);
 #define PIC_REMAP_OFFSET 0x20

@@ -42,7 +42,7 @@ REMARKS
 ---*/
 #ifndef VESA_H
 #define VESA_H
-#include "../../../../STD/ATOSMINDEF.h" // TYPE DEFINITIONS
+#include "../../../../STD/TYPEDEF.h" // TYPE DEFINITIONS
 #include "../../MEMORY/MEMORY.h"
 
 #define RM2LA(seg, off)  (((U32)(seg) << 4) + (U32)(off))
@@ -85,7 +85,7 @@ typedef struct {
 
 #define VESA_LOAD_ADDRESS_SEGMENT 0x9000u
 #define VESA_LOAD_ADDRESS_OFFSET 0x0000u
-#define VESA_LOAD_ADDRESS_PHYS VESA_LOAD_ADDRESS_SEGMENT * 16 + VESA_LOAD_ADDRESS_OFFSET
+#define VESA_LOAD_ADDRESS_PHYS (VESA_LOAD_ADDRESS_SEGMENT * 16 + VESA_LOAD_ADDRESS_OFFSET)
 #define VESA_CTRL_SIZE 512
 #define VESA_TARGET_MODE 0x116 // 1024x768x16
 

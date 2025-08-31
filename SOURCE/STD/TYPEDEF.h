@@ -5,8 +5,8 @@
 
     Licensed under the MIT License. See LICENSE file in the project root for full license information.
 ---*/
-#ifndef ATOSMINDEF_H
-#define ATOSMINDEF_H
+#ifndef TYPEDEF_H
+#define TYPEDEF_H
 
 // Keywords
 #define STATIC       static
@@ -88,4 +88,4 @@ typedef U32*         PU32;
 #define F32_MAX   (3.402823466e+38F)
 
 
-#endif // ATOSMINDEF_H
+#endif // TYPEDEF_H

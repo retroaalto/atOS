@@ -52,17 +52,17 @@ e820_entries_ptr: dd 0      ; Pointer to the E820 table in memory.
 ; 	 12	    LengthHigh		High 32 Bits of Length in Bytes
 ; 	 16	    Type		Address type of  this range.
 ;    20     ACPI        ACPI information. Only present if E820_ACPI is defined.
-E820_start:
-E820:
-    BaseAddressLow: dd 0        ; Low 32 Bits of Base Address
-    BaseAddressHigh: dd 0       ; High 32 Bits of Base Address 
-    LengthLow: dd 0             ; Low 32 Bits of Length in Bytes
-    LengthHigh: dd 0            ; High 32 Bits of Length in Bytes
-    Type: dd 0                  ; Address type of this range.
-%ifdef E820_ACPI
-    ACPI: dd 0
-%endif
-E820_end:
+; E820_start:
+; E820:
+;     BaseAddressLow: dd 0        ; Low 32 Bits of Base Address
+;     BaseAddressHigh: dd 0       ; High 32 Bits of Base Address 
+;     LengthLow: dd 0             ; Low 32 Bits of Length in Bytes
+;     LengthHigh: dd 0            ; High 32 Bits of Length in Bytes
+;     Type: dd 0                  ; Address type of this range.
+; %ifdef E820_ACPI
+;     ACPI: dd 0
+; %endif
+; E820_end:
 
 %ifdef E820_ACPI
 MEM_STRUCT_SIZE equ 24
@@ -92,9 +92,9 @@ E820_TYPE_ADDRESS_RANGE_UNUSABLE equ 5
 E820_TYPE_ARU equ E820_TYPE_ADDRESS_RANGE_UNUSABLE
     
 ; E820 entry structure in memory
-E820_ENTRY_SEGMENT equ 0x0000
-E820_ENTRY_OFFSET equ 0x8000
-E820_MAX_SIZE equ 0x1000 ; 4096 bytes
+E820_ENTRY_SEGMENT equ 0x000
+E820_ENTRY_OFFSET equ 0x0600
+E820_MAX_SIZE equ 0x384 ; 900 bytes, 45 entries
 
 DEBUG_PRINT_VALUE equ 0
 ; Address Range Descriptor Structure
@@ -140,13 +140,12 @@ krnl_str: db "KRNL.BIN;1", KRNL_STR_LEN
 ;  uint8_t fileNameLength;        (buffer+offset+32). Length of fileIdentifier
 ;  strD fileIdentifier[1];        (buffer+offset+33). uint8_t. File name
 ;
-KERNEL_LOAD_ADDRESS EQU 0x20000
-KERNEL_LOAD_SEGMENT EQU 0x2000
+KERNEL_LOAD_ADDRESS EQU 0x7000
+KERNEL_LOAD_SEGMENT EQU KERNEL_LOAD_ADDRESS / 16
 KERNEL_LOAD_OFFSET EQU  0x0000
-; KERNEL_LOAD_ADDRESS = KERNEL_LOAD_SEGMENT:KERNEL_LOAD_OFFSET
 
 BUFFER_SEGMENT equ 0x0000
-BUFFER_OFFSET equ 0x4000
+BUFFER_OFFSET equ 0x2000
 
 %define SECTOR_SIZE             2048        ; 2KB per sector
 %define VOL_DESC_START          16          ; Volume descriptor starts at sector 16
@@ -166,7 +165,7 @@ retry_count db 0 ; retry count for reading files
 ; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ; VESA/VBE information
 ; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-VESA_LOAD_SEGMENT EQU 0x9000
+VESA_LOAD_SEGMENT EQU 0x6400 / 16
 VESA_LOAD_OFFSET  EQU 0x0000
 
 ; VESA controller info buffer (512 bytes)

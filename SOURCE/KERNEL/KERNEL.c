@@ -176,36 +176,12 @@ __attribute__((noreturn))
 void kernel_entry_main(U0) {
     vesa_check();
     vbe_check();
+    VBE_DRAW_LINE(0, 0, 300, 300, VBE_RED); VBE_UPDATE_VRAM();
     GDT_INIT();                      // Setup GDT
     // setup in asm, can still be called
     kernel_after_gdt();
     HLT;
 }
-
-// void itoa(U32 value, U8 *buffer, U32 base) {
-//     const U8 *digits = "0123456789ABCDEF";
-//     U8 *ptr = buffer;
-
-//     // Handle 0 explicitly
-//     if (value == 0) {
-//         *ptr++ = '0';
-//     } else {
-//         // Convert to the specified base
-//         while (value != 0) {
-//             *ptr++ = digits[value % base];
-//             value /= base;
-//         }
-//     }
-//     *ptr-- = '\0';
-
-//     // Reverse the string
-//     U8 temp;
-//     while (buffer < ptr) {
-//         temp = *buffer;
-//         *buffer++ = *ptr;
-//         *ptr-- = temp;
-//     }
-// }
 
 U0 kernel_after_gdt(U0) {
     
@@ -244,11 +220,11 @@ U0 kernel_after_gdt(U0) {
     // Read ATOS/32RTOSKR.BIN;1 from disk
     // We will read the binary with ATAPI operations, 
     // not with DISK/ISO9660, to save the binary size of this file
-    // Read buffer address will be 0x00800000 (MEM_PROGRAM_TMP_BASE)
+    // Read buffer address will be at MEM_RESERVED_BASE
     U0 *RTOSKRNL_ADDRESS = (U0*)MEM_RTOSKRNL_BASE; // Main kernel address
-    PrimaryVolumeDescriptor *pvd = (PrimaryVolumeDescriptor*)MEM_PROGRAM_TMP_BASE;
+    PrimaryVolumeDescriptor *pvd = (PrimaryVolumeDescriptor*)MEM_RESERVED_BASE;
     // Read buffer will be just after PVD in memory
-    U8 *read_buffer = (U8*)(MEM_PROGRAM_TMP_BASE + 2048);
+    U8 *read_buffer = (U8*)(MEM_RESERVED_BASE + 2048);
     // Buffers limited to 21 to save binary size
     U8 filename[21] = "ATOS\0"; 
     U8 original_target[21] = "ATOS/32RTOSKR.BIN\0";
@@ -308,7 +284,7 @@ U0 kernel_after_gdt(U0) {
         rowinc;
         HLT;
     }
-    __asm__ volatile ("call *%0" : : "r"(RTOSKRNL_ADDRESS));
+    __asm__ volatile ("jmp %0" : : "r"((U32)RTOSKRNL_ADDRESS));
     HLT;
 }
     

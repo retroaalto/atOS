@@ -22,7 +22,7 @@ REMARKS
 #define PS2_KEYBOARD_H
 #include <DRIVERS/PS2/KEYBOARD.h>
 #include <STD/ASM.h>
-#include <STD/ATOSMINDEF.h>
+#include <STD/TYPEDEF.h>
 
 /*+++
 PS/2 Ports

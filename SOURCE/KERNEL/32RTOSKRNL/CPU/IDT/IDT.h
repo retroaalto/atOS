@@ -1,9 +1,9 @@
 #ifndef IDT_H
 #define IDT_H
 
-#include "../../../../STD/ATOSMINDEF.h"
-#include "../../MEMORY/MEMORY.h"
+#include "../../../../STD/TYPEDEF.h"
 #include "../ISR/ISR.h"
+
 typedef struct __attribute__((packed)) {
     U16 base0;
     U16 selector;

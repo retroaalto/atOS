@@ -4,12 +4,6 @@
 #include "../INTERRUPTS.h"
 #include "../../../../STD/BINARY.h"
 
-#define IDT_MEM_BASE MEM_IDT_BASE
-#define IDT_MEM_END MEM_IDT_END
-#define IDT_MEM_SIZE (IDT_MEM_END - IDT_MEM_BASE)
-#if IDT_MEM_SIZE % 8 != 0
-#error "IDT memory region size must be a multiple of 8 bytes"
-#endif
 #define IDT_COUNT 256
 
 

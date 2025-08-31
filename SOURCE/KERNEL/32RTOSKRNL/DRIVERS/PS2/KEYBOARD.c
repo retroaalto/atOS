@@ -64,7 +64,7 @@ void PS2_KEYBOARD_HANDLER(I32 num, U32 errcode) {
 
 
 BOOLEAN PS2_WAIT_FOR_INPUT_CLEAR(VOID) {
-    int timeout = 100000;
+    int timeout = 10000;
     while(PS2_INB(PS2_CMDPORT) & PS2_INPUT_BUFFER_FULL && --timeout);
     if(timeout == 0) return FALSE;
     return TRUE;
@@ -119,8 +119,11 @@ BOOLEAN PS2_KEYBOARD_RESET(VOID) {
     return FALSE; // All attempts failed
 }
 
-U0 PS2_EMPTY_KEYBOARD_BUFFER(VOID) {
-    while((PS2_INB(PS2_DATAPORT) & PS2_OUTPUT_BUFFER_FULL));
+BOOLEAN PS2_EMPTY_KEYBOARD_BUFFER(VOID) {
+    while((PS2_INB(PS2_DATAPORT) & PS2_OUTPUT_BUFFER_FULL)) {
+        (void)_inb(PS2_DATAPORT);
+    }
+    return TRUE;
 }
 
 BOOLEAN PS2_EnableScanning(VOID) {
@@ -161,25 +164,25 @@ BOOLEAN PS2_KEYBOARD_INIT(VOID) {
     #ifndef PS2_TEST
     CLI;
     // Initialize USB controllers
-
+    
     if(!PS2_DisableScanning()) return FALSE;
     
     U16 PS2_type = PS2_Identify();
     ps2_info.type = PS2_type;
     ps2_info.dual_channel = FALSE;
     ps2_info.exists = TRUE;
-
+    
     // Disable devices
     _outb(PS2_CMDPORT, DISABLE_FIRST_PS2_PORT);
     _outb(PS2_CMDPORT, DISABLE_SECOND_PS2_PORT);
-
+    
     // Set up controller configuration byte
     _outb(PS2_CMDPORT, GET_CONTROLLER_CONFIGURATION_BYTE);
     U8 config1 = _inb(PS2_DATAPORT);
     FLAG_UNSET(config1, 0b01010010);
     _outb(PS2_CMDPORT, SET_CONTROLLER_CONFIGURATION_BYTE);  // send “write config byte” command
     _outb(PS2_WRITEPORT, config1);  // write value
-
+    
     // Test whether there are 2 or 1 channels
     _outb(PS2_CMDPORT, ENABLE_SECOND_PS2_PORT);
     _outb(PS2_CMDPORT, GET_CONTROLLER_CONFIGURATION_BYTE);
@@ -191,7 +194,7 @@ BOOLEAN PS2_KEYBOARD_INIT(VOID) {
         _outb(PS2_CMDPORT, SET_CONTROLLER_CONFIGURATION_BYTE);
         _outb(PS2_WRITEPORT, config2);
     }
-
+    
     // Perform inteface test
     _outb(PS2_CMDPORT, TEST_FIRST_PS2_PORT);
     ps2_info.port1_check = PS2_INB(PS2_DATAPORT);
@@ -201,13 +204,13 @@ BOOLEAN PS2_KEYBOARD_INIT(VOID) {
     } else {
         ps2_info.port2_check = 0;
     }
-
+    
     // Enable first PS/2 port
     _outb(PS2_CMDPORT, ENABLE_FIRST_PS2_PORT);
     FLAG_SET(config1, 0b00000001); // Enable interrupt for first PS/2 port
     _outb(PS2_CMDPORT, SET_CONTROLLER_CONFIGURATION_BYTE);
     _outb(PS2_WRITEPORT, config1);
-
+    
     // Enable second PS/2 port if exists
     if(ps2_info.dual_channel) {
         _outb(PS2_CMDPORT, ENABLE_SECOND_PS2_PORT);
@@ -227,7 +230,9 @@ BOOLEAN PS2_KEYBOARD_INIT(VOID) {
         }
     }
 
-    PS2_EMPTY_KEYBOARD_BUFFER(); // Clear keyboard buffer
+    if(!PS2_EMPTY_KEYBOARD_BUFFER()) { // Clear keyboard buffer
+        return FALSE;
+    }
 
     CLEAR_CMD_QUEUE();
     #endif

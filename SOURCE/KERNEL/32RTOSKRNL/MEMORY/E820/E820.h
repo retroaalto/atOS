@@ -25,7 +25,7 @@ REMARKS
 ---*/
 #ifndef E820_H
 #define E820_H
-#include <STD/ATOSMINDEF.h>
+#include <STD/TYPEDEF.h>
 #include <MEMORY/MEMORY.h>
 
 #define E820_TABLE_PHYS   MEM_E820_BASE
@@ -41,11 +41,16 @@ typedef struct __attribute__((packed)) {
 } E820_ENTRY;
 
 typedef struct {
+    // First 32-bit address that fits user-space memory requirements
     U32 HeapStartAddress;
     U32 HeapEndAddress;
     U32 TotalHeap;
     U32 FreeHeap;
     U32 AtTableIndex;
+
+    // All suitable E820 entries
+    E820_ENTRY *RawEntries;
+    U32 RawEntryCount;
 } E820Info;
 
 
@@ -57,6 +62,8 @@ You can use these in your application if you know what you're doing,
   but be aware of potential issues, such as memory corruption and stability.
 ---*/
 #if __RTOS__
+E820_ENTRY *GET_E820_ENTRIES(VOID);
+E820_ENTRY *GET_E820_ENTRY(U32 index);
 E820Info *GET_E820_INFO(VOID);
 BOOLEAN E820_INIT(VOID);
 
