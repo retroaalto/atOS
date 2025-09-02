@@ -32,7 +32,7 @@
 %define VBE_ACTIVATE 1
 %define E820_ACPI 1
 [BITS 16]
-[ORG 0x2000:0x0000]
+[ORG 0x2000]
 
 start:
     mov [drive_number], dl
@@ -40,10 +40,12 @@ start:
     mov si, msg_greeting_1
     call PRINTLN
 
+    hlt
+
     ; Set up the stack
-    xor ax, ax
-    mov ss, ax
-    mov sp, 0x7C00
+    ; xor ax, ax
+    ; mov ss, ax
+    ; mov sp, 0x7C00
 
     ; Set up the data segment
     mov ax, 0x0000
