@@ -29,14 +29,16 @@
 ; 8      | 4    | Starting LBA, low 32 bits
 ; 12     | 4    | Starting LBA, high 16 bits
 DAP:
-    db 0x10           ; Size of DAP
+    db 0x14           ; Size of DAP
     db 0x00           ; Reserved
     dw 0x0000         ; Number of sectors (set at runtime)
     dw 0x0000         ; Buffer offset (BX)
     dw 0x0000         ; Buffer segment (DX)
     dd 0x00000000     ; LBA low 32 bits
     dd 0x0000         ; LBA high 16 bits
+    ; dd 0x0000
 
+DAP_SIZE equ $ - DAP
 
 ; ----------------------------------------
 ; String Constants
@@ -65,8 +67,5 @@ msg_vesa_err2:      db "VESA/VBE not supported", 0
 ; Boot drive number (set by BIOS)
 ; ----------------------------------------
 drive_number:       db 0
-DRIVE_NUMBER_MEM    equ 0x8000
-DRIVE_NUMBER_SEGMENT equ 0x800
-DRIVE_NUMBER_OFFSET  equ 0x0000
 
 %endif ; BIOS_DATA_SEGMENT

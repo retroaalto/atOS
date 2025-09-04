@@ -30,22 +30,17 @@
 ;     None
 
 %define VBE_ACTIVATE 1
-%define E820_ACPI 1
 [BITS 16]
 [ORG 0x2000]
 
 start:
     mov [drive_number], dl
 
-    mov si, msg_greeting_1
-    call PRINTLN
-
-    hlt
 
     ; Set up the stack
-    ; xor ax, ax
-    ; mov ss, ax
-    ; mov sp, 0x7C00
+    xor ax, ax
+    mov ss, ax
+    mov sp, 0x7C00
 
     ; Set up the data segment
     mov ax, 0x0000
@@ -56,6 +51,8 @@ start:
     
     cli
 
+    mov si, msg_greeting_1
+    call PRINTLN
 
     ;%%%%%%%%%%%%%%%%%%%%%%%%%
     ; Set up memory
@@ -84,9 +81,9 @@ start:
     int 15h
     jc MEM_ERROR1
 
-    ; pusha
-    ; call PRINT__
-    ; popa
+    pusha
+    call PRINT__
+    popa
 
     ; Compares "SMAP" to EAX
     cmp eax, SMAP
@@ -108,7 +105,7 @@ start:
     ;-----------------------------------
     ; Store entry from mem_buf into E820 table
     ;-----------------------------------
-    pusha ; Don't comment this block... breaks bootloader????? tf???
+    pusha
     mov eax, [E820R+16]   ; Type
     call PRINT_HEX
     call PRINT_LINEFEED
@@ -157,15 +154,15 @@ start:
     mov [eax+8], edx                  ; LengthLow
     mov edx, [E820R+12]
     mov [eax+12], edx                 ; LengthHigh
-    mov edx, [E820R+16]
+    mov edx, dword [E820R+16]
     mov [eax+16], edx                 ; Type
 
 %ifdef E820_ACPI
     mov edx, [E820R+20]
-    mov [eax+20], edx                 ; ACPI
+    mov [eax+20], edx                 ; ACPI (optional)
 %endif
 
-    
+
     ; ------------------------------------
     ; 3. Advance e820_entries_ptr (segment:offset)
     ; ------------------------------------
@@ -184,26 +181,24 @@ start:
     ; while ebx != 0 goto: .do_mem
     cmp ebx, 0
     jne .do_mem
-    mov si, msg_greeting_1
-    call PRINTLN
 ;%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 
     ; If E820 is not present, use AX=E801h
     cmp byte [E820_present], 1
     jne .TRY_E801h
 
-
     ; Print the E820 entries
-    ; mov ax, word [num_of_e820_entries]
-    ; call PRINT_HEX
-    ; call PRINT_LINEFEED
+    mov ax, word [num_of_e820_entries]
+    call PRINT_HEX
+    ; call PRINT__
+    call PRINT_LINEFEED
 
 
 
     ; reset E820 entry pointer
-    ; mov word [e820_entries_ptr], E820_ENTRY_OFFSET
-    ; mov word [e820_entries_ptr+2], E820_ENTRY_SEGMENT
-
+    mov word [e820_entries_ptr], E820_ENTRY_OFFSET
+    mov word [e820_entries_ptr+2], E820_ENTRY_SEGMENT
 
 
 
@@ -242,8 +237,8 @@ start:
 ;     mov word [e820_entries_ptr], E820_ENTRY_OFFSET
 ;     mov word [e820_entries_ptr+2], E820_ENTRY_SEGMENT
 
-    ; mov si, msg_e820_done
-    ; call PRINTLN
+    mov si, msg_e820_done
+    call PRINTLN
     
     jmp .FIND_KERNEL
 
@@ -269,6 +264,10 @@ start:
     ;call PRINT_HEX
     ;call PRINT_LINEFEED
 
+    xor ax, ax
+    mov si, ax
+    mov ds, ax
+
     mov byte [krnl_status], 0
 
     mov ax, PVD_OFFSET
@@ -284,9 +283,24 @@ start:
     mov ds, ax
     mov si, BUFFER_OFFSET
     xor eax, eax
-    mov al, byte [si]
-    cmp al, 0x01
+    mov al, byte [si+1]
+    cmp al, 0x43
     jne ISO_ERROR1
+    mov al, byte [si+2]
+    cmp al, 0x44
+    jne ISO_ERROR1
+    mov al, byte [si+3]
+    cmp al, 0x30
+    jne ISO_ERROR1
+    mov al, byte [si+4]
+    cmp al, 0x30
+    jne ISO_ERROR1
+    mov al, byte [si+5]
+    cmp al, 0x31
+    jne ISO_ERROR1
+
+
+
 
     ; Read lba and size of root dir
     ; 156: Root directory record
@@ -296,8 +310,10 @@ start:
     mov ds, ax
     mov si, BUFFER_OFFSET
     add si, 156+10
-    mov eax, dword [si]
-    mov [extentLengthLE], eax
+    mov ax, word [si]
+    mov [extentLengthLE], ax
+    mov ax, word [si+2]
+    mov [extentLengthLE+2], ax
 
     cmp word [extentLengthLE], 0x800
     jb ISO_ERROR2
@@ -314,14 +330,25 @@ start:
     cmp word [extentLocationLE_LBA], 29
     jb ISO_ERROR3
 
+    xor eax, eax
+    mov si, ax
+    mov ds, ax
+
+
+    mov eax, [extentLocationLE_LBA]
+    call PRINT_HEX
+    call PRINT_LINEFEED
+    
+    jmp ISO_ERROR
     ; load the root directory record
-    mov eax, [extentLocationLE_LBA] ;lba
-    mov cx, 1                   ; 1 sector
+    mov ax, [extentLocationLE_LBA]
+    mov cx, 1
     mov bx, BUFFER_OFFSET
-    mov dx, BUFFER_SEGMENT      ;dx:bx=buffer
-    call READ_DISK              
-    cmp ax, 0
+    mov dx, BUFFER_SEGMENT
+    call READ_DISK
+    cmp eax, 0
     jne DISK_ERROR1
+
 
     mov dword [offset_var], 0
 
@@ -331,6 +358,11 @@ start:
     mov bx, [extentLengthLE]
     cmp ax, bx
     jge .main_loop_end
+    
+    mov ax, 0xff
+    call PRINT_HEX
+    call PRINT_LINEFEED
+
 ;     ;3.     if ((record)(buffer_var+offset_var).length == 0) jmp ISO_ERROR
     mov ax, BUFFER_SEGMENT
     mov ds, ax
@@ -349,6 +381,7 @@ start:
     and al, 0b00000010          ; Check if directory flag is set
     jne .to_loop_increment      ; If directory, skip to next record
 
+
 ;     ;4.     strncopy(name_buf, record->fileIdentifier, record->fileNameLength);
     mov ax, BUFFER_SEGMENT
     mov es, ax
@@ -362,7 +395,7 @@ start:
     inc di                   ; Skip length byte
 
     pusha
-    mov si, ISO_ERROR
+    mov si, di
     call PRINTNLN
     popa
 
@@ -372,7 +405,6 @@ start:
         call strncmp
         cmp ax, 1
         jne .to_loop_increment
-        
         
         ; TODO: Load values to save at extentLocationLE_LBA_KRNL and extentLengthLE_KRNL
         mov ax, BUFFER_SEGMENT
@@ -437,14 +469,21 @@ KRNL_TO_MEMORY:
     mov ecx, eax ; sectors to read
 
     mov eax, [extentLocationLE_LBA_KRNL]
-    ; call PRINT_HEX
-    ; call PRINT_LINEFEED
-    mov dx, KERNEL_LOAD_SEGMENT
-    mov bx, KERNEL_LOAD_OFFSET
+    call PRINT_HEX
+    call PRINT_LINEFEED
+    mov dx, BUFFER_SEGMENT
+    mov bx, BUFFER_OFFSET
     ; segment = dx
     call READ_DISK
     cmp eax, 0
     jne DISK_ERROR1
+
+    ; lea esi, KERNEL_LOAD_ADDRESS
+    ; add esi, 0x781
+    ; add esi, 0x880
+    ; mov eax, [esi]
+    ; call PRINT_HEX
+    ; call PRINT_LINEFEED
 
     pusha
     mov si, msg_kernel_end
@@ -504,8 +543,17 @@ KRNL_TO_MEMORY:
 %endif ; VBE_ACTIVATE
 
 START_32BIT_PROTECTED_MODE:
+    xor eax, eax
+    mov ax, 0x0800
+    mov es, ax
+    mov di, 0x0000
+    xor eax, eax
+    mov al, [drive_number]
+    stosb
+
+
     ; hlt
-    cli 
+    ; cli 
     ; --- Load GDT ---
     lgdt [gdtr]
 
@@ -599,7 +647,7 @@ PModeMain:
     mov fs, ax
     mov gs, ax
     mov ss, ax       ; stack segment
-    ; mov esp, stack   ; Stack at 512KB (adjust if you want)
+    mov esp, stack   ; Stack at 512KB (adjust if you want)
 
 
     ; --- Load IDT ---
@@ -632,9 +680,9 @@ fill_loop:
     mov [eax], byte 'x'
 
     
-    jmp 08h:KERNEL_LOAD_ADDRESS
+    jmp KERNEL_LOAD_ADDRESS
 
     jmp hang32
 hang32:
     ;print q into video memory
-    jmp $
+    jmp hang32
