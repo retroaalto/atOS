@@ -34,11 +34,10 @@ void rtos_kernel(U0) {
     IDT_INIT();
     SETUP_ISR_HANDLERS();
     IRQ_INIT();
-
+    
     PIT_INIT();
     vesa_check();
     vbe_check();
-
 
     if(!PS2_KEYBOARD_INIT()) {
         DRAW_STRING("Failed to initialize PS2 keyboard", VBE_RED);

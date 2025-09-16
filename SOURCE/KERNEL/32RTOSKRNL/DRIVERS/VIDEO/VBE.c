@@ -1034,7 +1034,6 @@ BOOL vbe_check(U0) {
     if (mode->XResolution < SCREEN_WIDTH || mode->YResolution < SCREEN_HEIGHT) {
         return FALSE;
     }
-    VBE_FLUSH_SCREEN();
     return TRUE;
 }
 

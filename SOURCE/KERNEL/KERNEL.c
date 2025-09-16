@@ -172,26 +172,30 @@ BOOLEAN SEARCH_FILE(
 }
 
 U0 kernel_after_gdt(U0);
+
 __attribute__((noreturn))
 void kernel_entry_main(U0) {
     vesa_check();
     vbe_check();
-    VBE_DRAW_LINE(0, 0, 300, 300, VBE_RED); VBE_UPDATE_VRAM();
-    GDT_INIT();                      // Setup GDT
-    // setup in asm, can still be called
+
+    GDT_INIT(); // Re-setup GDT just in case
     kernel_after_gdt();
     HLT;
 }
 
 U0 kernel_after_gdt(U0) {
-    
     IDT_INIT();                       // Setup IDT
     SETUP_ISR_HANDLERS();
+    VBE_DRAW_LINE(0, 0, SCREEN_WIDTH - 1, 0, VBE_RED);
+    VBE_UPDATE_VRAM();
+    VBE_DRAW_LINE(1,1,1,200, VBE_GREEN);
+    VBE_UPDATE_VRAM();
     IRQ_INIT();
-    // PIT_INIT();
+    VBE_DRAW_LINE(2,2,1,200, VBE_AQUA);
+    VBE_UPDATE_VRAM();
     // todo: tss_init();
     __asm__ volatile ("sti");        // Enable interrupts
-
+    HLT;
     // U8 buf[100];
     // U32 *pit_ticks = PIT_GET_TICKS_PTR();
     // U32 i = 0;
@@ -215,8 +219,7 @@ U0 kernel_after_gdt(U0) {
     }
 
 
-
-
+    
     // Read ATOS/32RTOSKR.BIN;1 from disk
     // We will read the binary with ATAPI operations, 
     // not with DISK/ISO9660, to save the binary size of this file
@@ -284,6 +287,7 @@ U0 kernel_after_gdt(U0) {
         rowinc;
         HLT;
     }
+
     __asm__ volatile ("jmp %0" : : "r"((U32)RTOSKRNL_ADDRESS));
     HLT;
 }

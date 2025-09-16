@@ -129,7 +129,7 @@ DEBUG_PRINT_VALUE equ 0
 ;%%%%%%%%%%%%%%%%%%%%%%%
 krnl_status: BOOLEAN 0
 KRNL_STR_LEN equ 10
-krnl_str: db "KRNL.BIN;1", KRNL_STR_LEN
+krnl_str: db "KRNL.BIN;1", 0
 
 
 ; record is at (buffer+offset)
@@ -141,7 +141,7 @@ krnl_str: db "KRNL.BIN;1", KRNL_STR_LEN
 ;  strD fileIdentifier[1];        (buffer+offset+33). uint8_t. File name
 ;
 KERNEL_LOAD_ADDRESS EQU 0x7000
-KERNEL_LOAD_SEGMENT EQU KERNEL_LOAD_ADDRESS / 16
+KERNEL_LOAD_SEGMENT EQU 0x700
 KERNEL_LOAD_OFFSET EQU  0x0000
 
 BUFFER_SEGMENT equ KERNEL_LOAD_SEGMENT
@@ -156,7 +156,7 @@ extentLengthLE: dd 0
 extentLocationLE_LBA_KRNL: dd 0
 extentLengthLE_KRNL: dd 0
 offset_var: dd 0
-name_buf: db _MAX_PATH
+name_buf: db KRNL_STR_LEN dup(0)
 buffer_var: dd 0
 RETRY_COUNT_MAX equ 3 ; Maximum number of retries for reading files
 retry_count db 0 ; retry count for reading files

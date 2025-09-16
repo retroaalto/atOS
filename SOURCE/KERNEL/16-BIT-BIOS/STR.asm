@@ -39,7 +39,10 @@
 ; 
 ; REMARKS
 ;     None
-strncmp:
+strncmp:    
+    pusha
+
+
 .cmp_loop:
     cmp cx, 0               ; Check if we've reached the maximum length
     je .equal               ; If CX is 0, strings are equal up to this point
@@ -51,9 +54,11 @@ strncmp:
     dec cx                  ; Decrement remaining character count
     jmp .cmp_loop           ; Continue comparing the next characters
 .not_equal:
+    popa
     xor ax, ax              ; Set AX = 0 (not equal)
     jmp .done
 .equal:
+    popa
     mov ax, 1               ; Set AX = 1 (equal)
 .done:
     ret
@@ -77,19 +82,19 @@ strncmp:
 ; 
 ; REMARKS
 ;     None
-; strncopy:
-;     pusha                   ; Save all general-purpose registers
-; .copy_loop:
-;     cmp cx, 0               ; Check if we've reached the maximum length
-;     je .done                ; Exit if CX is 0
-;     lodsb                   ; Load byte at [SI] into AL and increment SI
-;     stosb                   ; Store byte in AL to [DI] and increment DI
-;     or al, al               ; Check if the byte is null (end of string)
-;     jz .done                ; Exit if null terminator is found
-;     dec cx                  ; Decrement remaining character count
-;     jmp .copy_loop          ; Repeat the loop
-; .done:
-;     popa                    ; Restore all general-purpose registers
-;     ret
+strncopy:
+    pusha                   ; Save all general-purpose registers
+.copy_loop:
+    cmp cx, 0               ; Check if we've reached the maximum length
+    je .done                ; Exit if CX is 0
+    lodsb                   ; Load byte at [SI] into AL and increment SI
+    stosb                   ; Store byte in AL to [DI] and increment DI
+    or al, al               ; Check if the byte is null (end of string)
+    jz .done                ; Exit if null terminator is found
+    dec cx                  ; Decrement remaining character count
+    jmp .copy_loop          ; Repeat the loop
+.done:
+    popa                    ; Restore all general-purpose registers
+    ret
 
 %endif ; BIOS_STR

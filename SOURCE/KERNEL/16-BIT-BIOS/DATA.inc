@@ -29,7 +29,7 @@
 ; 8      | 4    | Starting LBA, low 32 bits
 ; 12     | 4    | Starting LBA, high 16 bits
 DAP:
-    db 0x14           ; Size of DAP
+    db 0x10           ; Size of DAP
     db 0x00           ; Reserved
     dw 0x0000         ; Number of sectors (set at runtime)
     dw 0x0000         ; Buffer offset (BX)

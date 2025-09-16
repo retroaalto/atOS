@@ -165,8 +165,14 @@ PRINT_LINEFEED:
 ; AUTHORS
 ;     Antonako1
 PRINTNLN:
+    pusha 
+    push es
+    push ds
     call PRINTN            ; Call PRINTN to print the string
     call PRINT_LINEFEED ; Call PRINT_LINEFEED to print CR + LF
+    pop ds
+    pop es
+    popa
     ret
 
 ; void PRINTLN(DS:SI str);
