@@ -15,6 +15,8 @@ KRNL_INCLUDES ?= \
 	-I$(SOURCE_KERNEL_DIR)/32RTOSKRNL/DRIVERS/DISK/ATA/ \
 	-I$(SOURCE_KERNEL_DIR)/32RTOSKRNL/DRIVERS/DISK/ATAPI/ \
 	-I$(SOURCE_KERNEL_DIR)/32RTOSKRNL/DRIVERS/DISK/ \
+	-I$(SOURCE_KERNEL_DIR)/32RTOSKRNL/DRIVERS/INPUT/ \
+	-I$(SOURCE_KERNEL_DIR)/32RTOSKRNL/DEBUG/ \
 	-I$(SOURCE_KERNEL_DIR)/32RTOSKRNL/CPU/ \
 	-I$(SOURCE_KERNEL_DIR)/32RTOSKRNL/CPU/GDT/ \
 	-I$(SOURCE_KERNEL_DIR)/32RTOSKRNL/CPU/IDT/ \
@@ -70,6 +72,10 @@ kernel:
 
 	$(CComp) $(KRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/DRIVERS/VIDEO/VBE.c -o $(OUTPUT_KERNEL_DIR)/VBE.o
 
+	$(CComp) $(KRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/DRIVERS/INPUT/KEYBOARD.c -o $(OUTPUT_KERNEL_DIR)/KEYBOARD.o
+
+	$(CComp) $(KRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/DEBUG/KDPRINT.c -o $(OUTPUT_KERNEL_DIR)/KDPRINT.o
+
 	$(CComp) $(KRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/CPU/GDT/GDT.c -o $(OUTPUT_KERNEL_DIR)/GDT.o
 
 	$(CComp) $(KRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/CPU/IDT/IDT.c -o $(OUTPUT_KERNEL_DIR)/IDT.o
@@ -92,6 +98,8 @@ kernel:
 		$(OUTPUT_KERNEL_DIR)/IDT.o \
 		$(OUTPUT_KERNEL_DIR)/ISR.o \
 		$(OUTPUT_KERNEL_DIR)/IRQ.o \
+		$(OUTPUT_KERNEL_DIR)/KEYBOARD.o \
+		$(OUTPUT_KERNEL_DIR)/KDPRINT.o \
 		$(OUTPUT_KERNEL_DIR)/INTERRUPTS.o \
 
 	@echo "KRNL.BIN compiled successfully."
@@ -130,8 +138,9 @@ iso: bootloader kernel
 # Run ISO in QEMU
 run: iso
 	@echo "Running ISO in QEMU..."
+	rm -f hdd.img
 	qemu-img create -f raw hdd.img 256M
-	qemu-system-i386 -vga std -boot d -cdrom $(OUTPUT_ISO_DIR)/$(ISO_NAME) -m 512 -drive file=hdd.img,format=raw,if=ide,index=0,media=disk
+	qemu-system-i386 -boot d -cdrom $(OUTPUT_ISO_DIR)/$(ISO_NAME) -m 512 -drive file=hdd.img,format=raw,if=ide,index=0,media=disk -serial mon:stdio
 	
 
 # Clean

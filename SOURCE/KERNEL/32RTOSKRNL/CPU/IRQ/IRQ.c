@@ -15,6 +15,19 @@
 
 #define PIC_EOI     0x20
 
+// Cached Interrupt Mask Register state for master/slave PICs.
+static U16 g_PicMask = 0xFFFF;
+
+static inline void irq_write_mask(U16 mask) {
+    g_PicMask = mask;
+    outb(PIC1_DATA, (U8)(g_PicMask & 0xFF));
+    outb(PIC2_DATA, (U8)((g_PicMask >> 8) & 0xFF));
+}
+
+static inline void irq_store_mask(U8 master, U8 slave) {
+    g_PicMask = ((U16)slave << 8) | master;
+}
+
 void pic_send_eoi(U8 irq) {
     if (irq >= 8) {
         outb(PIC2_CMD, PIC_EOI); // Slave PIC
@@ -52,6 +65,7 @@ void pic_remap(U8 offset1, U8 offset2) {
 
     outb(PIC1_DATA, a1);        // restore saved masks
     outb(PIC2_DATA, a2);
+    irq_store_mask(a1, a2);
 }
 
 
@@ -60,3 +74,16 @@ void IRQ_INIT(void) {
     pic_remap(0x20, 0x28);                // Remap PICs
 }
 
+void IRQ_SET_MASK(U8 irq) {
+    if (irq < 16) {
+        U16 mask = g_PicMask | (1u << irq);
+        irq_write_mask(mask);
+    }
+}
+
+void IRQ_CLEAR_MASK(U8 irq) {
+    if (irq < 16) {
+        U16 mask = g_PicMask & ~(1u << irq);
+        irq_write_mask(mask);
+    }
+}

@@ -32,3 +32,18 @@ The following `.inc` files contain useful definitions, constants, and macros for
 > Refer to the `README.md` in each file's directory for usage examples and additional context.
 
 > Take a look also inside `SOURCE\STD\README.md`!
+
+---
+
+### Testing the Keyboard Driver
+
+1. Build and launch the OS with `make run` (QEMU is required).
+2. Once the splash animation completes, type on the host keyboard. Characters should appear on the black console strip starting at `y = 60`.
+3. Use `Enter` to move to the next line and `Backspace` to erase the most recent character. Typing past the right edge wraps to the next line.
+4. If keys do not render, confirm that interrupts are enabled (`sti` in `kernel_after_gdt`) and that `IRQ_CLEAR_MASK(IRQ_KEYBOARD)` is invoked during boot via `KBD_INIT`.
+
+---
+
+### Using `kdprint`
+
+`kdprint("message")` writes the provided string to the host terminal via the COM1 serial port. The default `make run` command already wires QEMU with `-serial stdio`, so you will see the output in the terminal that launched QEMU. Use standard `\n` line endings (carriage returns are injected automatically).

@@ -23,10 +23,15 @@ REMARKS
 ---*/
 #define KERNEL_ENTRY
 #include "./32RTOSKRNL/KERNEL.h"
+#include "./32RTOSKRNL/DRIVERS/INPUT/KEYBOARD.h"
+#include "./32RTOSKRNL/DEBUG/KDPRINT.h"
+#include "ASM.h"
 
 U0 kernel_after_gdt(U0);
 __attribute__((noreturn))
 void kernel_entry_main(U0) {
+    kdprint_init();
+    kdprint("[atOS] Kernel entry initialized\n");
     vesa_check();
     vbe_check();
     
@@ -43,6 +48,9 @@ U0 kernel_after_gdt(U0) {
     IDT_INIT();                       // Setup IDT
     SETUP_ISR_HANDLERS();
     IRQ_INIT();
+    kdprint("[atOS] IRQs initialized\n");
+    KBD_INIT();                       // Setup PS/2 keyboard driver
+    kdprint("[atOS] Keyboard driver ready\n");
     #warning todo: tss_init();
     // tss_init();
     VBE_FLUSH_SCREEN();
@@ -118,53 +126,97 @@ U0 kernel_after_gdt(U0) {
     // Little drawing animation:
     VBE_DRAW_RECTANGLE_FILLED(0,0, mode->XResolution, 200, VBE_BLACK);
     VBE_STOP_DRAWING();
-    const char str[] = "Hello from atOS's kernel entry!";
-    for (U32 i = 0; i < sizeof(str); i++) {
-        VBE_DRAW_CHARACTER(10 + i * 8, 10, str[i % sizeof(str)], VBE_WHITE, VBE_BLACK);
-        VBE_STOP_DRAWING();
-    }
-    const char str2[] = "This is a test of the VBE graphics functions.";
-    for (U32 i = 0; i < sizeof(str2); i++) {
-        VBE_DRAW_CHARACTER(10 + i * 8, 20, str2[i % sizeof(str2)], VBE_WHITE, VBE_BLACK);
-        VBE_STOP_DRAWING();
-    }
-    const char str3[] = "See KERNEL.c!";
+    // const char str[] = "Hello from atOS's kernel entry!";
+    // for (U32 i = 0; i < sizeof(str); i++) {
+    //     VBE_DRAW_CHARACTER(10 + i * 8, 10, str[i % sizeof(str)], VBE_WHITE, VBE_BLACK);
+    //     VBE_STOP_DRAWING();
+    // }
+    // const char str2[] = "This is a test of the VBE graphics functions.";
+    // for (U32 i = 0; i < sizeof(str2); i++) {
+    //     VBE_DRAW_CHARACTER(10 + i * 8, 20, str2[i % sizeof(str2)], VBE_WHITE, VBE_BLACK);
+    //     VBE_STOP_DRAWING();
+    // }
+    const char str3[] = "Type something!";
     for (U32 i = 0; i < sizeof(str3); i++) {
         VBE_DRAW_CHARACTER(10 + i * 8, 30, str3[i % sizeof(str3)], VBE_WHITE, VBE_BLACK);
         VBE_STOP_DRAWING();
     }
 
-    U32 ball_diameter = 30;
-    F32 ball_x = 800;
-    F32 ball_y = 50;         // start higher up
-    F32 velocity_y = 0;      // current vertical velocity
-    F32 gravity = 0.8f;      // pull down
-    F32 bounce = -0.7f;      // lose some energy when bouncing
-    F32 floor_y = 200;       // ground position
+    // U32 ball_diameter = 30;
+    // F32 ball_x = 800;
+    // F32 ball_y = 50;         // start higher up
+    // F32 velocity_y = 0;      // current vertical velocity
+    // F32 gravity = 0.8f;      // pull down
+    // F32 bounce = -0.7f;      // lose some energy when bouncing
+    // F32 floor_y = 200;       // ground position
+    //
+    // for (U32 i = 0; i < 600; i++) {
+    //     // Clear previous frame
+    //     VBE_DRAW_RECTANGLE_FILLED(ball_x-ball_diameter, 0, 400, floor_y, VBE_CORAL);
+    //
+    //     // Draw the ball
+    //     VBE_DRAW_ELLIPSE((U32)ball_x, (U32)ball_y, ball_diameter/2, ball_diameter/2, VBE_RED);
+    //
+    //     // Physics update
+    //     velocity_y += gravity;         // apply gravity
+    //     ball_y += velocity_y;          // update position
+    //
+    //     if (ball_y + ball_diameter/2 >= floor_y) {
+    //         ball_y = floor_y - ball_diameter/2; // snap to floor
+    //         velocity_y *= bounce;               // bounce up with reduced speed
+    //     }
+    //
+    //     // Horizontal drift
+    //     ball_x += 1;
+    //
+    //     VBE_STOP_DRAWING();
+    // }
 
-    for (U32 i = 0; i < 600; i++) {
-        // Clear previous frame
-        VBE_DRAW_RECTANGLE_FILLED(ball_x-ball_diameter, 0, 400, floor_y, VBE_CORAL);
+    U32 cursor_x = 10;
+    U32 cursor_y = 360;
 
-        // Draw the ball
-        VBE_DRAW_ELLIPSE((U32)ball_x, (U32)ball_y, ball_diameter/2, ball_diameter/2, VBE_RED);
+    for(;;) {
+        KBD_POLL();
 
-        // Physics update
-        velocity_y += gravity;         // apply gravity
-        ball_y += velocity_y;          // update position
+        while(KBD_HAS_KEY()) {
+            CHAR key = KBD_READ_KEY();
+            if(key == '\n') {
+                kdprint_char('\n');
+                cursor_x = 10;
+                cursor_y += 12;
+                if(cursor_y >= mode->YResolution - 16) {
+                    cursor_y = 60;
+                }
+                continue;
+            }
 
-        if (ball_y + ball_diameter/2 >= floor_y) {
-            ball_y = floor_y - ball_diameter/2; // snap to floor
-            velocity_y *= bounce;               // bounce up with reduced speed
+            if(key == '\b') {
+                if(cursor_x > 10) {
+                    cursor_x -= 8;
+                }
+                VBE_DRAW_CHARACTER(cursor_x, cursor_y, ' ', VBE_WHITE, VBE_BLACK);
+                VBE_STOP_DRAWING();
+                kdprint_char('\b');
+                kdprint_char(' ');
+                kdprint_char('\b');
+                continue;
+            }
+
+            kdprint_char(key);
+            VBE_DRAW_CHARACTER(cursor_x, cursor_y, key, VBE_WHITE, VBE_BLACK);
+            cursor_x += 8;
+            if(cursor_x >= mode->XResolution - 8) {
+                cursor_x = 10;
+                cursor_y += 12;
+                if(cursor_y >= mode->YResolution - 16) {
+                    cursor_y = 60;
+                }
+            }
+            VBE_STOP_DRAWING();
         }
 
-        // Horizontal drift
-        ball_x += 1;
-
-        VBE_STOP_DRAWING();
+        io_wait();
     }
-
-    for(;;) ASM_VOLATILE("hlt");
 }
     
 __attribute__((noreturn, section(".text")))

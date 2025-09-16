@@ -28,7 +28,12 @@ REMARKS
 #include "../ISR/ISR.h"
 
 #define PIC_REMAP_OFFSET 0x20
+#define IRQ_LINES        16
+#define IRQ_KEYBOARD     1
 U0 IRQ_INIT(U0);
 void pic_send_eoi(U8 irq);
 void pic_remap(U8 offset1, U8 offset2);
+void IRQ_SET_MASK(U8 irq);
+void IRQ_CLEAR_MASK(U8 irq);
+void IRQ_REGISTER_HANDLER(U8 irq, IRQHandler handler);
 #endif // IRQ_H

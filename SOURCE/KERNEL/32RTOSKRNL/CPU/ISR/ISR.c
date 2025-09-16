@@ -23,6 +23,7 @@ REMARKS
 #include "../INTERRUPTS.h"
 
 ISRHandler g_Handlers[IDT_COUNT];
+static IRQHandler g_IrqHandlers[IRQ_LINES];
 
 
 #include "../../DRIVERS/VIDEO/VBE.h"
@@ -45,11 +46,19 @@ void double_fault_handler(I32 num, U32 errcode) {
         );
 }
 
-void irq_common_handler(I32 num, U32 errcode) {
+void irq_common_handler(I32 vector, U32 errcode) {
     (void)errcode; // Not used
-    if(num >= 32 && num < 48) {
-        pic_send_eoi(num - 32);
+    if(vector < PIC_REMAP_OFFSET || vector >= (PIC_REMAP_OFFSET + IRQ_LINES)) {
+        return;
     }
+
+    I32 irq = vector - PIC_REMAP_OFFSET;
+    IRQHandler handler = g_IrqHandlers[irq];
+    if(handler) {
+        handler(vector, errcode);
+    }
+
+    pic_send_eoi((U8)irq);
 }
 
 
@@ -63,10 +72,11 @@ void isr_dispatch_c(int vector, U32 errcode, regs *regs_ptr) {
         double_fault_handler(vector, errcode);
         break;
     }
+
     if (vector < 32) {
         isr_common_handler(vector, errcode);
-    } else if (vector >= 32 && vector < 48) {
-        irq_common_handler(vector - 32, errcode);
+    } else if (vector >= PIC_REMAP_OFFSET && vector < (PIC_REMAP_OFFSET + IRQ_LINES)) {
+        irq_common_handler(vector, errcode);
     } else {
         isr_common_handler(vector, errcode);
     }
@@ -109,10 +119,16 @@ VOID SETUP_ISR_HANDLERS(VOID) {
     for(int i = 0; i < IDT_COUNT; i++) {
         if(i < 32) {
             ISR_REGISTER_HANDLER(i, isr_common_handler); // CPU exceptions
-        } else if(i >= 32 && i < 48) {
+        } else if(i >= PIC_REMAP_OFFSET && i < (PIC_REMAP_OFFSET + IRQ_LINES)) {
             ISR_REGISTER_HANDLER(i, irq_common_handler);
         } else {
             ISR_REGISTER_HANDLER(i, isr_common_handler); // Reserved / unused
         }
+    }
+}
+
+void IRQ_REGISTER_HANDLER(U8 irq, IRQHandler handler) {
+    if(irq < IRQ_LINES) {
+        g_IrqHandlers[irq] = handler;
     }
 }
