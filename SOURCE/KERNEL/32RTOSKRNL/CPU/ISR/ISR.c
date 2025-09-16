@@ -34,30 +34,22 @@ ISRHandler *ISR_GET_PTR(void) {
 // This is the c-level exception handler
 void isr_common_handler(I32 num, U32 errcode) {
     (void)errcode; (void)num;
-    // for (;;) 
-        // __asm__ volatile(
-            // "cli\n\t"
-            // "hlt\n\t"
-        // );
+    // HLT;
 }
 
 void double_fault_handler(I32 num, U32 errcode) {
     (void)errcode; (void)num;
-    for (;;)
-    __asm__ volatile(
-        "cli\n\t"
-        "hlt\n\t"
-    );
+    HLT;
 }
 
 
-void irq_common_handler(I32 num, U32 errcode) {
-    (void)errcode; // Not used
-    if(g_Handlers[num + PIC_REMAP_OFFSET]) {
-        g_Handlers[num + PIC_REMAP_OFFSET](num, errcode);
-    }
-    pic_send_eoi(num);
+void irq_common_handler(I32 vector, U32 errcode) {
+    (void)errcode;
+    if (g_Handlers[vector]) g_Handlers[vector](vector, 0);
+    int irq = vector - PIC_REMAP_OFFSET; // 0x20
+    if ((unsigned)irq < 16) pic_send_eoi(irq);
 }
+
 
 
 // This function is called from assembly
@@ -69,9 +61,9 @@ void isr_dispatch_c(int vector, U32 errcode, regs *regs_ptr) {
     }
 }
 
-void irq_dispatch_c(int irq, U32 errcode, regs *regs_ptr) {
+void irq_dispatch_c(int vector, U32 errcode, regs *regs_ptr) {
     (void)regs_ptr;
-    irq_common_handler(irq, errcode);
+    irq_common_handler(vector, errcode);
 }
 
 
@@ -94,10 +86,8 @@ U0 SETUP_ISRS(U0) {
         isr48
     };
     for(U32 i = 0; i < IDT_COUNT; i++) {
-        if(i < 48)
-            idt_set_gate(i, (U0*)isr[i], cs, flags);
-        else
-            idt_set_gate(i, (U0*)isr[49], cs, flags); // point to isr48 for now
+        if (i < 49) idt_set_gate(i, isr[i], cs, flags);
+        else        idt_set_gate(i, isr[48], cs, flags);
     }
 }
 VOID SETUP_ISR_HANDLERS(VOID) {

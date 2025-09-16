@@ -175,9 +175,9 @@ U0 kernel_after_gdt(U0);
 
 __attribute__((noreturn))
 void kernel_entry_main(U0) {
+    CLI;
     vesa_check();
     vbe_check();
-
     GDT_INIT(); // Re-setup GDT just in case
     kernel_after_gdt();
     HLT;
@@ -186,27 +186,14 @@ void kernel_entry_main(U0) {
 U0 kernel_after_gdt(U0) {
     IDT_INIT();                       // Setup IDT
     SETUP_ISR_HANDLERS();
-    VBE_DRAW_LINE(0, 0, SCREEN_WIDTH - 1, 0, VBE_RED);
-    VBE_UPDATE_VRAM();
-    VBE_DRAW_LINE(1,1,1,200, VBE_GREEN);
-    VBE_UPDATE_VRAM();
     IRQ_INIT();
-    VBE_DRAW_LINE(2,2,1,200, VBE_AQUA);
+    HLT;
+    VBE_DRAW_LINE(1,1,1,200, VBE_GREEN); 
     VBE_UPDATE_VRAM();
     // todo: tss_init();
-    __asm__ volatile ("sti");        // Enable interrupts
+    STI;        // Enable interrupts
+    VBE_DRAW_LINE(2,2,1,200, VBE_AQUA); VBE_UPDATE_VRAM();
     HLT;
-    // U8 buf[100];
-    // U32 *pit_ticks = PIT_GET_TICKS_PTR();
-    // U32 i = 0;
-    // for(;;) {
-    //     if(*pit_ticks % 100 == 0 ) {
-    //         itoa(*pit_ticks, buf, 16);
-    //         VBE_DRAW_STRING(i, 0, buf, VBE_AQUA, VBE_BLACK);
-    //         VBE_UPDATE_VRAM();
-    //     }
-    // }
-    
     U32 row = 0;
     U32 atapi_status;
     #define rowinc row += VBE_CHAR_HEIGHT + 2

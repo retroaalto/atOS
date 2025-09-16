@@ -128,39 +128,39 @@ DEBUG_PRINT_VALUE equ 0
 ; KRNL reading
 ;%%%%%%%%%%%%%%%%%%%%%%%
 krnl_status: BOOLEAN 0
-KRNL_STR_LEN equ 10
+KRNL_STR_LEN equ 11
 krnl_str: db "KRNL.BIN;1", 0
 
-
 ; record is at (buffer+offset)
-;  uint8_t length;                (buffer+offset+0). Record length
-;  uint32_t extentLocationLE_LBA  (buffer+offset+2). LBA of data
-;  uint32_t extentLengthLE;       (buffer+offset+10) Length of data
-;  fileFlag fileFlags;            (buffer+offset+25). uint8_t. Fileflags. 0b00000010 if directory, 0b00000000 for file
-;  uint8_t fileNameLength;        (buffer+offset+32). Length of fileIdentifier
-;  strD fileIdentifier[1];        (buffer+offset+33). uint8_t. File name
-;
+;  uint8_t length;                (buffer+offset+0)
+;  uint32_t extentLocationLE_LBA; (buffer+offset+2)
+;  uint32_t extentLengthLE;       (buffer+offset+10)
+;  uint8_t fileFlags;             (buffer+offset+25)
+;  uint8_t fileNameLength;        (buffer+offset+32)
+;  char fileIdentifier[];         (buffer+offset+33)
+
 KERNEL_LOAD_ADDRESS EQU 0x7000
 KERNEL_LOAD_SEGMENT EQU 0x700
-KERNEL_LOAD_OFFSET EQU  0x0000
+KERNEL_LOAD_OFFSET  EQU 0x0000
 
 BUFFER_SEGMENT equ KERNEL_LOAD_SEGMENT
-BUFFER_OFFSET equ KERNEL_LOAD_OFFSET
+BUFFER_OFFSET  equ KERNEL_LOAD_OFFSET
 
-%define SECTOR_SIZE             2048        ; 2KB per sector
-%define VOL_DESC_START          16          ; Volume descriptor starts at sector 16
-PVD_OFFSET equ              VOL_DESC_START*SECTOR_SIZE/SECTOR_SIZE
-%define stack 0x00009400
-extentLocationLE_LBA: dd 0
-extentLengthLE: dd 0
+SECTOR_SIZE equ 2048
+VOL_DESC_START equ 16
+PVD_OFFSET equ VOL_DESC_START    ; reading via BIOS in 2048-byte sectors
+
+STACK_ADDR equ 0x00009400
+
+extentLocationLE_LBA:      dd 0
+extentLengthLE:            dd 0
 extentLocationLE_LBA_KRNL: dd 0
-extentLengthLE_KRNL: dd 0
-offset_var: dd 0
+extentLengthLE_KRNL:       dd 0
+offset_var:                dd 0
 name_buf: db KRNL_STR_LEN dup(0)
 buffer_var: dd 0
-RETRY_COUNT_MAX equ 3 ; Maximum number of retries for reading files
-retry_count db 0 ; retry count for reading files
-
+RETRY_COUNT_MAX equ 3
+retry_count db 0
 
 ; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ; VESA/VBE information

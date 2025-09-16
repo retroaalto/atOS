@@ -59,41 +59,39 @@ void PIC_Unmask(int irq) {
 
 
 void pic_send_eoi(U8 irq) {
-    if (irq >= 8) {
-        _outb(PIC2_COMMAND_PORT, PIC_CMD_END_OF_INTERRUPT); // Slave PIC
-    }
-    _outb(PIC1_COMMAND_PORT, PIC_CMD_END_OF_INTERRUPT);     // Master PIC
+    if (irq >= 8) _outb(0xA0, 0x20);
+    _outb(0x20, 0x20);
 }
 
 
 // Remap PIC to avoid conflicts with CPU exceptions
 void pic_remap(U8 offset1, U8 offset2) {
-    U8 a1 = _inb(PIC1_DATA_PORT);
-    U8 a2 = _inb(PIC2_DATA_PORT);
+    
+    // Mask all IRQs
+    _outb(0x21, 0xFF);
+    _outb(0xA1, 0xFF);
+    
+    // Start init
+    _outb(0x20, 0x11); _io_wait();
+    _outb(0xA0, 0x11); _io_wait();
 
-    _outb(PIC1_COMMAND_PORT, 0x11);  // ICW1: start initialization
-    _io_wait();
-    _outb(PIC2_COMMAND_PORT, 0x11);
-    _io_wait();
+    // Set new vector offsets
+    _outb(0x21, offset1); _io_wait();
+    _outb(0xA1, offset2); _io_wait();
 
-    _outb(PIC1_DATA_PORT, offset1);     // ICW2: offset 0x20 for master
-    _io_wait();
-    _outb(PIC2_DATA_PORT, offset2);     // ICW2: offset 0x28 for slave
-    _io_wait();
+    // Wiring
+    _outb(0x21, 0x04); _io_wait();  // master has slave on IRQ2
+    _outb(0xA1, 0x02); _io_wait();  // slave ID
 
-    _outb(PIC1_DATA_PORT, 4);         // ICW3: master has slave at IRQ2
-    _io_wait();
-    _outb(PIC2_DATA_PORT, 2);         // ICW3: slave identity
-    _io_wait();
+    // 8086/88 mode
+    _outb(0x21, 0x01); _io_wait();
+    _outb(0xA1, 0x01); _io_wait();
 
-    _outb(PIC1_DATA_PORT, 1);         // ICW4: 8086 mode
-    _io_wait();
-    _outb(PIC2_DATA_PORT, 1);
-    _io_wait();
-
-    _outb(PIC1_DATA_PORT, a1);        // restore saved masks
-    _outb(PIC2_DATA_PORT, a2);
+    // Keep everything masked for now; caller will unmask specific IRQs later
+    _outb(0x21, 0xFF);
+    _outb(0xA1, 0xFF);
 }
+
 
 // uint16_t PIC_ReadIRQRequestRegister() {
 //     _outb(PIC1_COMMAND_PORT, PIC_CMD_READ_IRR);

@@ -131,8 +131,13 @@ static inline void _outsw(U16 port, void* buffer, U32 count) {
                  : "memory");
 }
 
-static inline void _io_wait() {
-    ASM_VOLATILE("outb %%al, $0x80" : : "a"(0));
+static inline void _io_wait(void) {
+    unsigned char dummy;
+    asm volatile ("inb $0x80, %0"
+                  : "=a"(dummy)
+                  :
+                  : "memory");
 }
+
 
 #endif // STD_ASM_H

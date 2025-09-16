@@ -111,31 +111,31 @@ print_loop:
 ;
 ; AUTHORS
 ;     Antonako1
-PRINTN_Q:
-    pusha                   ; Save all general-purpose registers
+; PRINTN_Q:
+;     pusha                   ; Save all general-purpose registers
 
-    pusha
-    mov al, '"'
-    mov ah, 0x0E
-    int 0x10
-    popa 
+;     pusha
+;     mov al, '"'
+;     mov ah, 0x0E
+;     int 0x10
+;     popa 
     
-.next_char:
-   cmp cx, 0               ; Check if we've printed enough characters
-   je .close_quote          ; If CX is 0, jump to print closing quote
-   lodsb                   ; Load byte at [SI] into AL and increment SI    
-   mov ah, 0x0E            ; BIOS teletype output function
-   int 0x10                ; Call BIOS interrupt to print character in AL
-   dec cx                  ; Decrement remaining character count
-   jmp .next_char          ; Continue printing the next character
+; .next_char:
+;    cmp cx, 0               ; Check if we've printed enough characters
+;    je .close_quote          ; If CX is 0, jump to print closing quote
+;    lodsb                   ; Load byte at [SI] into AL and increment SI    
+;    mov ah, 0x0E            ; BIOS teletype output function
+;    int 0x10                ; Call BIOS interrupt to print character in AL
+;    dec cx                  ; Decrement remaining character count
+;    jmp .next_char          ; Continue printing the next character
    
-.close_quote:
-    ; Print closing single quote
-    mov al, '"'
-    mov ah, 0x0E
-    int 0x10
-    popa                    ; Restore all general-purpose registers
-    ret
+; .close_quote:
+;     ; Print closing single quote
+;     mov al, '"'
+;     mov ah, 0x0E
+;     int 0x10
+;     popa                    ; Restore all general-purpose registers
+;     ret
 
 PRINT_LINEFEED:
     pusha                   ; Save all general-purpose registers
@@ -164,16 +164,16 @@ PRINT_LINEFEED:
 ;
 ; AUTHORS
 ;     Antonako1
-PRINTNLN:
-    pusha 
-    push es
-    push ds
-    call PRINTN            ; Call PRINTN to print the string
-    call PRINT_LINEFEED ; Call PRINT_LINEFEED to print CR + LF
-    pop ds
-    pop es
-    popa
-    ret
+; PRINTNLN:
+;     pusha 
+;     push es
+;     push ds
+;     call PRINTN            ; Call PRINTN to print the string
+;     call PRINT_LINEFEED ; Call PRINT_LINEFEED to print CR + LF
+;     pop ds
+;     pop es
+;     popa
+;     ret
 
 ; void PRINTLN(DS:SI str);
 ;
@@ -213,12 +213,12 @@ PUTCHAR:
     ret
 
 
-PRINT__:
-    pusha
-    mov al, '_'
-    call PUTCHAR
-    popa
-    ret 
+; PRINT__:
+;     pusha
+;     mov al, '_'
+;     call PUTCHAR
+;     popa
+;     ret 
 
 
 ;  void PRINT_HEX(AX);

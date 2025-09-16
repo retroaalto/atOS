@@ -29,7 +29,7 @@
 ; REMARKS
 ;     None
 
-; %define VBE_ACTIVATE 1
+%define VBE_ACTIVATE 1
 [BITS 16]
 [ORG 0x2000]
 
@@ -80,9 +80,6 @@ start:
     int 15h
     jc MEM_ERROR1
 
-    pusha
-    call PRINT__
-    popa
 
     ; Compares "SMAP" to EAX
     cmp eax, SMAP
@@ -199,43 +196,6 @@ start:
     mov word [e820_entries_ptr], E820_ENTRY_OFFSET
     mov word [e820_entries_ptr+2], E820_ENTRY_SEGMENT
 
-
-
-
-;     xor ecx, ecx
-;     mov cx, [num_of_e820_entries]
-
-; .loop_print_e820:
-;     ; --------------------------------------
-;     ; 1. Calculate linear address of entry
-;     ; --------------------------------------
-;     mov bx, [e820_entries_ptr]         ; Offset
-;     mov ax, [e820_entries_ptr+2]       ; Segment
-;     shl eax, 4                         ; Segment * 16
-;     add eax, ebx                       ; Final linear address
-    
-;     ; --------------------------------------
-;     push eax
-;     mov ebx, eax                      ; Copy for splitting
-;     mov eax, [ebx+16]                ; Type field
-;     call PRINT_HEX
-;     call PRINT_LINEFEED
-;     pop eax
-;     ; --------------------------------------
-;     ; 3. Advance to next entry
-;     add eax, MEM_STRUCT_SIZE
-;     mov ebx, eax
-;     and bx, 0x000F                     ; offset
-;     shr eax, 4                         ; segment
-;     mov [e820_entries_ptr], bx
-;     mov [e820_entries_ptr+2], ax
-
-;     loop .loop_print_e820              ; dec cx / jnz loop
-
-;     ; reset E820 entry pointer
-;     mov word [e820_entries_ptr], E820_ENTRY_OFFSET
-;     mov word [e820_entries_ptr+2], E820_ENTRY_SEGMENT
-
     mov si, msg_e820_done
     call PRINTLN
     
@@ -252,18 +212,9 @@ start:
 
 .FIND_KERNEL:
     ; Read KRNL.BIN from disk, load it into memory and jump to it
-    ;
-    ; Logic copied from bootloader. Status saved in krnl_status
-
-    ;mov ebx, [num_of_e820_entries]
-    ;mov ecx, MEM_STRUCT_SIZE
-    ;mov edx, E820_ENTRY_OFFSET
-    ;call CALCULATE_KRNL_SEGMENT
-    ;jc MEM_ERROR5
-    ;call PRINT_HEX
-    ;call PRINT_LINEFEED
     mov byte [krnl_status], 0
 
+    ; Read Primary Volume Descriptor (sector 16, 2048 bytes)
     mov ax, PVD_OFFSET
     mov cx, 1
     mov bx, BUFFER_OFFSET
@@ -272,208 +223,203 @@ start:
     cmp eax, 0
     jne DISK_ERROR1
 
+    ; Check "CD001" signature at bytes 1..5
     push ds
     mov ax, BUFFER_SEGMENT
     mov ds, ax
     mov si, BUFFER_OFFSET
-    xor eax, eax
-    mov al, byte [si+1]
-    cmp al, 0x43
+    mov al, [si+1]
+    cmp al, 0x43         ; 'C'
     jne ISO_ERROR1
-    mov al, byte [si+2]
-    cmp al, 0x44
+    mov al, [si+2]
+    cmp al, 0x44         ; 'D'
     jne ISO_ERROR1
-    mov al, byte [si+3]
-    cmp al, 0x30
+    mov al, [si+3]
+    cmp al, 0x30         ; '0'
     jne ISO_ERROR1
-    mov al, byte [si+4]
-    cmp al, 0x30
+    mov al, [si+4]
+    cmp al, 0x30         ; '0'
     jne ISO_ERROR1
-    mov al, byte [si+5]
-    cmp al, 0x31
+    mov al, [si+5]
+    cmp al, 0x31         ; '1'
     jne ISO_ERROR1
     pop ds
 
-
-    ; Read lba and size of root dir
-    ; 156: Root directory record
-    ; +2 LBA location
-    ; +10 Data length
+    ; Read root directory record fields from PVD (byte 156)
     push ds
     mov ax, BUFFER_SEGMENT
     mov ds, ax
     mov si, BUFFER_OFFSET
     add si, 156+10
-    mov eax, dword [si]
+    mov eax, dword [si]             ; extentLengthLE (bytes)
     pop ds
     mov [extentLengthLE], eax
-
     cmp dword [extentLengthLE], 0x800
     jb ISO_ERROR2
-
 
     push ds
     mov ax, BUFFER_SEGMENT
     mov ds, ax
     mov si, BUFFER_OFFSET
     add si, 156+2
-    mov eax, dword [si]
+    mov eax, dword [si]             ; extentLocationLE (LBA, 2048-byte blocks)
     pop ds
     mov dword [extentLocationLE_LBA], eax
-
-    cmp word [extentLocationLE_LBA], 29
+    cmp dword [extentLocationLE_LBA], 29
     jb ISO_ERROR3
-    
-    ; load the root directory record
+
+    ; Load first sector of root directory (2048B)
     push ds
     push es
-    mov eax, dword [extentLocationLE_LBA] ;lba
-    mov cx, 1                   ; 1 sector
+    mov eax, dword [extentLocationLE_LBA]
+    mov cx, 1
     mov bx, BUFFER_OFFSET
-    mov dx, BUFFER_SEGMENT      ;dx:bx=buffer
+    mov dx, BUFFER_SEGMENT
     call READ_DISK
     cmp eax, 0
     pop es
     pop ds
-    jnz DISK_ERROR1
+    jne DISK_ERROR1
 
     mov dword [offset_var], 0
 
-
-
 .main_loop_start:
-;     ;2.     while(offset_var < extentLengthLE)
+    ; while (offset_var < extentLengthLE)
     mov eax, [offset_var]
     mov ebx, [extentLengthLE]
     cmp eax, ebx
     jge .main_loop_end
 
-
-
-;     ;3.     if ((record)(buffer_var+offset_var).length == 0) jmp ISO_ERROR
+    ; record length byte
     mov ecx, [offset_var]
     push ds
     mov ax, BUFFER_SEGMENT
     mov ds, ax
     mov si, BUFFER_OFFSET
     add si, cx
-    movzx eax, byte [si]   ; read length byte only
+    movzx eax, byte [si]           ; record->length
     pop ds
+
     test eax, eax
-    jnz .have_record
-    ; advance to next sector boundary
-    mov eax, [offset_var]
-    add eax, 2048
-    and eax, ~(2048-1)
-    mov [offset_var], eax
-    jmp .main_loop_start
+    jz .advance_to_next_sector     ; zero-length = padding to end of sector
 
-.have_record:q
-
-;     ;5.     if(!((record)(buffer_var+offset_var).fileFlags & 0b00000010)) 
+.have_record:
+    ; if (fileFlags & 0x02) -> directory, skip
     mov ecx, [offset_var]
     push ds
     mov ax, BUFFER_SEGMENT
     mov ds, ax
     mov si, BUFFER_OFFSET
     add si, cx
-    add si, 25
-    mov al, byte [si]
-    and al, 0b00000010          ; Check if directory flag is set
+    mov al, byte [si+25]
     pop ds
-    jne .to_loop_increment      ; If directory, skip to next record
+    test al, 00000010b
+    jnz .to_loop_increment
 
-
-
-;     ;4.     strncopy(name_buf, record->fileIdentifier, record->fileNameLength);
+    ; Extract filename
+    mov ecx, [offset_var]
     push ds
     push es
 
     mov ax, BUFFER_SEGMENT
     mov ds, ax
     mov si, BUFFER_OFFSET
-    add si, [offset_var]
-
-    ; fileFlags check already done above
-
-    ; Get name length and pointer
-    movzx cx, byte [si+32]      ; fileNameLength
-    lea si, [si+33]             ; fileIdentifier
-
-    ; Copy into name_buf (truncate and NUL-terminate)
+    add si, cx           ; si -> record start
+    add si, 33          ; si -> fileIdentifier
+    mov cx, KRNL_STR_LEN
     mov ax, cs
     mov es, ax
-    lea di, [name_buf]
-    cmp cx, KRNL_STR_LEN-1
-    jbe .len_ok
-    mov cx, KRNL_STR_LEN-1
-    .len_ok:
-    rep movsb
-    mov byte [es:di], 0      ; null-terminate
+    lea di, name_buf
+    call strncpy   ; copy filename to name_buf
+    
     pop es
     pop ds
 
-;     if (strcmp(name_buf, "KRNL.BIN") == 0)
+    ; push ds
+    ; mov ax, cs
+    ; mov ds, ax
+    ; mov cx, KRNL_STR_LEN
+    ; lea si, name_buf
+    ; call PRINTNLN
+    ; lea si, krnl_str
+    ; call PRINTNLN
+    ; pop ds
+    
+    ; Compare to "KRNL.BIN;1"
     push ds
+    push es
     mov ax, cs
     mov ds, ax
-    lea si, [krnl_str]
-    lea di, [name_buf]
-    call strncmp              ; AX == 0 if equal
-    test ax, ax
-    jnz .to_loop_increment
+    mov ax, cs
+    mov es, ax
+    mov cx, 8
+    dec cx
+    lea si, krnl_str
+    lea di, name_buf
+    call strncmp                   ; AX==1 (as per your convention) if equal
+    pop es
     pop ds
-        
-        ; TODO: Load values to save at extentLocationLE_LBA_KRNL and extentLengthLE_KRNL
-        mov ecx, [offset_var]
-        push ds
-        mov ax, BUFFER_SEGMENT
-        mov ds, ax
-        mov si, BUFFER_OFFSET
-        add si, cx ; move to start of record
-
-        ; lba
-        mov ecx, [si+2]
-
-        ; length
-        mov edx, dword [si+10]         ; little-endian length at offset 14
-        pop ds
-        mov [extentLocationLE_LBA_KRNL], ecx
-        mov [extentLengthLE_KRNL], edx
+    cmp ax, 1
+    jne .to_loop_increment
 
 
-        mov byte [krnl_status], 1
-        jmp KRNL_TO_MEMORY
-
-.to_loop_increment:
-    ;11.    If nothing happens: offset_var += (record)(buffer_var+offset_var).length
+    ; Matched: capture LBA and length for KRNL
     mov ecx, [offset_var]
     push ds
     mov ax, BUFFER_SEGMENT
     mov ds, ax
     mov si, BUFFER_OFFSET
-    xor eax, eax
     add si, cx
-    mov al, byte [si]   ; .length
 
-    add eax, ecx
+    mov ecx, dword [si+2]          ; extentLocationLE_LBA (2048B blocks)
+    mov edx, dword [si+10]         ; extentLengthLE (bytes)
     pop ds
-    mov [offset_var], eax
-    
-    jmp .main_loop_start
-.main_loop_end:
 
+    mov [extentLocationLE_LBA_KRNL], ecx
+    mov [extentLengthLE_KRNL], edx
+
+    mov byte [krnl_status], 1
+    jmp KRNL_TO_MEMORY
+
+.to_loop_increment:
+    ; offset_var += record->length
+    mov ecx, [offset_var]
+    push ds
+    mov ax, BUFFER_SEGMENT
+    mov ds, ax
+    mov si, BUFFER_OFFSET
+    add si, cx
+    movzx eax, byte [si]           ; length
+    pop ds
+    add eax, ecx
+    mov [offset_var], eax
+    jmp .main_loop_start
+
+.advance_to_next_sector:
+    ; Jump to next 2048-byte boundary (skip padding)
+    mov eax, [offset_var]
+    add eax, SECTOR_SIZE-1
+    and eax, ~(SECTOR_SIZE-1)
+    mov [offset_var], eax
+    jmp .main_loop_start
+
+.main_loop_end:
+    ; not found in this sector; if directory spans multiple sectors, read next
+    ; Calculate next LBA within root directory if any remains
+    ; bytes_consumed = min(extentLengthLE, SECTOR_SIZE), for simplicity we only scanned 1 sector buffer.
+    ; In a full implementation, you'd iterate all sectors. Here: fall through to not found.
+    jmp KRNL_NOT_FOUND
 
 
 KRNL_TO_MEMORY:
     cmp byte [krnl_status], 1
-    je kernel_found
-    jmp KRNL_NOT_FOUND
+    jne KRNL_NOT_FOUND
+    jmp kernel_found
 
 
 ; Not optimal, but otherwise corrupts stack...
+; reads via DAP, DS:SI must point to DAP in our data/code segment
 READ_DISK_SAFE:
-    ; Build DAP (use explicit sizes)
     mov byte  [DAP], DAP_SIZE
     mov byte  [DAP+1], 0
     mov word  [DAP+2], cx
@@ -495,18 +441,16 @@ READ_DISK_SAFE:
 
 
 kernel_found:
-    ; Read the kernel from disk to memory
-    ; If kernel length > 64KB, use 32-bit registers
-    ; Add 511 and divide by 512 (sector size)
+    ; sectors = ceil(length / 2048)
     mov eax, [extentLengthLE_KRNL]
-    add eax, 2047
-    shr eax, 11              ; divide by 2048
-    mov ecx, eax
-    mov eax, [extentLocationLE_LBA_KRNL]  ; ISO9660 LBA units (2048B)
-    mov bx, BUFFER_OFFSET
-    mov dx, BUFFER_SEGMENT
+    add eax, SECTOR_SIZE-1
+    shr eax, 11                    ; /2048
+    mov ecx, eax                   ; sector count (2048B sectors)
+    mov eax, [extentLocationLE_LBA_KRNL]
+    mov bx, KERNEL_LOAD_OFFSET
+    mov dx, KERNEL_LOAD_SEGMENT
     jmp READ_DISK_SAFE
-    
+
 read_done_for_kernel:
     mov si, msg_kernel_end
     call PRINTLN
@@ -566,24 +510,34 @@ read_done_for_kernel:
 %endif ; VBE_ACTIVATE
 
 START_32BIT_PROTECTED_MODE:
+    cli
     ; --- Load GDT ---
+build_gdtr:
+    ; limit
+    mov word [gdtr], gdt_end - gdt_start - 1
+
+    ; base = CS << 4 + offset(gdt_start)
+    xor eax, eax
+    mov ax, cs
+    shl eax, 4
+    mov bx, gdt_start        ; 16-bit offset is fine if within segment
+    add eax, ebx
+    mov [gdtr+2], eax        ; write 32-bit linear base
+
     lgdt [gdtr]
 
     ; --- Enable A20 line ---
-ENABLE_A20:
     in al, 0x92
     or al, 00000010b
     out 0x92, al
 
-    ; --- Enter protected mode ---
     ; Set PE (Protection Enable) bit in CR0
     mov eax, cr0
     or eax, 1           ; set PE bit
     mov cr0, eax
 
-    
     ; --- Far jump to reload CS with protected mode selector ---
-    jmp 08h:PModeMain       ; 08h = code segment in GDT
+    jmp dword 08h:PModeMain       ; 08h = code segment in GDT
 
 hang:
     mov si, msg_hng_1
@@ -667,7 +621,7 @@ PModeMain:
     mov fs, ax
     mov gs, ax
     mov ss, ax       ; stack segment
-    mov esp, stack   ; Stack at 512KB (adjust if you want)
+    mov esp, STACK_ADDR   ; Stack at 512KB (adjust if you want)
 
     ; --- Load IDT ---
     %define KCODE_SEL 0x08
