@@ -36,4 +36,5 @@ U0 rtos_kernel(U0);
 __attribute__((noreturn, section(".text")))
 void _start(U0);
 
+
 #endif // RTOSKRNL_H

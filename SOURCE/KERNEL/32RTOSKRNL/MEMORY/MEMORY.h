@@ -37,6 +37,7 @@
 #define MEM_VESA_VBE_E820_PAGE_BASE 0x00006000
 #define MEM_VESA_VBE_E820_PAGE_END   0x00007000
 
+
 // Kernel entry point
 #define MEM_KRNL_ENTRY_BASE        0x00100000
 #define MEM_KRNL_ENTRY_END         0x00112000
@@ -51,6 +52,7 @@
 
 #define STACK_0_BASE               0x00F34000
 #define STACK_0_END                0x00F44000
+
 
 // BIOS Reserved
 #define MEM_BIOS_BASE              0x000E0000

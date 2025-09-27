@@ -16,3 +16,4 @@
 | `0x00F44000`      | `0x013004F0`    | Framebuffer (VBE LFB)                  | \~2.74 MiB        |
 | `0x01344000`      | `0x02344000`    | Reserved (MMIO)                        | 16 MiB            |
 | `0x02344000`      | `0x03D09000`    | User Space area                        | \~27 MiB          |
+

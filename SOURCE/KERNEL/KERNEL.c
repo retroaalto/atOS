@@ -262,6 +262,7 @@ U0 kernel_after_gdt(U0) {
         rowinc;
         VBE_DRAW_STRING(0, row, "File not found", VBE_WHITE, VBE_BLACK);
         VBE_UPDATE_VRAM();
+
         rowinc;
         HLT;
     }
@@ -282,6 +283,7 @@ U0 kernel_after_gdt(U0) {
     }
     void (*entry)(void) = (void(*)(void))MEM_RTOSKRNL_BASE;
     __asm__ volatile("jmp *%0" :: "r"(entry) : "memory");
+
     HLT;
 }
     

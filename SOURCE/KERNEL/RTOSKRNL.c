@@ -2,6 +2,7 @@
 #define RTOS_KERNEL
 #endif
 #include <RTOSKRNL.h>
+
 /*
 TODO:
     E820 & Paging
@@ -66,6 +67,7 @@ void rtos_kernel(U0) {
     // CMD_QUEUE *cmd_queue = GET_CMD_QUEUE();
     for(;;) {
     }
+
 
     HLT;
 }

@@ -67,5 +67,8 @@ msg_vesa_err2:      db "VESA/VBE not supported", 0
 ; Boot drive number (set by BIOS)
 ; ----------------------------------------
 drive_number:       db 0
+DRIVE_NUMBER_MEM    equ 0x8000
+DRIVE_NUMBER_SEGMENT equ 0x800
+DRIVE_NUMBER_OFFSET  equ 0x0000
 
 %endif ; BIOS_DATA_SEGMENT

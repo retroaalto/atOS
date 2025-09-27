@@ -32,10 +32,12 @@ RTOSKRNL_INCLUDES ?= \
 	-I$(SOURCE_KERNEL_DIR)/32RTOSKRNL/FS/ \
 	-I$(SOURCE_KERNEL_DIR)/32RTOSKRNL/RTOSKRNL/
 
+
 CComp         ?= gcc
 CompArgs 	  ?= -Wno-comment -Wno-comments -m32 -ffreestanding -fno-pic -fno-pie -nostdlib -O0 -Wall -Wextra -fno-stack-protector -fno-builtin -fno-inline
 KRNLCompArgs  ?= $(CompArgs) $(KRNL_INCLUDES) -DKERNEL_ENTRY
 RTOSKRNLCompArgs ?= $(CompArgs) $(RTOSKRNL_INCLUDES) -DRTOS_KERNEL -D__32RTOS__ -D__RTOS__
+
 
 INPUT_ISO_DIR_SYSTEM ?= $(INPUT_ISO_DIR)/ATOS
 INPUT_ISO_DIR_USER ?= $(INPUT_ISO_DIR)/USER
@@ -85,6 +87,7 @@ kernel:
 	$(CComp) $(KRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/DRIVERS/DISK/ATA_ATAPI.c -o $(OUTPUT_KERNEL_DIR)/ATA_ATAPI.o
 	$(CComp) $(KRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/DRIVERS/PIT/PIT.c -o $(OUTPUT_KERNEL_DIR)/PIT.o
 	$(CComp) $(KRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/CPU/PIC.c -o $(OUTPUT_KERNEL_DIR)/PIC.o
+
 # Link all object files into KRNL.BIN
 	
 	$(CComp) -m32 -nostdlib -ffreestanding \
@@ -100,6 +103,7 @@ kernel:
 		$(OUTPUT_KERNEL_DIR)/INTERRUPTS.o \
 		$(OUTPUT_KERNEL_DIR)/ATA_ATAPI.o \
 		$(OUTPUT_KERNEL_DIR)/PIT.o \
+
 		$(OUTPUT_KERNEL_DIR)/PIC.o \
 
 	@echo "KRNL.BIN compiled successfully."
@@ -134,6 +138,7 @@ kernel:
 	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_DIR)/STD/STRING.c -o $(OUTPUT_KERNEL_DIR)/STRING.o
 	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_DIR)/STD/BITMAP.c -o $(OUTPUT_KERNEL_DIR)/BITMAP.o
 	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/RTOSKRNL/ACPI/ACPI.c -o $(OUTPUT_KERNEL_DIR)/ACPI.o
+
 
 	$(CComp) -m32 -nostdlib -ffreestanding \
 		-Wl,-T,$(SOURCE_KERNEL_DIR)/rtoskernel.ld,-e,_start,--oformat=binary \

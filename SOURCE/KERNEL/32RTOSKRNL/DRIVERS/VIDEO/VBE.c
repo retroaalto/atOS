@@ -1053,6 +1053,22 @@ BOOLEAN VBE_DRAW_STRING(U32 x, U32 y, const char* str, VBE_PIXEL_COLOUR fg, VBE_
     return TRUE;
 }
 
+U32 strlen(const char* str) {
+    U32 length = 0;
+    while (str[length] != '\0') {
+        length++;
+    }
+    return length;
+}
+
+BOOLEAN VBE_DRAW_STRING(U32 x, U32 y, const char* str, VBE_PIXEL_COLOUR fg, VBE_PIXEL_COLOUR bg) {
+    U32 length = strlen(str);
+    for (U32 i = 0; i < length; i++) {
+        VBE_DRAW_CHARACTER(x + i * VBE_CHAR_WIDTH, y, str[i], fg, bg);
+    }
+    return TRUE;
+}
+
 BOOLEAN VBE_FLUSH_SCREEN(U0) {
     VBE_CLEAR_SCREEN(VBE_BLACK);
     VBE_UPDATE_VRAM();
@@ -1079,7 +1095,7 @@ BOOLEAN VBE_DRAW_FRAMEBUFFER(U32 pos, VBE_PIXEL_COLOUR colour) {
     VBE_MODE* mode = (VBE_MODE*)(VBE_MODE_LOAD_ADDRESS_PHYS);
     U8* framebuffer = (U8*)(FRAMEBUFFER_ADDRESS);
     if(colour == VBE_SEE_THROUGH) return TRUE;
-    
+
     if (!framebuffer || !mode) return FALSE;
     U32 bytes_per_pixel = (mode->BitsPerPixel + 7) / 8;
     if (pos + bytes_per_pixel > mode->BytesPerScanLineLinear * mode->YResolution) return FALSE;

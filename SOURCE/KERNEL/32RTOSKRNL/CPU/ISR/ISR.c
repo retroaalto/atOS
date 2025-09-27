@@ -48,6 +48,7 @@ void irq_common_handler(I32 vector, U32 errcode) {
     if (g_Handlers[vector]) g_Handlers[vector](vector, 0);
     int irq = vector - PIC_REMAP_OFFSET; // 0x20
     if ((unsigned)irq < 16) pic_send_eoi(irq);
+
 }
 
 
@@ -64,6 +65,7 @@ void isr_dispatch_c(int vector, U32 errcode, regs *regs_ptr) {
 void irq_dispatch_c(int vector, U32 errcode, regs *regs_ptr) {
     (void)regs_ptr;
     irq_common_handler(vector, errcode);
+
 }
 
 
@@ -103,7 +105,7 @@ VOID SETUP_ISR_HANDLERS(VOID) {
         } else if(i >= 32 && i < 48) {
             ISR_REGISTER_HANDLER(i, irq_common_handler); // No default handler
         } else {
-            ISR_REGISTER_HANDLER(i, isr_common_handler); // Reserved / unused
+            ISR_REGISTER_HANDLER(i, handlers[1]); // Reserved / unused
         }
     }
 }

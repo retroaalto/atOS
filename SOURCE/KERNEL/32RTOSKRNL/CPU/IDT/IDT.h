@@ -3,6 +3,17 @@
 
 #include "../../../../STD/TYPEDEF.h"
 #include "../ISR/ISR.h"
+typedef struct __attribute__((packed)) {
+    U16 base0;
+    U16 selector;
+    U8  reserved;
+    U8  type_attr;
+    U16 base1;
+} IDTENTRY;
+typedef struct __attribute__((packed)) {
+    U16 size;
+    IDTENTRY *base;
+} IDTDESCRIPTOR;
 
 typedef struct __attribute__((packed)) {
     U16 base0;

@@ -53,4 +53,5 @@ void ISR_REGISTER_HANDLER(U32 int_no, ISRHandler handler);
 VOID SETUP_ISR_HANDLERS(VOID);
 U0 SETUP_ISRS(U0);
 ISRHandler *ISR_GET_PTR(void);
+
 #endif // ISR_H

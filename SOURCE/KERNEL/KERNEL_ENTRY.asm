@@ -502,6 +502,7 @@ read_done_for_kernel:
     cmp ah, 0
     jne VESA_ERROR1
 
+
     ; BX now has mode + flags
     mov dx, bx
     and dx, 1FFFh          ; keep only bits 0–12 = pure mode number
@@ -657,6 +658,7 @@ PModeMain:
     ; mov ecx, 80*25/2              ; number of dwords to fill (2 chars per dword)
     ; rep stosd
     ; mov dword [0xB8000], ('H' | (0x1A << 8))
+
 
     jmp KERNEL_LOAD_ADDRESS
     hlt    

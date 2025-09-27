@@ -32,6 +32,7 @@ REMARKS
 #include "./IRQ/IRQ.h"
 #include "./ISR/ISR.h"
 
+
 /* called from assembly stub: vector, errcode, pointer-to-saved-regs */
 void isr_dispatch_c(int vector, U32 errcode, regs *regs_ptr);
 void irq_dispatch_c(int irq, U32 errcode, regs *regs_ptr);

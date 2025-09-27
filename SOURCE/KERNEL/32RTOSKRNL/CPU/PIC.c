@@ -2,6 +2,7 @@
 #include "./PIC.h"
 #include "../../../STD/ASM.h"
 
+
 #define PIC1_COMMAND_PORT 0x20
 #define PIC1_DATA_PORT 0x21
 #define PIC2_COMMAND_PORT 0xA0
@@ -91,7 +92,6 @@ void pic_remap(U8 offset1, U8 offset2) {
     _outb(PIC1_DATA_PORT, 0xFF);
     _outb(PIC2_DATA_PORT, 0xFF);
 }
-
 
 
 // uint16_t PIC_ReadIRQRequestRegister() {

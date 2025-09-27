@@ -18,4 +18,5 @@ U32 ATOI_BIN(CONST U8* str);
 U0 *ITOA(S32 value, U8* buffer, U32 base);
 U0 *ITOA_U(U32 value, U8* buffer, U32 base);
 
+
 #endif // STRING_H
