@@ -103,7 +103,6 @@ kernel:
 		$(OUTPUT_KERNEL_DIR)/INTERRUPTS.o \
 		$(OUTPUT_KERNEL_DIR)/ATA_ATAPI.o \
 		$(OUTPUT_KERNEL_DIR)/PIT.o \
-
 		$(OUTPUT_KERNEL_DIR)/PIC.o \
 
 	@echo "KRNL.BIN compiled successfully."

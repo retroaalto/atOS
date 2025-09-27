@@ -34,6 +34,24 @@ U0 *STRNCAT(U8* dest, CONST U8* src, U32 maxlen) {
     if (maxlen) *dest = 0;
     return start;
 }
+U8* STRNCONCAT(U8 *dest, U32 dest_pos, U8 *src, U32 max_len) {
+    if (!dest || !src || dest_pos >= max_len) return dest;
+
+    U32 i = dest_pos;
+    U32 j = 0;
+
+    while (i < max_len && src[j] != '\0') {
+        dest[i++] = src[j++];
+    }
+
+    dest[i] = '\0';
+
+    while(i < max_len) {
+        dest[i++] = '\0';
+    }
+
+    return dest;
+}
 BOOLEAN STRCMP(CONST U8* str1, CONST U8* str2) {
     while (*str1 && (*str1 == *str2)) {
         str1++;

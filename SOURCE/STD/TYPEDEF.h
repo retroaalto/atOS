@@ -52,6 +52,8 @@ typedef float         F32;
 
 #define CHAR         U8
 #define UCHAR        unsigned char
+#define CHARPTR      CHAR*
+#define STRING       CHAR*
 #define SHORT        I16
 #define USHORT       U16
 #define INT          I32

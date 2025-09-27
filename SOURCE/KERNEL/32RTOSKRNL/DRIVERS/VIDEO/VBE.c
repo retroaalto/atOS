@@ -1053,21 +1053,6 @@ BOOLEAN VBE_DRAW_STRING(U32 x, U32 y, const char* str, VBE_PIXEL_COLOUR fg, VBE_
     return TRUE;
 }
 
-U32 strlen(const char* str) {
-    U32 length = 0;
-    while (str[length] != '\0') {
-        length++;
-    }
-    return length;
-}
-
-BOOLEAN VBE_DRAW_STRING(U32 x, U32 y, const char* str, VBE_PIXEL_COLOUR fg, VBE_PIXEL_COLOUR bg) {
-    U32 length = strlen(str);
-    for (U32 i = 0; i < length; i++) {
-        VBE_DRAW_CHARACTER(x + i * VBE_CHAR_WIDTH, y, str[i], fg, bg);
-    }
-    return TRUE;
-}
 
 BOOLEAN VBE_FLUSH_SCREEN(U0) {
     VBE_CLEAR_SCREEN(VBE_BLACK);
@@ -1236,7 +1221,6 @@ BOOLEAN VBE_DRAW_LINE(U32 x0_in, U32 y0_in, U32 x1_in, U32 y1_in, VBE_PIXEL_COLO
 
     return TRUE;
 }
-#include "../../../STD/ASM.h"
 BOOLEAN VBE_CLEAR_SCREEN(VBE_PIXEL_COLOUR colour) {
     VBE_MODE* mode = GET_VBE_MODE();
     if (!mode) return FALSE;

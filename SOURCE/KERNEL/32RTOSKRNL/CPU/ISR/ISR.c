@@ -105,7 +105,7 @@ VOID SETUP_ISR_HANDLERS(VOID) {
         } else if(i >= 32 && i < 48) {
             ISR_REGISTER_HANDLER(i, irq_common_handler); // No default handler
         } else {
-            ISR_REGISTER_HANDLER(i, handlers[1]); // Reserved / unused
+            ISR_REGISTER_HANDLER(i, isr_common_handler); // Reserved / unused
         }
     }
 }
