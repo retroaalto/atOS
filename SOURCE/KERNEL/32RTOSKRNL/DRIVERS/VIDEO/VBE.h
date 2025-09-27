@@ -34,7 +34,7 @@ FUNCTIONS
     BOOL vbe_check(...);                    // Checks VBE compatibility
     BOOLEAN VBE_DRAW_CHARACTER(...);        // Draws a character on the screen
     BOOLEAN VBE_DRAW_STRING(...);           // Draws a string on the screen
-    U0 UPDATE_VRAM(...);                    // Updates the video RAM
+    U0 VBE_UPDATE_VRAM(...);                    // Updates the video RAM
     U0 VBE_STOP_DRAWING(...);               // Updates the video RAM
     BOOLEAN VBE_CLEAR_SCREEN(...);          // Clears the screen with given colour
     BOOLEAN VBE_FLUSH_SCREEN(...);          // Clears screen with black
@@ -51,8 +51,8 @@ FUNCTIONS
 
 #include "./VESA.h"
 
-#define VBE_MODE_OFFSET VESA_LOAD_ADDRESS_PHYS + VESA_CTRL_SIZE
-#define VBE_MODE_LOAD_ADDRESS_PHYS VBE_MODE_OFFSET
+#define VBE_MODE_OFFSET (VESA_LOAD_ADDRESS_PHYS + VESA_CTRL_SIZE)
+#define VBE_MODE_LOAD_ADDRESS_PHYS (VBE_MODE_OFFSET)
 #define VBE_MODE_SIZE 256
 
 
@@ -341,7 +341,7 @@ REMARKS
 BOOLEAN VBE_DRAW_STRING(U32 x, U32 y, const char* str, VBE_PIXEL_COLOUR fg, VBE_PIXEL_COLOUR bg);
 
 /*+++
-U0 UPDATE_VRAM(U0);
+U0 VBE_UPDATE_VRAM(U0);
 
 DESCRIPTION
     Updates the VRAM by copying the contents of the framebuffer to the physical
@@ -360,7 +360,7 @@ REVISION HISTORY
 REMARKS
     This function is called to refresh the screen contents.
 ---*/
-U0 UPDATE_VRAM(U0);
+U0 VBE_UPDATE_VRAM(U0);
 
 
 /*+++

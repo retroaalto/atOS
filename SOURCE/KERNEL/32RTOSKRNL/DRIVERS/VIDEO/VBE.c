@@ -1034,12 +1034,21 @@ BOOL vbe_check(U0) {
     if (mode->XResolution < SCREEN_WIDTH || mode->YResolution < SCREEN_HEIGHT) {
         return FALSE;
     }
-    for(U32 i = 0; i < 2; i++) {
-        if(i % 2 == 0)
-            VBE_CLEAR_SCREEN(VBE_GREEN);
-        else
-            VBE_CLEAR_SCREEN(VBE_BLACK);
-        VBE_STOP_DRAWING();
+    return TRUE;
+}
+
+U32 strlen(const char* str) {
+    U32 length = 0;
+    while (str[length] != '\0') {
+        length++;
+    }
+    return length;
+}
+
+BOOLEAN VBE_DRAW_STRING(U32 x, U32 y, const char* str, VBE_PIXEL_COLOUR fg, VBE_PIXEL_COLOUR bg) {
+    U32 length = strlen(str);
+    for (U32 i = 0; i < length; i++) {
+        VBE_DRAW_CHARACTER(x + i * VBE_CHAR_WIDTH, y, str[i], fg, bg);
     }
     return TRUE;
 }
@@ -1062,12 +1071,12 @@ BOOLEAN VBE_DRAW_STRING(U32 x, U32 y, const char* str, VBE_PIXEL_COLOUR fg, VBE_
 
 BOOLEAN VBE_FLUSH_SCREEN(U0) {
     VBE_CLEAR_SCREEN(VBE_BLACK);
-    UPDATE_VRAM();
+    VBE_UPDATE_VRAM();
     return TRUE;
 }
 
 
-U0 UPDATE_VRAM(U0) {
+U0 VBE_UPDATE_VRAM(U0) {
     VBE_MODE* mode = GET_VBE_MODE();
     if (!mode) return;
 
@@ -1079,7 +1088,7 @@ U0 UPDATE_VRAM(U0) {
 }
 
 U0 VBE_STOP_DRAWING(U0) {
-    UPDATE_VRAM();
+    VBE_UPDATE_VRAM();
 }
 
 BOOLEAN VBE_DRAW_FRAMEBUFFER(U32 pos, VBE_PIXEL_COLOUR colour) {
@@ -1088,53 +1097,53 @@ BOOLEAN VBE_DRAW_FRAMEBUFFER(U32 pos, VBE_PIXEL_COLOUR colour) {
     if(colour == VBE_SEE_THROUGH) return TRUE;
 
     if (!framebuffer || !mode) return FALSE;
-
     U32 bytes_per_pixel = (mode->BitsPerPixel + 7) / 8;
     if (pos + bytes_per_pixel > mode->BytesPerScanLineLinear * mode->YResolution) return FALSE;
     if (pos + bytes_per_pixel > FRAMEBUFFER_SIZE) return FALSE; // RAM framebuffer bounds
-
+    
     switch (bytes_per_pixel) {
         case 1:
             framebuffer[pos] = (U8)(colour & 0xFF);
             break;
-
+        
         case 2: {
             U16 val16 = (U16)colour;
             framebuffer[pos + 0] = (U8)(val16 & 0xFF);
             framebuffer[pos + 1] = (U8)((val16 >> 8) & 0xFF);
             break;
         }
-
+        
         case 3:
             framebuffer[pos + 0] = (U8)(colour & 0xFF);
             framebuffer[pos + 1] = (U8)((colour >> 8) & 0xFF);
             framebuffer[pos + 2] = (U8)((colour >> 16) & 0xFF);
             break;
-
+            
         case 4:
             framebuffer[pos + 0] = (U8)(colour & 0xFF);
             framebuffer[pos + 1] = (U8)((colour >> 8) & 0xFF);
             framebuffer[pos + 2] = (U8)((colour >> 16) & 0xFF);
             framebuffer[pos + 3] = (U8)((colour >> 24) & 0xFF);
             break;
-
+        
         default:
             return FALSE;
     }
-
+    
     return TRUE;
 }
 
 BOOLEAN VBE_DRAW_PIXEL(VBE_PIXEL_INFO pixel_info) {
+    
     VBE_MODE* mode = (VBE_MODE*)(VBE_MODE_LOAD_ADDRESS_PHYS);
     if (!mode) return FALSE;
-
+    
     if ((I32)pixel_info.X < 0 || (I32)pixel_info.Y < 0) return FALSE;
     if ((U32)pixel_info.X >= SCREEN_WIDTH || (U32)pixel_info.Y >= SCREEN_HEIGHT) return FALSE;
-
+    
     U32 bytes_per_pixel = (mode->BitsPerPixel + 7) / 8;
     U32 pos = (pixel_info.Y * mode->BytesPerScanLineLinear) + (pixel_info.X * bytes_per_pixel);
-
+    
     return VBE_DRAW_FRAMEBUFFER(pos, pixel_info.Colour);
 }
 
@@ -1184,7 +1193,6 @@ BOOLEAN VBE_DRAW_ELLIPSE(U32 x0, U32 y0, U32 a, U32 b, VBE_PIXEL_COLOUR fill_col
 
     return TRUE;
 }
-
 BOOLEAN VBE_DRAW_LINE(U32 x0_in, U32 y0_in, U32 x1_in, U32 y1_in, VBE_PIXEL_COLOUR colour) {
     I32 x0 = (I32)x0_in;
     I32 y0 = (I32)y0_in;
@@ -1196,26 +1204,25 @@ BOOLEAN VBE_DRAW_LINE(U32 x0_in, U32 y0_in, U32 x1_in, U32 y1_in, VBE_PIXEL_COLO
     I32 dy = -abs(y1 - y0);
     I32 sy = (y0 < y1) ? 1 : -1;
     I32 err = dx + dy;  // error term
-
+    
     // safety: upper-bound on iterations to avoid infinite loops while debugging
     I32 max_iters = dx + abs(dy) + 4;
     if (max_iters < 0) max_iters = FRAMEBUFFER_SIZE; // paranoid fallback. Loops should not exceed framebuffer size
     I32 iters = 0;
-
+    
     while (1) {
         // draw only when inside the screen bounds (VBE_DRAW_PIXEL already checks, but
         // avoiding the call can be a tiny speedup)
         if ((U32)x0 < SCREEN_WIDTH && (U32)y0 < SCREEN_HEIGHT) {
             VBE_DRAW_PIXEL(CREATE_VBE_PIXEL_INFO((U32)x0, (U32)y0, colour));
         }
-
+        
         if (x0 == x1 && y0 == y1) break;
-
         if (++iters > max_iters) {
             // something went wrong — bail out to avoid hang
             return FALSE;
         }
-
+        
         I32 e2 = 2 * err;
         if (e2 >= dy) {
             err += dy;
@@ -1229,16 +1236,15 @@ BOOLEAN VBE_DRAW_LINE(U32 x0_in, U32 y0_in, U32 x1_in, U32 y1_in, VBE_PIXEL_COLO
 
     return TRUE;
 }
-
+#include "../../../STD/ASM.h"
 BOOLEAN VBE_CLEAR_SCREEN(VBE_PIXEL_COLOUR colour) {
     VBE_MODE* mode = GET_VBE_MODE();
     if (!mode) return FALSE;
-
     U32 bytes_per_pixel = (mode->BitsPerPixel + 7) / 8;
     U32 total_bytes = mode->BytesPerScanLineLinear * mode->YResolution;
     U32 total_pixels = total_bytes / bytes_per_pixel;
     U32 pos = 0;
-
+    
     for (U32 i = 0; i < total_pixels; i++) {
         if (!VBE_DRAW_FRAMEBUFFER(pos, colour)) {
             return FALSE;
@@ -1273,13 +1279,13 @@ BOOLEAN VBE_DRAW_TRIANGLE(U32 x1, U32 y1, U32 x2, U32 y2, U32 x3, U32 y3, VBE_PI
     return TRUE;
 }
 
-#include <stddef.h> /* for NULL if needed */
+// #include <stddef.h> /* for NULL if needed */
 
 /* assume these types/macros exist in your codebase */
-#ifndef TRUE
-#define TRUE  1
-#define FALSE 0
-#endif
+// #ifndef TRUE
+// #define TRUE  1
+// #define FALSE 0
+// #endif
 
 /* prototypes already exist in your codebase:
    BOOLEAN VBE_DRAW_PIXEL(VBE_PIXEL_INFO pixel_info);

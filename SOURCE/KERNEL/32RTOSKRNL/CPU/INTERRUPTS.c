@@ -5,86 +5,54 @@ typedef void (*isr_t)(void);
 
 
 // Define IRQ wrappers 32..47 (we will create generic wrappers)
-#define IRQ_WRAPPER(n) \
-__attribute__((naked)) void irq##n(void) { \
-    asm volatile( \
-        "cli\n\t" \
-        "pusha\n\t" \
-        "pushl $" #n "\n\t" /* vector */ \
-        "pushl $0\n\t"       /* fake error code for uniformity */ \
-        "call irq_common_stub\n\t" \
-        "addl $8, %%esp\n\t" \
-        "popa\n\t" \
-        "sti\n\t" \
-        "iret\n\t" \
-        : : : "memory"); \
-}
-
-// ISR without error code
+// Exceptions without CPU error code
 #define ISR_NOERRORCODE(n) \
 __attribute__((naked)) void isr##n(void) { \
     asm volatile( \
-        "cli\n\t" \
-        "pusha\n\t" \
-        "pushl $" #n "\n\t" /* vector */ \
-        "pushl $0\n\t"       /* fake error code */ \
-        "call isr_common_stub\n\t" \
-        "addl $8, %%esp\n\t" \
+        "pusha\n\t"                    /* save regs */ \
+        "movl %%esp, %%ecx\n\t"          /* regs_ptr = start of pusha frame */ \
+        "pushl %%ecx\n\t"               /* regs_ptr (3rd) */ \
+        "pushl $0\n\t"                 /* errcode (2nd) */ \
+        "pushl $" #n "\n\t"            /* vector  (1st) */ \
+        "call isr_dispatch_c\n\t" \
+        "addl $12, %%esp\n\t"           /* pop args */ \
         "popa\n\t" \
-        "sti\n\t" \
-        "iret\n\t" \
-        : : : "memory"); \
+        "iret\n\t" ::: "memory"); \
 }
 
-// ISR with CPU error code
+// Exceptions with CPU error code (e.g., 0x0E page fault)
+// After pusha, CPU error code is at [esp+32]
 #define ISR_ERRORCODE(n) \
 __attribute__((naked)) void isr##n(void) { \
     asm volatile( \
-        "cli\n\t" \
         "pusha\n\t" \
-        "pushl $" #n "\n\t" /* vector */ \
-        "call isr_common_stub\n\t" \
-        "addl $8, %%esp\n\t" \
+        "movl 32(%%esp), %%edx\n\t"      /* edx = CPU error code (read BEFORE more pushes) */ \
+        "movl %%esp, %%ecx\n\t"          /* regs_ptr = start of pusha frame */ \
+        "pushl %%ecx\n\t"               /* regs_ptr (3rd) */ \
+        "pushl %%edx\n\t"               /* errcode  (2nd) */ \
+        "pushl $" #n "\n\t"            /* vector   (1st) */ \
+        "call isr_dispatch_c\n\t" \
+        "addl $12, %%esp\n\t" \
         "popa\n\t" \
-        "sti\n\t" \
-        "iret\n\t" \
-        : : : "memory"); \
+        "iret\n\t" ::: "memory"); \
 }
 
-__attribute__((naked)) void isr_common_stub(void) {
-    asm volatile(
-        "pushl %ebp\n\t"
-        "movl %esp, %ebp\n\t"
-        // Arguments for C handler: vector = [ebp+36], error_code = [ebp+32], regs = [ebp+16]
-        "leal 16(%ebp), %ecx\n\t"   /* regs_t* */ 
-        "movl 32(%ebp), %edx\n\t"   /* error code */ 
-        "movl 36(%ebp), %eax\n\t"   /* vector */ 
-        "pushl %ecx\n\t"
-        "pushl %edx\n\t"
-        "pushl %eax\n\t"
-        "call isr_dispatch_c\n\t"
-        "addl $12, %esp\n\t"
-        "popl %ebp\n\t"
-        "ret\n\t"
-    );
+// IRQ wrappers (vectors 0x20..0x2F). Pass VECTOR to C.
+#define IRQ_WRAPPER(vec) \
+__attribute__((naked)) void irq##vec(void) { \
+    asm volatile( \
+        "pusha\n\t" \
+        "movl %%esp, %%ecx\n\t"          /* regs_ptr = start of pusha frame */ \
+        "pushl %%ecx\n\t"               /* regs_ptr (3rd) */ \
+        "pushl $0\n\t"                 /* errcode  (2nd) */ \
+        "pushl $" #vec "\n\t"          /* vector   (1st) */ \
+        "call irq_dispatch_c\n\t" \
+        "addl $12, %%esp\n\t" \
+        "popa\n\t" \
+        "iret\n\t" ::: "memory"); \
 }
 
-// IRQ common stub
-__attribute__((naked)) void irq_common_stub(void) {
-    asm volatile(
-        "pushl %ebp\n\t"
-        "movl %esp, %ebp\n\t"
-        "leal 16(%ebp), %ecx\n\t" /* regs_t* */
-        "movl 32(%ebp), %eax\n\t" /* vector/IRQ number */
-        "pushl %ecx\n\t"
-        "pushl $0\n\t"           /* fake error code */ 
-        "pushl %eax\n\t"
-        "call irq_dispatch_c\n\t"
-        "addl $12, %esp\n\t"
-        "popl %ebp\n\t"
-        "ret\n\t"
-    );
-}
+
 
 // ----------------------------------------------------
 // Generate stubs
@@ -98,22 +66,7 @@ ISR_NOERRORCODE(4)
 ISR_NOERRORCODE(5)
 ISR_NOERRORCODE(6)
 ISR_NOERRORCODE(7)
-
-__attribute__((naked)) void isr8(void) {
-    asm volatile(
-        "cli\n\t"
-        // "movl %[stack_top], %%esp\n\t"
-        // "pusha\n\t"
-        // "pushl $8\n\t"
-        // "call isr_common_stub\n\t"
-        "hlt\n\t"
-        // :
-        // : [stack_top] "r" (&df_stack[DF_STACK_SIZE])
-        // : "memory"
-    );
-}
-
-
+ISR_ERRORCODE(8)
 ISR_NOERRORCODE(9)
 ISR_ERRORCODE(10)
 ISR_ERRORCODE(11)
@@ -158,6 +111,3 @@ IRQ_WRAPPER(47)
 
 // All remaining vectors
 ISR_NOERRORCODE(48)
-ISR_NOERRORCODE(49)
-ISR_NOERRORCODE(50)
-ISR_NOERRORCODE(51)

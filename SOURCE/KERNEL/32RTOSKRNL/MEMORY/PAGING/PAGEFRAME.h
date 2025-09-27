@@ -1,0 +1,8 @@
+#ifndef PAGEFRAME_H
+#define PAGEFRAME_H
+
+#include <STD/TYPEDEF.h>
+
+BOOLEAN PAGEFRAME_INIT();
+
+#endif // PAGEFRAME_H

@@ -21,64 +21,51 @@ REMARKS
 #include "../IDT/IDT.h"
 #include "../../../../STD/ASM.h"
 #include "../INTERRUPTS.h"
-#include "../../DRIVERS/VIDEO/VBE.h"
 #include "../PIC.h"
+#include "../../DRIVERS/PIT/PIT.h"
 
-static ISRHandler g_Handlers[IDT_COUNT];
 
+static ISRHandler g_Handlers[IDT_COUNT] = { 0 };
+
+ISRHandler *ISR_GET_PTR(void) {
+    return g_Handlers;
+}
 
 // This is the c-level exception handler
 void isr_common_handler(I32 num, U32 errcode) {
     (void)errcode; (void)num;
-    // for (;;) 
-        // __asm__ volatile(
-            // "cli\n\t"
-            // "hlt\n\t"
-        // );
+    HLT;
 }
 
 void double_fault_handler(I32 num, U32 errcode) {
     (void)errcode; (void)num;
-    for (;;) 
-        __asm__ volatile(
-            "cli\n\t"
-            "hlt\n\t"
-        );
+    HLT;
 }
 
 
-void irq_common_handler(I32 num, U32 errcode) {
-    (void)errcode; // Not used
-    if(num >= 32 && num < 48) {
-        if(g_Handlers[num]) {
-            g_Handlers[num](num, errcode);
-        }
-        pic_send_eoi(num - 32);
-    }
+void irq_common_handler(I32 vector, U32 errcode) {
+    (void)errcode;
+    if (g_Handlers[vector]) g_Handlers[vector](vector, 0);
+    int irq = vector - PIC_REMAP_OFFSET; // 0x20
+    if ((unsigned)irq < 16) pic_send_eoi(irq);
+
 }
+
 
 
 // This function is called from assembly
 void isr_dispatch_c(int vector, U32 errcode, regs *regs_ptr) {
     (void)regs_ptr;
-
-    // For CPU exceptions (0-31) call isr_common_handler
-    switch (vector)
-    {
-    case 8: double_fault_handler(vector, errcode); break;
-    case 32: timer_handler(vector, errcode); break;
-    }
-    if (vector >= 32 && vector < 48) {
-        irq_common_handler(vector, errcode);
-    } else {
-        isr_common_handler(vector, errcode);
+    if(g_Handlers[vector]) {
+        g_Handlers[vector](vector, errcode);
+        return;
     }
 }
 
-void irq_dispatch_c(int irq, U32 errcode, regs *regs_ptr) {
+void irq_dispatch_c(int vector, U32 errcode, regs *regs_ptr) {
     (void)regs_ptr;
-    irq += PIC_REMAP_OFFSET;
-    irq_common_handler(irq, errcode);
+    irq_common_handler(vector, errcode);
+
 }
 
 
@@ -87,6 +74,7 @@ void ISR_REGISTER_HANDLER(U32 int_no, ISRHandler handler) {
         g_Handlers[int_no] = handler;
     }
 }
+
 U0 SETUP_ISRS(U0) {
     U16 cs = 0x08; // code selector
     U8 flags = 0x8E; // present, ring0, 32-bit interrupt gate
@@ -100,33 +88,22 @@ U0 SETUP_ISRS(U0) {
         isr48
     };
     for(U32 i = 0; i < IDT_COUNT; i++) {
-        if(i < 48)
-            idt_set_gate(i, (U0*)isr[i], cs, flags);
-        else
-            idt_set_gate(i, (U0*)isr[49], cs, flags); // point to isr48 for now
+        if (i < 49) idt_set_gate(i, isr[i], cs, flags);
+        else        idt_set_gate(i, isr[48], cs, flags);
     }
 }
-
 VOID SETUP_ISR_HANDLERS(VOID) {
-    void *handlers[4] = {
-        double_fault_handler,
-        isr_common_handler,
-        timer_handler,
-        irq_common_handler
-    };
     for(int i = 0; i < IDT_COUNT; i++) {
         if(i < 32) {
-            if(i == 8) {
-                ISR_REGISTER_HANDLER(i, handlers[0]);
-            } else {
-                ISR_REGISTER_HANDLER(i, handlers[1]); // CPU exceptions
+            switch(i) {
+                case 8:
+                    ISR_REGISTER_HANDLER(i, double_fault_handler);
+                    break;
+                default:
+                    ISR_REGISTER_HANDLER(i, isr_common_handler); // CPU exceptions
             }
         } else if(i >= 32 && i < 48) {
-            if(i == 32) {
-                ISR_REGISTER_HANDLER(i, handlers[2]);
-            } else {
-                ISR_REGISTER_HANDLER(i, handlers[3]);
-            }
+            ISR_REGISTER_HANDLER(i, irq_common_handler); // No default handler
         } else {
             ISR_REGISTER_HANDLER(i, handlers[1]); // Reserved / unused
         }

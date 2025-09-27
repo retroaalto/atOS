@@ -31,8 +31,12 @@ REMARKS
 #define WRITABLE_RNG0_KRNL 0x92
 #define GRANULARITY 0xCF
 
-static GDTENTRY g_GDT[GDT_ENTRY_COUNT];
-static GDTDESCRIPTOR g_GDTDescriptor;
+static GDTENTRY g_GDT[GDT_ENTRY_COUNT] = { 0 };
+static GDTDESCRIPTOR g_GDTDescriptor = { 0 };
+
+GDTDESCRIPTOR *GDT_GET_PTR(void) {
+    return (U0 *)&g_GDTDescriptor;
+}
 
 void gdt_set_gate(U32 num, U32 base, U32 limit, U8 access, U8 gran) {
     g_GDT[num].base0       = base & 0xFFFF;

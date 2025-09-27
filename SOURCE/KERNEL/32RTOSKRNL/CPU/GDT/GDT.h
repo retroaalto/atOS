@@ -1,8 +1,7 @@
 #ifndef GDT_H
 #define GDT_H
 
-#include "../../../../STD/ATOSMINDEF.h"
-#include "../../MEMORY/MEMORY.h"
+#include "../../../../STD/TYPEDEF.h"
 
 #define KCODE_SEL 0x08
 #define KDATA_SEL 0x10
@@ -20,4 +19,5 @@ typedef struct __attribute__((packed)) {
     U32 base;
 } GDTDESCRIPTOR;
 U0 GDT_INIT(U0);
+GDTDESCRIPTOR *GDT_GET_PTR(void);
 #endif

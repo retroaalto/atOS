@@ -1,1 +1,0 @@
-// When compiling, include VIDEODRIVER.c, VBE.c, and VESA.c

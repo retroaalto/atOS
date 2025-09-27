@@ -23,8 +23,7 @@ REMARKS
 #define IRQ_H
 
 #include "../../../../STD/ASM.h"
-#include "../../../../STD/ATOSMINDEF.h"
-#include "../../MEMORY/MEMORY.h"
+#include "../../../../STD/TYPEDEF.h"
 #include "../ISR/ISR.h"
 
 

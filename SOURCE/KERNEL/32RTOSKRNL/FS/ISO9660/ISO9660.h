@@ -1,7 +1,7 @@
 #ifndef ISO9660_H
 #define ISO9660_H
 
-#include "../../../STD/ATOSMINDEF.h"
+#include "../../../STD/TYPEDEF.h"
 #include "../../DRIVERS/DISK/ATA_ATAPI.h"
 
 #define ISO9660_SECTOR_SIZE 2048

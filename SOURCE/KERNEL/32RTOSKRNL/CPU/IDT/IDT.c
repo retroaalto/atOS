@@ -4,21 +4,15 @@
 #include "../INTERRUPTS.h"
 #include "../../../../STD/BINARY.h"
 
-#define IDT_MEM_BASE MEM_IDT_BASE
-#define IDT_MEM_END MEM_IDT_END
-#define IDT_MEM_SIZE (IDT_MEM_END - IDT_MEM_BASE)
-#if IDT_MEM_SIZE % 8 != 0
-#error "IDT memory region size must be a multiple of 8 bytes"
-#endif
 #define IDT_COUNT 256
 
 
+static IDTENTRY idt[IDT_COUNT] = { 0 };
+static IDTDESCRIPTOR idt_desc = { 0 };
 
-
-
-static IDTENTRY idt[IDT_COUNT];
-static IDTDESCRIPTOR idt_desc;
-
+IDTDESCRIPTOR *IDT_GET_PTR(void) {
+    return &idt_desc;
+}
 
 void idt_set_gate(U32 index, U0* handler, U16 sel, U8 flags) {
     idt[index].base0   = (U32)handler & 0xFFFF;

@@ -6,7 +6,7 @@ ENTRY(kernel_entry_main)
 SECTIONS
 {
     /* Kernel load address in memory */
-    . = 0x20000;
+    . = 0x7000;
 
     /* Code section */
     .text : {

@@ -19,51 +19,39 @@ REMARKS
 ---*/
 #ifndef ISR_H
 #define ISR_H
-#include "../../../../STD/ATOSMINDEF.h"
-#include "../../MEMORY/MEMORY.h"
+#include "../../../../STD/TYPEDEF.h"
 
 #define IDT_COUNT 256
 
-typedef struct {
-    // pushed by pusha
-    U32 edi;
-    U32 esi;
-    U32 ebp;
-    U32 esp_dummy; // original esp at pusha time
-    U32 ebx;
-    U32 edx;
-    U32 ecx;
+typedef struct regs {
     U32 eax;
+    U32 ecx;
+    U32 edx;
+    U32 ebx;
+    U32 esp;   /* original ESP pushed by pusha */
+    U32 ebp;
+    U32 esi;
+    U32 edi;
 
-    // pushed manually by our ISR wrapper
-    U32 vector;     // interrupt vector number
-    U32 error_code; // or fake 0
-
-    // pushed automatically by the CPU
-    U32 eip;
+    U32 eip;   /* pushed by CPU on interrupt entry */
     U32 cs;
     U32 eflags;
-    // Only if privilege level change:
-    U32 useresp;
-    U32 ss;
+
+    /* For exceptions with error code, CPU pushes it here */
+    U32 err_code;   /* only valid for some exceptions */
 } regs;
+
 
 
 // void tss_init(void);
 // #define DF_STACK_SIZE 0x4000
 // extern U8 df_stack[DF_STACK_SIZE];
 
-// typedef void (*ISRHandler)(struct regs* r);
-// typedef void (*IRQHandler)(struct regs* r);
 typedef U0 (*ISRHandler)(I32 num, U32 errcode);
-typedef U0 (*IRQHandler)(I32 num, U32 errcode);
 
 void ISR_REGISTER_HANDLER(U32 int_no, ISRHandler handler);
-
 VOID SETUP_ISR_HANDLERS(VOID);
 U0 SETUP_ISRS(U0);
-
-void timer_handler(I32 num, U32 errcode);
-void pit_set_frequency(U32 freq);
+ISRHandler *ISR_GET_PTR(void);
 
 #endif // ISR_H

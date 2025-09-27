@@ -1,7 +1,7 @@
 #ifndef STD_ASM_H
 #define STD_ASM_H
 
-#include "./ATOSMINDEF.h"
+#include "./TYPEDEF.h"
 
 #define ASM_VOLATILE(...) \
     __asm__ volatile(__VA_ARGS__)
@@ -10,73 +10,90 @@
 #define LN "\n\t"
 #define ASL(line) line LN
 
+#define HALT ASM_VOLATILE("hlt")
+#define NOP ASM_VOLATILE("nop")
+#define CLI ASM_VOLATILE("cli")
+#define STI ASM_VOLATILE("sti")
+
 /* 
  * Port I/O macros (legacy, kept for compatibility)
  */
 
-// Input from port
-#define inb(port, var) \
-    do { \
-        ASM_VOLATILE("inb %1, %0" \
-            : "=a"(var) \
-            : "Nd"((U32)(port))); \
-    } while (0)
 
-#define inw(port, var) \
-    do { \
-        ASM_VOLATILE("inw %1, %0" \
-            : "=a"(var) \
-            : "Nd"((U32)(port))); \
-    } while (0)
+// Single, canonical helpers (drop the macro variants)
 
-#define inl(port, var) \
-    do { \
-        ASM_VOLATILE("inl %1, %0" \
-            : "=a"(var) \
-            : "Nd"((U32)(port))); \
-    } while (0)
+static inline void _io_wait(void) {
+    unsigned char dummy;
+    asm volatile ("inb $0x80, %0"
+                  : "=a"(dummy)
+                  : 
+                  : "memory");
+}
 
-// Output to port
-#define outb(port, value) \
-    do { \
-        ASM_VOLATILE("outb %b0, %w1" \
-            : : "a"((U8)(value)), "Nd"((U32)(port))); \
-    } while (0)
+static inline unsigned char _inb(unsigned short port) {
+    unsigned char v;
+    asm volatile ("inb %1, %0"
+                  : "=a"(v)
+                  : "Nd"(port)
+                  : "memory");
+    return v;
+}
 
-#define outw(port, value) \
-    do { \
-        ASM_VOLATILE("outw %w0, %w1" \
-            : : "a"((U16)(value)), "Nd"((U32)(port)) : "memory"); \
-    } while (0)
+static inline void _outb(unsigned short port, unsigned char val) {
+    asm volatile ("outb %0, %1"
+                  :
+                  : "a"(val), "Nd"(port)
+                  : "memory");
+}
 
-#define outl(port, value) \
-    do { \
-        ASM_VOLATILE("outl %0, %w1" \
-            : : "a"((U32)(value)), "Nd"((U32)(port)) : "memory"); \
-    } while (0)
+static inline unsigned short _inw(unsigned short port) {
+    unsigned short v;
+    asm volatile ("inw %1, %0"
+                  : "=a"(v)
+                  : "Nd"(port)
+                  : "memory");
+    return v;
+}
 
-// Block I/O (string ops)
-#define insw(port, buffer, count) \
-    do { \
-        ASM_VOLATILE("cld; rep insw" \
-            : "+D"(buffer), "+c"(count) \
-            : "d"(port) \
-            : "memory"); \
-    } while (0)
+static inline void _outw(unsigned short port, unsigned short val) {
+    asm volatile ("outw %0, %1"
+                  :
+                  : "a"(val), "Nd"(port)
+                  : "memory");
+}
 
-#define outsw(port, buffer, count) \
-    do { \
-        ASM_VOLATILE("cld; rep outsw" \
-            : "+S"(buffer), "+c"(count) \
-            : "d"(port) \
-            : "memory"); \
-    } while (0)
+static inline unsigned int _inl(unsigned short port) {
+    unsigned int v;
+    asm volatile ("inl %1, %0"
+                  : "=a"(v)
+                  : "Nd"(port)
+                  : "memory");
+    return v;
+}
 
-// Small delay (I/O wait)
-#define io_wait() \
-    do { \
-        ASM_VOLATILE("outb %%al, $0x80" : : "a"(0)); \
-    } while (0)
+static inline void _outl(unsigned short port, unsigned int val) {
+    asm volatile ("outl %0, %1"
+                  :
+                  : "a"(val), "Nd"(port)
+                  : "memory");
+}
+
+// Read `count` 16-bit words from port into buffer
+static inline void _insw(unsigned short port, void *buffer, unsigned int count) {
+    asm volatile ("cld; rep insw"
+                  : "+D"(buffer), "+c"(count)
+                  : "d"(port)
+                  : "memory");
+}
+
+// Write `count` 16-bit words from buffer to port
+static inline void _outsw(unsigned short port, const void *buffer, unsigned int count) {
+    asm volatile ("cld; rep outsw"
+                  : "+S"(buffer), "+c"(count)
+                  : "d"(port)
+                  : "memory");
+}
+
 
 /* 
  * Inline functions version (returns values or takes parameters)

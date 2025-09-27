@@ -34,10 +34,10 @@
 %define KERNEL_OUTPUT_VAR 0xE800
 
 KERNEL_LOAD_SEGMENT equ 0x0000
-KERNEL_LOAD_OFFSET  equ 0x1000
+KERNEL_LOAD_OFFSET  equ 0x2000
 
-%define BUFFER_SEGMENT 0x0000
-%define BUFFER_OFFSET  0x1000
+%define BUFFER_SEGMENT KERNEL_LOAD_SEGMENT
+%define BUFFER_OFFSET  KERNEL_LOAD_OFFSET
 
 %define KERNEL_LEN 12
 
@@ -245,9 +245,6 @@ start:
     .main_loop_end:
     jmp bootend
 bootend:
-    mov ax, 0xb800
-    mov es, ax
-    mov word [es:0x0000], 0x1A<<8 | 'A'
 
     ; extentLocationLE_LBA contains lba kernel
     ; extentLengthLE contains data length for root
@@ -269,6 +266,10 @@ bootend:
     mov es, ax
     mov bx, ax
     mov dl, [drive_number]
+    mov ax, 0xb800
+    mov es, ax
+    mov word [es:0x0000], 0x1A<<8 | 'A'
+
     jmp KERNEL_LOAD_SEGMENT:KERNEL_LOAD_OFFSET    ; Jump to kernel
 
 
@@ -419,5 +420,3 @@ dap:
 ; Align boot sector
 times 510-($-$$) db 0
 dw 0xAA55
-
-buffer:

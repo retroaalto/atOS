@@ -36,7 +36,9 @@ DAP:
     dw 0x0000         ; Buffer segment (DX)
     dd 0x00000000     ; LBA low 32 bits
     dd 0x0000         ; LBA high 16 bits
+    ; dd 0x0000
 
+DAP_SIZE equ $ - DAP
 
 ; ----------------------------------------
 ; String Constants

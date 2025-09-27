@@ -11,7 +11,7 @@
 //  *    will write into it. Otherwise implement the extern symbols in your IDT module.
 //  */
 
-// #include "../../../../STD/ATOSMINDEF.h"
+// #include "../../../../STD/TYPEDEF.h"
 // #include <string.h> /* for memset */
 
 // /* -------------------------------------------------------------------------- */

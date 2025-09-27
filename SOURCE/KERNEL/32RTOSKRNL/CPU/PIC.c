@@ -1,6 +1,7 @@
 #include "./INTERRUPTS.h"
 #include "./PIC.h"
-#include <ASM.h>
+#include "../../../STD/ASM.h"
+
 
 #define PIC1_COMMAND_PORT 0x20
 #define PIC1_DATA_PORT 0x21
@@ -37,70 +38,61 @@ enum {
 //     _outb(PIC2_DATA_PORT, 0xFF);
 // }
 
-// void PIC_Mask(int irq) {
-//     uint8_t port;
-
-//     if (irq < 8) {
-//         port = PIC1_DATA_PORT;
-//     }
-//     else {
-//         irq -= 8;
-//         port = PIC2_DATA_PORT;
-//     }
-//     uint8_t mask = _inb(PIC1_DATA_PORT);
-//     _outb(PIC1_DATA_PORT, mask | (1 << irq));
-// }
+void PIC_Mask(int irq) {
+    if(irq < 8) {
+        U8 mask = _inb(PIC1_DATA_PORT);
+        _outb(PIC1_DATA_PORT, mask | (1 << irq));
+    } else {
+        U8 mask = _inb(PIC2_DATA_PORT);
+        _outb(PIC2_DATA_PORT, mask | (1 << (irq - 8)));
+    }
+}
 
 void PIC_Unmask(int irq) {
-    // U8 port = 0;
-
-    // if (irq < 8) {
-    //     port = PIC1_DATA_PORT;
-    // }
-    // else {
-    //     irq -= 8;
-    //     port = PIC2_DATA_PORT;
-    // }
-    U8 mask = _inb(PIC1_DATA_PORT);
-    _outb(PIC1_DATA_PORT, mask & ~(1 << irq));
+    if(irq < 8) {
+        U8 mask = _inb(PIC1_DATA_PORT);
+        _outb(PIC1_DATA_PORT, mask & ~(1 << irq));
+    } else {
+        U8 mask = _inb(PIC2_DATA_PORT);
+        _outb(PIC2_DATA_PORT, mask & ~(1 << (irq - 8)));
+    }
 }
+
 
 void pic_send_eoi(U8 irq) {
-    if (irq >= 8) {
-        _outb(PIC2_COMMAND_PORT, PIC_CMD_END_OF_INTERRUPT); // Slave PIC
-    }
-    _outb(PIC1_COMMAND_PORT, PIC_CMD_END_OF_INTERRUPT);     // Master PIC
+    if (irq >= 8) _outb(0xA0, 0x20);
+    _outb(0x20, 0x20);
 }
 
 
-// Remap PIC to avoid conflicts with CPU exceptions
 void pic_remap(U8 offset1, U8 offset2) {
-    U8 a1 = _inb(PIC1_DATA_PORT);
-    U8 a2 = _inb(PIC2_DATA_PORT);
+    // Expect IF=0 on entry. Do not STI here.
+    // Mask all IRQs immediately
+    _outb(PIC1_DATA_PORT, 0xFF);
+    _outb(PIC2_DATA_PORT, 0xFF);
 
-    _outb(PIC1_COMMAND_PORT, 0x11);  // ICW1: start initialization
+    // ICW1: start initialization (edge-triggered, expect ICW4)
+    _outb(PIC1_COMMAND_PORT, 0x11); _io_wait();
+    _outb(PIC2_COMMAND_PORT, 0x11); _io_wait();
+    
+    // ICW2: vector offsets
     _io_wait();
-    _outb(PIC2_COMMAND_PORT, 0x11);
-    _io_wait();
+    _outb(PIC1_DATA_PORT, offset1); _io_wait();    // e.g., 0x20
+    _outb(PIC2_DATA_PORT, offset2); _io_wait();    // e.g., 0x28
 
-    _outb(PIC1_DATA_PORT, offset1);     // ICW2: offset 0x20 for master
-    _io_wait();
-    _outb(PIC2_DATA_PORT, offset2);     // ICW2: offset 0x28 for slave
-    _io_wait();
+    // ICW3: wiring
+    _outb(PIC1_DATA_PORT, 0x04); _io_wait();       // master has slave on IRQ2
+    _outb(PIC2_DATA_PORT, 0x02); _io_wait();       // slave identity
 
-    _outb(PIC1_DATA_PORT, 4);         // ICW3: master has slave at IRQ2
-    _io_wait();
-    _outb(PIC2_DATA_PORT, 2);         // ICW3: slave identity
-    _io_wait();
+    // ICW4: 8086/88 mode
+    _outb(PIC1_DATA_PORT, 0x01); _io_wait();
+    _outb(PIC2_DATA_PORT, 0x01); _io_wait();
 
-    _outb(PIC1_DATA_PORT, 1);         // ICW4: 8086 mode
-    _io_wait();
-    _outb(PIC2_DATA_PORT, 1);
-    _io_wait();
-
-    _outb(PIC1_DATA_PORT, a1);        // restore saved masks
-    _outb(PIC2_DATA_PORT, a2);
+    // Leave masked; caller decides what to unmask later
+    _outb(PIC1_DATA_PORT, 0xFF);
+    _outb(PIC2_DATA_PORT, 0xFF);
 }
+
 
 // uint16_t PIC_ReadIRQRequestRegister() {
 //     _outb(PIC1_COMMAND_PORT, PIC_CMD_READ_IRR);

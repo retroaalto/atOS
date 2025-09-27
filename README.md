@@ -36,7 +36,7 @@ A custom 32-bit operating system written in C and assembly language. Boots via I
 
 ## Running atOS
 
-Run the provided ISO image in a virtual machine environment. QEMU is recommended for simplicity, though other VMs may work.
+Run the provided ISO image in a virtual machine environment. QEMU is recommended, though other VMs may work.
 
 ### System Requirements
 
@@ -44,7 +44,7 @@ Requirements for the Virtual Machine.
 
 |     | Recommended | Minimum |
 | --- | ----------- | ------- |
-| RAM | 512 MiB     | 128 MiB |
+| RAM | 256 MiB     | 128 MiB |
 | CPU | 1 Core      | 1 Core  |
 | HDD | 256 MiB     | 128 MiB  |
 

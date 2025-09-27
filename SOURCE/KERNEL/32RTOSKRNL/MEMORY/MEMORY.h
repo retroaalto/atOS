@@ -14,6 +14,8 @@
 //         Updated memory regions.
 //     2025/08/27 - Antonako1
 //         Optimized memory map for protected mode, reuse low memory, moved kernel to 0x20000.
+//     2025/08/30 - Antonako1
+//         Added VESA/VBE structures, reduced reserved MMIO to 16 MiB, updated user space base.
 //
 // REMARKS:
 //     See MEMORY.md for a detailed description of the memory regions.
@@ -21,64 +23,55 @@
 #ifndef MEMORY_H
 #define MEMORY_H
 
-// Low Memory / Reused BIOS areas
+// Low Memory / BIOS areas
 #define MEM_LOW_RESERVED_BASE      0x00000000
 #define MEM_LOW_RESERVED_END       0x00000FFF
 
-// Bootloader + Early Kernel Stub
-#define MEM_BOOTLOADER_BASE        0x00001000
-#define MEM_BOOTLOADER_END         0x00001FFF
-#define MEM_KRNL_STUB_BASE         0x00002000
-#define MEM_KRNL_STUB_END          0x00007FFF
-#define MEM_E820_BASE              0x00008000
-#define MEM_E820_END               0x00008FFF
+#define MEM_E820_BASE              0x00006000
+#define MEM_E820_END               0x00006384
 
-#define MEM_DRIVE_LETTER_BASE      0x00008000
-#define MEM_DRIVE_LETTER_END       0x00008001
-#define EARLY_FREE_DATA_BASE       0x00008002
-#define EARLY_FREE_DATA_END        0x000093FF
-// Early Stack
-#define MEM_STACK_BASE             0x00009300
-#define MEM_STACK_END              0x00009FFF
+// VESA / VBE Info Structures
+#define MEM_VESA_BASE              0x00006400
+#define MEM_VESA_END               0x00007000
 
-// Free / Temporary Buffers
-#define MEM_TEMP_BASE              0x0000A000
-#define MEM_TEMP_END               0x0000FFFF
+#define MEM_VESA_VBE_E820_PAGE_BASE 0x00006000
+#define MEM_VESA_VBE_E820_PAGE_END   0x00007000
+
 
 // Kernel entry point
-#define MEM_KRNL_BASE              0x00020000
-#define MEM_KRNL_END               0x003FFFFF  // 3.5 MiB size
+#define MEM_KRNL_ENTRY_BASE        0x00100000
+#define MEM_KRNL_ENTRY_END         0x00112000
 
-// RTOS kernel
-#define MEM_RTOSKRNL_BASE              0x00024000
-#define MEM_RTOSKRNL_END               0x00424000
+// Main RTOS Kernel
+#define MEM_RTOSKRNL_BASE          0x00100000
+#define MEM_RTOSKRNL_END           0x00550000
 
-// Kernel Heap
-#define MEM_KERNEL_HEAP_BASE       0x00600000
-#define MEM_KERNEL_HEAP_END        0x007FFFFF
+// RTOS Kernel HEAP
+#define MEM_RTOSKRNL_HEAP_BASE     0x00550000
+#define MEM_RTOSKRNL_HEAP_END      0x00F44000
 
-// Program / Temp
-#define MEM_PROGRAM_TMP_BASE       0x00800000
-#define MEM_PROGRAM_TMP_END        0x00DFFFFF
+#define STACK_0_BASE               0x00F34000
+#define STACK_0_END                0x00F44000
 
-// Paging Structures
-#define MEM_PAGING_BASE            0x00E00000
-#define MEM_PAGING_END             0x00EFFFFF
+
+// BIOS Reserved
+#define MEM_BIOS_BASE              0x000E0000
+#define MEM_BIOS_END               0x00100000
 
 // Framebuffer
-#define MEM_FRAMEBUFFER_BASE       0x00F00000
-#define MEM_FRAMEBUFFER_END        0x012004EF
+#define MEM_FRAMEBUFFER_BASE       0x00F44000
+#define MEM_FRAMEBUFFER_END        0x013004F0
 
-// ACPI / APIC
-#define MEM_ACPI_APIC_BASE         0x01201000
-#define MEM_ACPI_APIC_END          0x012FFFFF
-
-// Reserved
-#define MEM_RESERVED_BASE          0x01300000
-#define MEM_RESERVED_END           0x076FFFFF
+// Reserved MMIO / firmware
+#define MEM_RESERVED_BASE          0x01344000
+#define MEM_RESERVED_END           0x02344000  // 16 MiB
 
 // User Space
-#define MEM_USER_SPACE_BASE        0x07700000
-#define MEM_USER_SPACE_END         0x1FFFFFFF
+#define MEM_USER_SPACE_BASE        0x02344000
+#define MEM_USER_SPACE_END_MIN     0x03D09000
+
+#define MAX_ALLOWED_MEMORY         0x1FEFE0000
+
+
 
 #endif // MEMORY_H

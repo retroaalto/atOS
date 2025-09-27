@@ -3,5 +3,13 @@
 
 #define FLAG_SET(x, flag) x |= (flag)
 #define FLAG_UNSET(x, flag) x &= ~(flag)
+#define IS_FLAG_SET(x, flag) ((x & (flag)) != 0)
+#define IS_FLAG_UNSET(x, flag) ((x & (flag)) == 0)
+
+#define SHR(x, n) (x >> n)
+#define SHL(x, n) (x << n)
+
+#define ALIGN_UP(x, align) (((x) + (align)-1) & ~((align)-1))
+#define ALIGN_DOWN(x, align) ((x) & ~((align)-1))
 
 #endif // BINARY_H

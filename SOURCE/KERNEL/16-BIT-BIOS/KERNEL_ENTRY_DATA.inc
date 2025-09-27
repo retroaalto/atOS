@@ -52,17 +52,17 @@ e820_entries_ptr: dd 0      ; Pointer to the E820 table in memory.
 ; 	 12	    LengthHigh		High 32 Bits of Length in Bytes
 ; 	 16	    Type		Address type of  this range.
 ;    20     ACPI        ACPI information. Only present if E820_ACPI is defined.
-E820_start:
-E820:
-    BaseAddressLow: dd 0        ; Low 32 Bits of Base Address
-    BaseAddressHigh: dd 0       ; High 32 Bits of Base Address 
-    LengthLow: dd 0             ; Low 32 Bits of Length in Bytes
-    LengthHigh: dd 0            ; High 32 Bits of Length in Bytes
-    Type: dd 0                  ; Address type of this range.
-%ifdef E820_ACPI
-    ACPI: dd 0
-%endif
-E820_end:
+; E820_start:
+; E820:
+;     BaseAddressLow: dd 0        ; Low 32 Bits of Base Address
+;     BaseAddressHigh: dd 0       ; High 32 Bits of Base Address 
+;     LengthLow: dd 0             ; Low 32 Bits of Length in Bytes
+;     LengthHigh: dd 0            ; High 32 Bits of Length in Bytes
+;     Type: dd 0                  ; Address type of this range.
+; %ifdef E820_ACPI
+;     ACPI: dd 0
+; %endif
+; E820_end:
 
 %ifdef E820_ACPI
 MEM_STRUCT_SIZE equ 24
@@ -92,9 +92,9 @@ E820_TYPE_ADDRESS_RANGE_UNUSABLE equ 5
 E820_TYPE_ARU equ E820_TYPE_ADDRESS_RANGE_UNUSABLE
     
 ; E820 entry structure in memory
-E820_ENTRY_SEGMENT equ 0x0000
-E820_ENTRY_OFFSET equ 0x8000
-E820_MAX_SIZE equ 0x1000 ; 4096 bytes
+E820_ENTRY_SEGMENT equ 0x0600
+E820_ENTRY_OFFSET equ 0x0000
+E820_MAX_SIZE equ 0x384 ; 900 bytes, 45 entries
 
 DEBUG_PRINT_VALUE equ 0
 ; Address Range Descriptor Structure
@@ -128,45 +128,45 @@ DEBUG_PRINT_VALUE equ 0
 ; KRNL reading
 ;%%%%%%%%%%%%%%%%%%%%%%%
 krnl_status: BOOLEAN 0
-KRNL_STR_LEN equ 10
-krnl_str: db "KRNL.BIN;1", KRNL_STR_LEN
-
+KRNL_STR_LEN equ 11
+krnl_str: db "KRNL.BIN;1", 0
 
 ; record is at (buffer+offset)
-;  uint8_t length;                (buffer+offset+0). Record length
-;  uint32_t extentLocationLE_LBA  (buffer+offset+2). LBA of data
-;  uint32_t extentLengthLE;       (buffer+offset+10) Length of data
-;  fileFlag fileFlags;            (buffer+offset+25). uint8_t. Fileflags. 0b00000010 if directory, 0b00000000 for file
-;  uint8_t fileNameLength;        (buffer+offset+32). Length of fileIdentifier
-;  strD fileIdentifier[1];        (buffer+offset+33). uint8_t. File name
-;
-KERNEL_LOAD_ADDRESS EQU 0x20000
-KERNEL_LOAD_SEGMENT EQU 0x2000
-KERNEL_LOAD_OFFSET EQU  0x0000
-; KERNEL_LOAD_ADDRESS = KERNEL_LOAD_SEGMENT:KERNEL_LOAD_OFFSET
+;  uint8_t length;                (buffer+offset+0)
+;  uint32_t extentLocationLE_LBA; (buffer+offset+2)
+;  uint32_t extentLengthLE;       (buffer+offset+10)
+;  uint8_t fileFlags;             (buffer+offset+25)
+;  uint8_t fileNameLength;        (buffer+offset+32)
+;  char fileIdentifier[];         (buffer+offset+33)
 
-BUFFER_SEGMENT equ 0x0000
-BUFFER_OFFSET equ 0x4000
+KERNEL_LOAD_ADDRESS EQU 0x7000
+KERNEL_LOAD_SEGMENT EQU 0x700
+KERNEL_LOAD_OFFSET  EQU 0x0000
 
-%define SECTOR_SIZE             2048        ; 2KB per sector
-%define VOL_DESC_START          16          ; Volume descriptor starts at sector 16
-PVD_OFFSET equ              VOL_DESC_START*SECTOR_SIZE/SECTOR_SIZE
-%define stack 0x00009400
-extentLocationLE_LBA: dd 0
-extentLengthLE: dd 0
+BUFFER_SEGMENT equ KERNEL_LOAD_SEGMENT
+BUFFER_OFFSET  equ KERNEL_LOAD_OFFSET
+
+SECTOR_SIZE equ 2048
+VOL_DESC_START equ 16
+PVD_OFFSET equ VOL_DESC_START    ; reading via BIOS in 2048-byte sectors
+
+STACK_ADDR equ 0x00F44000
+; STACK_ADDR equ 0x00F34000
+
+extentLocationLE_LBA:      dd 0
+extentLengthLE:            dd 0
 extentLocationLE_LBA_KRNL: dd 0
-extentLengthLE_KRNL: dd 0
-offset_var: dd 0
-name_buf: db _MAX_PATH
+extentLengthLE_KRNL:       dd 0
+offset_var:                dd 0
+name_buf: db KRNL_STR_LEN dup(0)
 buffer_var: dd 0
-RETRY_COUNT_MAX equ 3 ; Maximum number of retries for reading files
-retry_count db 0 ; retry count for reading files
-
+RETRY_COUNT_MAX equ 3
+retry_count db 0
 
 ; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ; VESA/VBE information
 ; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-VESA_LOAD_SEGMENT EQU 0x9000
+VESA_LOAD_SEGMENT EQU 0x6400 / 16
 VESA_LOAD_OFFSET  EQU 0x0000
 
 ; VESA controller info buffer (512 bytes)

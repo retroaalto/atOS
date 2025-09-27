@@ -19,11 +19,16 @@ REVISION HISTORY
         Initializes video mode and clears the screen.
 
 REMARKS
-    None
+    Do NOT touch this file unless you know what you're doing.
+    There are some problems with the stack that I haven't figured out yet,
+    so be careful when modifying this file.
+      Atleast too large of a call stack frame will cause issues.
 ---*/
 #include "./32RTOSKRNL/KERNEL.h"
 #define ISO9660_ONLY_DEFINES
 #include "./32RTOSKRNL/FS/ISO9660/ISO9660.h"
+#include <PIT.h>
+#include "./32RTOSKRNL/CPU/STACK/STACK.h"
 
 typedef struct {
     U32 ExtentLengthLE;
@@ -39,7 +44,15 @@ void normalize_path(U8 *path) {
     }
 }
 
-BOOLEAN strcmp(const char *str1, const char *str2) {
+U32 __strlen(const U8 *str) {
+    const U8 *s = str;
+    while (*s) {
+        s++;
+    }
+    return s - str;
+}
+
+BOOLEAN strcmp(const U8 *str1, const U8 *str2) {
     while (*str1 && (*str1 == *str2)) {
         str1++;
         str2++;
@@ -112,7 +125,6 @@ BOOLEAN SEARCH_FILE(
     U8 record_name[21];
 
     // Load root directory record
-    IsoDirectoryRecord *root_dir = (IsoDirectoryRecord *)buffer;
     if(
         READ_CDROM(
             ATAPI_STATUS,
@@ -144,16 +156,15 @@ BOOLEAN SEARCH_FILE(
         } else {
             // Inside a directory
             if(strcmp(record_name, target)) {
-                U32 calc = CALC_SECTOR(record->extentLengthLE);
                 U8 *slash = strchr(original_target, '/');
                 if(!slash) return FALSE;
-                memmove(original_target, slash + 1, strlen(slash));
-                memcpy(target, original_target, strlen(original_target));
+                memmove(original_target, slash + 1, __strlen(slash));
+                memcpy(target, original_target, __strlen(original_target));
                 slash = strchr(target, '/');
                 if (slash) {
                     *slash = '\0';
                 } else {
-                    target[strlen(original_target)] = '\0';
+                    target[__strlen(original_target)] = '\0';
                 }
                 return SEARCH_FILE(record->extentLocationLE_LBA, record->extentLengthLE, rks, target, original_target, buffer, ATAPI_STATUS);
             }
@@ -166,52 +177,59 @@ BOOLEAN SEARCH_FILE(
 }
 
 U0 kernel_after_gdt(U0);
+
 __attribute__((noreturn))
 void kernel_entry_main(U0) {
+    CLI;
     vesa_check();
     vbe_check();
-    GDT_INIT();                      // Setup GDT
-    // setup in asm, can still be called
+    GDT_INIT(); // Re-setup GDT just in case
     kernel_after_gdt();
     HLT;
 }
 
-U0 kernel_after_gdt(U0) {
+
     
+U0 kernel_after_gdt(U0) {
     IDT_INIT();                       // Setup IDT
     SETUP_ISR_HANDLERS();
     IRQ_INIT();
     // todo: tss_init();
-    __asm__ volatile ("sti");        // Enable interrupts
-    
+    // VBE_CLEAR_SCREEN(VBE_WHITE);
+    // VBE_UPDATE_VRAM();
+    STI;        // Enable interrupts
+    U0 *RTOSKRNL_ADDRESS = (U0*)MEM_RTOSKRNL_BASE; // Main kernel address
+    // VBE_DRAW_LINE(0, 0, SCREEN_WIDTH, 0, VBE_WHITE); // Top border
+    // VBE_UPDATE_VRAM();
     U32 row = 0;
     U32 atapi_status;
     #define rowinc row += VBE_CHAR_HEIGHT + 2
     atapi_status = ATAPI_CHECK();
     if (atapi_status == ATAPI_FAILED) {
         VBE_DRAW_STRING(0, row, "ATAPI check failed", VBE_WHITE, VBE_BLACK);
-        UPDATE_VRAM();
+        VBE_UPDATE_VRAM();
         rowinc;
         HLT;
     }
-
+    
     // Read ATOS/32RTOSKR.BIN;1 from disk
     // We will read the binary with ATAPI operations, 
     // not with DISK/ISO9660, to save the binary size of this file
-    // Read buffer address will be 0x00800000 (MEM_PROGRAM_TMP_BASE)
-    U32 *RTOSKRNL_ADDRESS = (U32*)MEM_RTOSKRNL_BASE; // Main kernel address
-    PrimaryVolumeDescriptor *pvd = (PrimaryVolumeDescriptor*)MEM_PROGRAM_TMP_BASE;
+    // Read buffer address will be at MEM_RESERVED_BASE
+    PrimaryVolumeDescriptor *pvd = (PrimaryVolumeDescriptor*)0x01344000; //MEM_RESERVED_BASE
+    
     // Read buffer will be just after PVD in memory
-    U8 *read_buffer = (U8*)(MEM_PROGRAM_TMP_BASE + 2048);
+    U8 *read_buffer = (U8*)(MEM_RESERVED_BASE + 2048);
     // Buffers limited to 21 to save binary size
     U8 filename[21] = "ATOS\0"; 
     U8 original_target[21] = "ATOS/32RTOSKR.BIN\0";
-
-    RTOSKRNL rks = { 0 };
+    RTOSKRNL rks;
+    rks.ExtentLengthLE = 0;
+    rks.ExtentLocationLE_LBA = 0;
     // Read PVD at lba 16
     if(READ_CDROM(atapi_status, 16, 1, (U8*)pvd) == ATAPI_FAILED) {
         VBE_DRAW_STRING(0, row, "CDROM read failed", VBE_WHITE, VBE_BLACK);
-        UPDATE_VRAM();
+        VBE_UPDATE_VRAM();
         rowinc;
         HLT;
     }
@@ -226,7 +244,7 @@ U0 kernel_after_gdt(U0) {
         pvd->version != 1
     ) {
         VBE_DRAW_STRING(0, row, "Invalid PVD", VBE_WHITE, VBE_BLACK);
-        UPDATE_VRAM();
+        VBE_UPDATE_VRAM();
         rowinc;
         HLT;
     }
@@ -243,13 +261,12 @@ U0 kernel_after_gdt(U0) {
     ) {
         rowinc;
         VBE_DRAW_STRING(0, row, "File not found", VBE_WHITE, VBE_BLACK);
-        UPDATE_VRAM();
+        VBE_UPDATE_VRAM();
+
         rowinc;
         HLT;
     }
 
-    #warning Fill PTR_LIST!
-    // Fill PTR_LIST
     U32 sectors = CALC_SECTOR(rks.ExtentLengthLE);
     if(
         READ_CDROM(
@@ -260,13 +277,13 @@ U0 kernel_after_gdt(U0) {
         ) == ATAPI_FAILED
     ) {
         VBE_DRAW_STRING(0, row, "Failed to read 32RTOSKRNL", VBE_WHITE, VBE_BLACK);
-        UPDATE_VRAM();
+        VBE_UPDATE_VRAM();
         rowinc;
         HLT;
     }
+    void (*entry)(void) = (void(*)(void))MEM_RTOSKRNL_BASE;
+    __asm__ volatile("jmp *%0" :: "r"(entry) : "memory");
 
-    // Jump to ATOS/32RTOSKR.BIN;1
-    __asm__ volatile ("jmp %0" : : "r"(RTOSKRNL_ADDRESS));
     HLT;
 }
     
