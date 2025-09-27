@@ -968,7 +968,7 @@ VBE_LETTERS_TYPE VBE_LETTERS[VBE_MAX_CHARS][VBE_CHAR_HEIGHT] = {
 };
 
 BOOLEAN VBE_DRAW_CHARACTER(U32 x, U32 y, U8 c, VBE_PIXEL_COLOUR fg, VBE_PIXEL_COLOUR bg) {
-    VBE_MODE* mode = GET_VBE_MODE();
+    VBE_MODEINFO* mode = GET_VBE_MODE();
     if (x >= (U32)(mode->XResolution + VBE_CHAR_WIDTH) || y >= (U32)(mode->YResolution + VBE_CHAR_HEIGHT)) return FALSE;
 
     c -= UNUSABLE_CHARS; // Align char according to VBE_MAX_CHARS
@@ -1021,7 +1021,7 @@ U0 __memcpy_safe_chunks(void* dest, const void* src, U32 n) {
 
 
 BOOL vbe_check(U0) {
-    VBE_MODE* mode = (VBE_MODE*)(VBE_MODE_LOAD_ADDRESS_PHYS);
+    VBE_MODEINFO* mode = (VBE_MODEINFO*)(VBE_MODE_LOAD_ADDRESS_PHYS);
     // Check if the mode is valid
     if (mode->ModeAttributes == 0) {
         return FALSE;
@@ -1062,7 +1062,7 @@ BOOLEAN VBE_FLUSH_SCREEN(U0) {
 
 
 U0 VBE_UPDATE_VRAM(U0) {
-    VBE_MODE* mode = GET_VBE_MODE();
+    VBE_MODEINFO* mode = GET_VBE_MODE();
     if (!mode) return;
 
     // Copy only the required framebuffer bytes
@@ -1077,7 +1077,7 @@ U0 VBE_STOP_DRAWING(U0) {
 }
 
 BOOLEAN VBE_DRAW_FRAMEBUFFER(U32 pos, VBE_PIXEL_COLOUR colour) {
-    VBE_MODE* mode = (VBE_MODE*)(VBE_MODE_LOAD_ADDRESS_PHYS);
+    VBE_MODEINFO* mode = (VBE_MODEINFO*)(VBE_MODE_LOAD_ADDRESS_PHYS);
     U8* framebuffer = (U8*)(FRAMEBUFFER_ADDRESS);
     if(colour == VBE_SEE_THROUGH) return TRUE;
 
@@ -1120,7 +1120,7 @@ BOOLEAN VBE_DRAW_FRAMEBUFFER(U32 pos, VBE_PIXEL_COLOUR colour) {
 
 BOOLEAN VBE_DRAW_PIXEL(VBE_PIXEL_INFO pixel_info) {
     
-    VBE_MODE* mode = (VBE_MODE*)(VBE_MODE_LOAD_ADDRESS_PHYS);
+    VBE_MODEINFO* mode = (VBE_MODEINFO*)(VBE_MODE_LOAD_ADDRESS_PHYS);
     if (!mode) return FALSE;
     
     if ((I32)pixel_info.X < 0 || (I32)pixel_info.Y < 0) return FALSE;
@@ -1222,7 +1222,7 @@ BOOLEAN VBE_DRAW_LINE(U32 x0_in, U32 y0_in, U32 x1_in, U32 y1_in, VBE_PIXEL_COLO
     return TRUE;
 }
 BOOLEAN VBE_CLEAR_SCREEN(VBE_PIXEL_COLOUR colour) {
-    VBE_MODE* mode = GET_VBE_MODE();
+    VBE_MODEINFO* mode = GET_VBE_MODE();
     if (!mode) return FALSE;
     U32 bytes_per_pixel = (mode->BitsPerPixel + 7) / 8;
     U32 total_bytes = mode->BytesPerScanLineLinear * mode->YResolution;
@@ -1406,7 +1406,7 @@ BOOLEAN VBE_DRAW_LINE(U32 x1, U32 y1, U32 x2, U32 y2, VBE_PIXEL_COLOUR colours, 
     ymin -= t_2; ymax += t_2;
 
     I32 threshold2 = pow2(t_2) * (A2 + B2);
-    VBE_MODE* mode = GET_VBE_MODE();
+    VBE_MODEINFO* mode = GET_VBE_MODE();
     for(I32 x = xmin; x <= xmax; x++) {
         for(I32 y = ymin; y <= ymax; y++) {
             if(x < 0 || y < 0 || x >= mode->XResolution || y >= mode->YResolution) continue;

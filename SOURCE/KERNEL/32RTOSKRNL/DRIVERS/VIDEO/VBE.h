@@ -232,9 +232,9 @@ typedef struct {
     U8 LinearModesRsvMaskSz;      // Reserved mask size in linear mode
     U8 LinearModesRsvLsb;         // Reserved LSB position in linear mode
     U32 PhysBasePtr2;             // Second physical base pointer (if applicable)
-} __attribute__((packed)) VBE_MODE;
+} __attribute__((packed)) VBE_MODEINFO;
 
-#define GET_VBE_MODE() ((VBE_MODE*)(VBE_MODE_LOAD_ADDRESS_PHYS))
+#define GET_VBE_MODE() ((VBE_MODEINFO*)(VBE_MODE_LOAD_ADDRESS_PHYS))
 
 /*+++
 BOOL vbe_check(U0)

@@ -160,7 +160,6 @@ U16 PS2_Identify(VOID) {
 // #define PS2_TEST
 BOOLEAN PS2_KEYBOARD_INIT(VOID) {
     #ifndef PS2_TEST
-    CLI;
     // Initialize USB controllers
     
     if(!PS2_DisableScanning()) return FALSE;
@@ -243,7 +242,6 @@ BOOLEAN PS2_KEYBOARD_INIT(VOID) {
     #ifndef PS2_TEST
     // enable scanning
     if(!PS2_EnableScanning()) return FALSE;
-    STI;
     #endif // PS2_TEST
 
     modifiers.shift = FALSE;
@@ -713,32 +711,32 @@ U8 *KEYPRESS_TO_CHARS(KEYPRESS *kp) {
     if(!kp->pressed) return str; // Return empty string for key releases
 
     switch(kp->keycode) {
-        case KEY_A: str[0] = modifiers.shift ? 'A' : 'a'; break;
-        case KEY_B: str[0] = modifiers.shift ? 'B' : 'b'; break;
-        case KEY_C: str[0] = modifiers.shift ? 'C' : 'c'; break;
-        case KEY_D: str[0] = modifiers.shift ? 'D' : 'd'; break;
-        case KEY_E: str[0] = modifiers.shift ? 'E' : 'e'; break;
-        case KEY_F: str[0] = modifiers.shift ? 'F' : 'f'; break;
-        case KEY_G: str[0] = modifiers.shift ? 'G' : 'g'; break;
-        case KEY_H: str[0] = modifiers.shift ? 'H' : 'h'; break;
-        case KEY_I: str[0] = modifiers.shift ? 'I' : 'i'; break;
-        case KEY_J: str[0] = modifiers.shift ? 'J' : 'j'; break;
-        case KEY_K: str[0] = modifiers.shift ? 'K' : 'k'; break;
-        case KEY_L: str[0] = modifiers.shift ? 'L' : 'l'; break;
-        case KEY_M: str[0] = modifiers.shift ? 'M' : 'm'; break;
-        case KEY_N: str[0] = modifiers.shift ? 'N' : 'n'; break;
-        case KEY_O: str[0] = modifiers.shift ? 'O' : 'o'; break;
-        case KEY_P: str[0] = modifiers.shift ? 'P' : 'p'; break;
-        case KEY_Q: str[0] = modifiers.shift ? 'Q' : 'q'; break;
-        case KEY_R: str[0] = modifiers.shift ? 'R' : 'r'; break;
-        case KEY_S: str[0] = modifiers.shift ? 'S' : 's'; break;
-        case KEY_T: str[0] = modifiers.shift ? 'T' : 't'; break;
-        case KEY_U: str[0] = modifiers.shift ? 'U' : 'u'; break;
-        case KEY_V: str[0] = modifiers.shift ? 'V' : 'v'; break;
-        case KEY_W: str[0] = modifiers.shift ? 'W' : 'w'; break;
-        case KEY_X: str[0] = modifiers.shift ? 'X' : 'x'; break;
-        case KEY_Y: str[0] = modifiers.shift ? 'Y' : 'y'; break;
-        case KEY_Z: str[0] = modifiers.shift ? 'Z' : 'z'; break;
+        case KEY_A: str[0] = modifiers.shift || modifiers.capslock ? 'A' : 'a'; break;
+        case KEY_B: str[0] = modifiers.shift || modifiers.capslock ? 'B' : 'b'; break;
+        case KEY_C: str[0] = modifiers.shift || modifiers.capslock ? 'C' : 'c'; break;
+        case KEY_D: str[0] = modifiers.shift || modifiers.capslock ? 'D' : 'd'; break;
+        case KEY_E: str[0] = modifiers.shift || modifiers.capslock ? 'E' : 'e'; break;
+        case KEY_F: str[0] = modifiers.shift || modifiers.capslock ? 'F' : 'f'; break;
+        case KEY_G: str[0] = modifiers.shift || modifiers.capslock ? 'G' : 'g'; break;
+        case KEY_H: str[0] = modifiers.shift || modifiers.capslock ? 'H' : 'h'; break;
+        case KEY_I: str[0] = modifiers.shift || modifiers.capslock ? 'I' : 'i'; break;
+        case KEY_J: str[0] = modifiers.shift || modifiers.capslock ? 'J' : 'j'; break;
+        case KEY_K: str[0] = modifiers.shift || modifiers.capslock ? 'K' : 'k'; break;
+        case KEY_L: str[0] = modifiers.shift || modifiers.capslock ? 'L' : 'l'; break;
+        case KEY_M: str[0] = modifiers.shift || modifiers.capslock ? 'M' : 'm'; break;
+        case KEY_N: str[0] = modifiers.shift || modifiers.capslock ? 'N' : 'n'; break;
+        case KEY_O: str[0] = modifiers.shift || modifiers.capslock ? 'O' : 'o'; break;
+        case KEY_P: str[0] = modifiers.shift || modifiers.capslock ? 'P' : 'p'; break;
+        case KEY_Q: str[0] = modifiers.shift || modifiers.capslock ? 'Q' : 'q'; break;
+        case KEY_R: str[0] = modifiers.shift || modifiers.capslock ? 'R' : 'r'; break;
+        case KEY_S: str[0] = modifiers.shift || modifiers.capslock ? 'S' : 's'; break;
+        case KEY_T: str[0] = modifiers.shift || modifiers.capslock ? 'T' : 't'; break;
+        case KEY_U: str[0] = modifiers.shift || modifiers.capslock ? 'U' : 'u'; break;
+        case KEY_V: str[0] = modifiers.shift || modifiers.capslock ? 'V' : 'v'; break;
+        case KEY_W: str[0] = modifiers.shift || modifiers.capslock ? 'W' : 'w'; break;
+        case KEY_X: str[0] = modifiers.shift || modifiers.capslock ? 'X' : 'x'; break;
+        case KEY_Y: str[0] = modifiers.shift || modifiers.capslock ? 'Y' : 'y'; break;
+        case KEY_Z: str[0] = modifiers.shift || modifiers.capslock ? 'Z' : 'z'; break;
 
         case KEY_1: str[0] = '1'; break;
         case KEY_2: str[0] = '2'; break;

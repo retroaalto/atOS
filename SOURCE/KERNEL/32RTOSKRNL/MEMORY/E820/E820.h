@@ -32,6 +32,13 @@ REMARKS
 #define E820_TABLE_END    MEM_E820_END
 #define E820_TABLE_SIZE   (E820_TABLE_END - E820_TABLE_PHYS + 1)u
 
+#define TYPE_E820_RAM 0x01
+#define TYPE_E820_RESERVED 0x02
+#define TYPE_E820_ACPI_RECLAIMABLE 0x03
+#define TYPE_E820_ACPI_NVS 0x04
+
+static inline BOOLEAN fits_in_32(U32 hi) { return hi == 0; }
+
 typedef struct __attribute__((packed)) {
     U32 BaseAddressLow;
     U32 BaseAddressHigh;
