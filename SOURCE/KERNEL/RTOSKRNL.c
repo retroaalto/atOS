@@ -39,10 +39,10 @@ void rtos_kernel(U0) {
     vesa_check();
     vbe_check();
 
-    if(!PS2_KEYBOARD_INIT()) {
-        DRAW_STRING("Failed to initialize PS2 keyboard", VBE_RED);
-        HLT;
-    }
+    // if(!PS2_KEYBOARD_INIT()) {
+        // DRAW_STRING("Failed to initialize PS2 keyboard", VBE_RED);
+        // HLT;
+    // }
     if(!PAGEFRAME_INIT()) {
         DRAW_STRING("Failed to initialize page frame. Possibly not enough memory.", VBE_RED);
         HLT;
@@ -51,7 +51,6 @@ void rtos_kernel(U0) {
 
     STI;
     
-
     U8 buf[100];
     U32 *pit_ticks = PIT_GET_TICKS_PTR();
     U32 i = 0;

@@ -9,29 +9,28 @@ typedef void (*isr_t)(void);
 #define ISR_NOERRORCODE(n) \
 __attribute__((naked)) void isr##n(void) { \
     asm volatile( \
-        "pusha\n\t"                    /* save regs (EDI..EAX) */ \
-        "movl %%esp, %%ecx\n\t"          /* ecx = &vector */ \
-        "addl $8, %%ecx\n\t"            /* ecx = &regs (start of pusha frame) */ \
-        "pushl %%ecx\n\t"               /* regs* */ \
-        "pushl $0\n\t"                 /* fake error code */ \
-        "pushl $" #n "\n\t"            /* vector */ \
+        "pusha\n\t"                    /* save regs */ \
+        "movl %%esp, %%ecx\n\t"          /* regs_ptr = start of pusha frame */ \
+        "pushl %%ecx\n\t"               /* regs_ptr (3rd) */ \
+        "pushl $0\n\t"                 /* errcode (2nd) */ \
+        "pushl $" #n "\n\t"            /* vector  (1st) */ \
         "call isr_dispatch_c\n\t" \
-        "addl $12, %%esp\n\t"           /* pop (regs*, err, vector) */ \
+        "addl $12, %%esp\n\t"           /* pop args */ \
         "popa\n\t" \
         "iret\n\t" ::: "memory"); \
 }
 
-// Exceptions with CPU error code (e.g., 0x0E Page Fault)
+// Exceptions with CPU error code (e.g., 0x0E page fault)
 // After pusha, CPU error code is at [esp+32]
 #define ISR_ERRORCODE(n) \
 __attribute__((naked)) void isr##n(void) { \
     asm volatile( \
         "pusha\n\t" \
-        "movl %%esp, %%ecx\n\t" \
-        "addl $8, %%ecx\n\t"            /* regs* */ \
-        "pushl %%ecx\n\t" \
-        "pushl 32(%%esp)\n\t"           /* copy CPU error code */ \
-        "pushl $" #n "\n\t"            /* vector */ \
+        "movl 32(%%esp), %%edx\n\t"      /* edx = CPU error code (read BEFORE more pushes) */ \
+        "movl %%esp, %%ecx\n\t"          /* regs_ptr = start of pusha frame */ \
+        "pushl %%ecx\n\t"               /* regs_ptr (3rd) */ \
+        "pushl %%edx\n\t"               /* errcode  (2nd) */ \
+        "pushl $" #n "\n\t"            /* vector   (1st) */ \
         "call isr_dispatch_c\n\t" \
         "addl $12, %%esp\n\t" \
         "popa\n\t" \
@@ -43,16 +42,16 @@ __attribute__((naked)) void isr##n(void) { \
 __attribute__((naked)) void irq##vec(void) { \
     asm volatile( \
         "pusha\n\t" \
-        "movl %%esp, %%ecx\n\t" \
-        "addl $32, %%ecx\n\t"          /* &regs struct after pusha */ \
-        "pushl %%ecx\n\t"               /* regs_ptr (3rd param) */ \
-        "pushl $0\n\t"                 /* errcode (2nd param) */ \
-        "pushl $" #vec "\n\t"          /* vector (1st param) */ \
+        "movl %%esp, %%ecx\n\t"          /* regs_ptr = start of pusha frame */ \
+        "pushl %%ecx\n\t"               /* regs_ptr (3rd) */ \
+        "pushl $0\n\t"                 /* errcode  (2nd) */ \
+        "pushl $" #vec "\n\t"          /* vector   (1st) */ \
         "call irq_dispatch_c\n\t" \
         "addl $12, %%esp\n\t" \
         "popa\n\t" \
         "iret\n\t" ::: "memory"); \
 }
+
 
 
 // ----------------------------------------------------
@@ -112,6 +111,3 @@ IRQ_WRAPPER(47)
 
 // All remaining vectors
 ISR_NOERRORCODE(48)
-ISR_NOERRORCODE(49)
-ISR_NOERRORCODE(50)
-ISR_NOERRORCODE(51)

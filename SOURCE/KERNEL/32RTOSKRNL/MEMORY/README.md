@@ -11,7 +11,8 @@
 
 
 | `0x00100000`      | `0x00550000`    | Main Kernel (image)                    | \~4.33 MiB        |
-| `0x00550000`      | `0x00F44000`    | Kernel Heap / Kernel-managed RAM       | \~10 MiB (page aligned start)|
+| `0x00550000`      | `0x00F34000`    | Kernel Heap / Kernel-managed RAM       | \~10 MiB (page aligned start)|
+| `0x00F34000`      | `0x00F44000`    | Stack       | 64 KiB |
 | `0x00F44000`      | `0x013004F0`    | Framebuffer (VBE LFB)                  | \~2.74 MiB        |
 | `0x01344000`      | `0x02344000`    | Reserved (MMIO)                        | 16 MiB            |
 | `0x02344000`      | `0x03D09000`    | User Space area                        | \~27 MiB          |

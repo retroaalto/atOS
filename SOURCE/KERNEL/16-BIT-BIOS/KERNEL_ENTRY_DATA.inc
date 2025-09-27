@@ -150,7 +150,8 @@ SECTOR_SIZE equ 2048
 VOL_DESC_START equ 16
 PVD_OFFSET equ VOL_DESC_START    ; reading via BIOS in 2048-byte sectors
 
-STACK_ADDR equ 0x00009400
+STACK_ADDR equ 0x00F44000
+; STACK_ADDR equ 0x00F34000
 
 extentLocationLE_LBA:      dd 0
 extentLengthLE:            dd 0

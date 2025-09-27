@@ -3,11 +3,10 @@
 #include "../../../../STD/ASM.h"
 
 static inline void ata_io_wait(const U8 p) {
-	U8 val = 0;
-	inb(p + ATA_CONTROL_REG + ATA_ALTERNATE_STATUS, val);
-	inb(p + ATA_CONTROL_REG + ATA_ALTERNATE_STATUS, val);
-	inb(p + ATA_CONTROL_REG + ATA_ALTERNATE_STATUS, val);
-	inb(p + ATA_CONTROL_REG + ATA_ALTERNATE_STATUS, val);
+	_inb(p + ATA_CONTROL_REG + ATA_ALTERNATE_STATUS);
+	_inb(p + ATA_CONTROL_REG + ATA_ALTERNATE_STATUS);
+	_inb(p + ATA_CONTROL_REG + ATA_ALTERNATE_STATUS);
+	_inb(p + ATA_CONTROL_REG + ATA_ALTERNATE_STATUS);
 }
 
 

@@ -34,7 +34,7 @@ ISRHandler *ISR_GET_PTR(void) {
 // This is the c-level exception handler
 void isr_common_handler(I32 num, U32 errcode) {
     (void)errcode; (void)num;
-    // HLT;
+    HLT;
 }
 
 void double_fault_handler(I32 num, U32 errcode) {
@@ -98,12 +98,12 @@ VOID SETUP_ISR_HANDLERS(VOID) {
                     ISR_REGISTER_HANDLER(i, double_fault_handler);
                     break;
                 default:
-                    ISR_REGISTER_HANDLER(i, 0); // CPU exceptions
+                    ISR_REGISTER_HANDLER(i, isr_common_handler); // CPU exceptions
             }
         } else if(i >= 32 && i < 48) {
-            ISR_REGISTER_HANDLER(i, 0); // No default handler
+            ISR_REGISTER_HANDLER(i, irq_common_handler); // No default handler
         } else {
-            ISR_REGISTER_HANDLER(i, 0); // Reserved / unused
+            ISR_REGISTER_HANDLER(i, isr_common_handler); // Reserved / unused
         }
     }
 }

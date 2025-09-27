@@ -19,12 +19,17 @@ REVISION HISTORY
         Initializes video mode and clears the screen.
 
 REMARKS
-    None
+    Do NOT touch this file unless you know what you're doing.
+    There are some problems with the stack that I haven't figured out yet,
+    so be careful when modifying this file.
+      Atleast too large of a call stack frame will cause issues.
 ---*/
 #include "./32RTOSKRNL/KERNEL.h"
 #define ISO9660_ONLY_DEFINES
 #include "./32RTOSKRNL/FS/ISO9660/ISO9660.h"
 #include <PIT.h>
+#include "./32RTOSKRNL/CPU/STACK/STACK.h"
+
 typedef struct {
     U32 ExtentLengthLE;
     U32 ExtentLocationLE_LBA;
@@ -183,17 +188,19 @@ void kernel_entry_main(U0) {
     HLT;
 }
 
+
+    
 U0 kernel_after_gdt(U0) {
     IDT_INIT();                       // Setup IDT
     SETUP_ISR_HANDLERS();
     IRQ_INIT();
-    HLT;
-    VBE_DRAW_LINE(1,1,1,200, VBE_GREEN); 
-    VBE_UPDATE_VRAM();
     // todo: tss_init();
+    // VBE_CLEAR_SCREEN(VBE_WHITE);
+    // VBE_UPDATE_VRAM();
     STI;        // Enable interrupts
-    VBE_DRAW_LINE(2,2,1,200, VBE_AQUA); VBE_UPDATE_VRAM();
-    HLT;
+    U0 *RTOSKRNL_ADDRESS = (U0*)MEM_RTOSKRNL_BASE; // Main kernel address
+    // VBE_DRAW_LINE(0, 0, SCREEN_WIDTH, 0, VBE_WHITE); // Top border
+    // VBE_UPDATE_VRAM();
     U32 row = 0;
     U32 atapi_status;
     #define rowinc row += VBE_CHAR_HEIGHT + 2
@@ -204,22 +211,21 @@ U0 kernel_after_gdt(U0) {
         rowinc;
         HLT;
     }
-
-
     
     // Read ATOS/32RTOSKR.BIN;1 from disk
     // We will read the binary with ATAPI operations, 
     // not with DISK/ISO9660, to save the binary size of this file
     // Read buffer address will be at MEM_RESERVED_BASE
-    U0 *RTOSKRNL_ADDRESS = (U0*)MEM_RTOSKRNL_BASE; // Main kernel address
-    PrimaryVolumeDescriptor *pvd = (PrimaryVolumeDescriptor*)MEM_RESERVED_BASE;
+    PrimaryVolumeDescriptor *pvd = (PrimaryVolumeDescriptor*)0x01344000; //MEM_RESERVED_BASE
+    
     // Read buffer will be just after PVD in memory
     U8 *read_buffer = (U8*)(MEM_RESERVED_BASE + 2048);
     // Buffers limited to 21 to save binary size
     U8 filename[21] = "ATOS\0"; 
     U8 original_target[21] = "ATOS/32RTOSKR.BIN\0";
-
-    RTOSKRNL rks = { 0 };
+    RTOSKRNL rks;
+    rks.ExtentLengthLE = 0;
+    rks.ExtentLocationLE_LBA = 0;
     // Read PVD at lba 16
     if(READ_CDROM(atapi_status, 16, 1, (U8*)pvd) == ATAPI_FAILED) {
         VBE_DRAW_STRING(0, row, "CDROM read failed", VBE_WHITE, VBE_BLACK);
@@ -274,8 +280,8 @@ U0 kernel_after_gdt(U0) {
         rowinc;
         HLT;
     }
-
-    __asm__ volatile ("jmp %0" : : "r"((U32)RTOSKRNL_ADDRESS));
+    void (*entry)(void) = (void(*)(void))MEM_RTOSKRNL_BASE;
+    __asm__ volatile("jmp *%0" :: "r"(entry) : "memory");
     HLT;
 }
     

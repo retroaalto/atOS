@@ -85,8 +85,6 @@ void irq45(void);
 void irq46(void);
 void irq47(void);
 void isr48(void);
-void isr49(void);
-void isr50(void);
-void isr51(void);
+
 
 #endif // INTERRUPTS_H

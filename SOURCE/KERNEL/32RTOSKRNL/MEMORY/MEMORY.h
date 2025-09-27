@@ -49,6 +49,9 @@
 #define MEM_RTOSKRNL_HEAP_BASE     0x00550000
 #define MEM_RTOSKRNL_HEAP_END      0x00F44000
 
+#define STACK_0_BASE               0x00F34000
+#define STACK_0_END                0x00F44000
+
 // BIOS Reserved
 #define MEM_BIOS_BASE              0x000E0000
 #define MEM_BIOS_END               0x00100000
@@ -66,5 +69,7 @@
 #define MEM_USER_SPACE_END_MIN     0x03D09000
 
 #define MAX_ALLOWED_MEMORY         0x1FEFE0000
+
+
 
 #endif // MEMORY_H

@@ -69,6 +69,7 @@ kernel:
 	@size=$$(stat -c%s "$(OUTPUT_KERNEL_DIR)/KERNEL.BIN"); \
 	if [ $$size -gt 4095 ]; then \
 		echo "\033[1;33mWARNING: KERNEL.BIN size is $$size bytes, which exceeds 4095 bytes!\033[0m"; \
+		exit 1; \
 	fi
 
 	@echo "Compiling KRNL.BIN (32-bit protected mode C kernel)..."
@@ -105,6 +106,7 @@ kernel:
 	@size=$$(stat -c%s "$(OUTPUT_KERNEL_DIR)/KRNL.BIN"); \
 	if [ $$size -gt 16384 ]; then \
 		echo "\033[1;33mWARNING: KRNL.BIN size is $$size bytes, which exceeds 16384 bytes!\033[0m"; \
+		exit 1; \
 	fi
 
 

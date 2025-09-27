@@ -615,13 +615,16 @@ halt_loop:
 
 
 PModeMain:
+    cli
     mov ax, 0x10     ; data segment selector (GDT entry #2)
     mov ds, ax
     mov es, ax
     mov fs, ax
     mov gs, ax
     mov ss, ax       ; stack segment
-    mov esp, STACK_ADDR   ; Stack at 512KB (adjust if you want)
+    mov esp, STACK_ADDR
+; optionally set EBP too
+    mov ebp, esp
 
     ; --- Load IDT ---
     %define KCODE_SEL 0x08
@@ -649,12 +652,11 @@ PModeMain:
     lidt [IDTR]
 
     cld
-    mov edi, 0xB8000
-    mov eax, (' ' | (0x1A << 8))  ; space with attribute 0x1A
-    mov ecx, 80*25/2              ; number of dwords to fill (2 chars per dword)
-    rep stosd
-    ; If you want a single ‘H’ first:
-    mov dword [0xB8000], ('H' | (0x1A << 8))
+    ; mov edi, 0xB8000
+    ; mov eax, (' ' | (0x1A << 8))  ; space with attribute 0x1A
+    ; mov ecx, 80*25/2              ; number of dwords to fill (2 chars per dword)
+    ; rep stosd
+    ; mov dword [0xB8000], ('H' | (0x1A << 8))
 
     jmp KERNEL_LOAD_ADDRESS
     hlt    
