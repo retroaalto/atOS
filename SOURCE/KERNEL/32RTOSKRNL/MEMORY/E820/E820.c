@@ -7,10 +7,7 @@
 #define EXPECTED_MAX_SIZE 32
 #define MIN_USER_SPACE_SIZE (MEM_USER_SPACE_END_MIN - MEM_USER_SPACE_BASE)
 
-#define TYPE_E820_RAM 0x01
-#define TYPE_E820_RESERVED 0x02
-#define TYPE_E820_ACPI_RECLAIMABLE 0x03
-#define TYPE_E820_ACPI_NVS 0x04
+
 
 // Do NOT modify ever!
 static U32 e820_entry_count;
@@ -18,7 +15,6 @@ static E820_ENTRY e820_entries[EXPECTED_MAX_SIZE];
 static E820Info g_E820Info;
 
 // Helper function to check if a 32-bit value fits in 32 bits
-static inline BOOLEAN fits_in_32(U32 hi) { return hi == 0; }
 
 E820Info *GET_E820_INFO(VOID) {
     return &g_E820Info;
@@ -41,15 +37,6 @@ BOOLEAN E820_INIT(VOID) {
             && entry_table[i].BaseAddressHigh == 0 && entry_table[i].LengthHigh == 0) {
             break;
         }
-
-        U8 buf[50];
-        ITOA_U(entry_table[i].BaseAddressLow, buf, 16);
-        VBE_DRAW_STRING(0, 10 * i + 2, buf, VBE_GREEN, VBE_SEE_THROUGH);
-        ITOA_U(entry_table[i].Type, buf, 16);
-        VBE_DRAW_STRING(75, 10 * i + 2, buf, VBE_GREEN, VBE_SEE_THROUGH);
-        ITOA_U(entry_table[i].LengthLow, buf, 16);
-        VBE_DRAW_STRING(100, 10 * i + 2, buf, VBE_GREEN, VBE_SEE_THROUGH);
-        VBE_UPDATE_VRAM();
         e820_entries[entries++] = entry_table[i];
     }
     e820_entry_count = entries;
@@ -64,7 +51,7 @@ BOOLEAN E820_INIT(VOID) {
         if(e820_entries[i].Type != TYPE_E820_RAM) continue;
         if (!fits_in_32(e820_entries[i].BaseAddressHigh) ||
             !fits_in_32(e820_entries[i].LengthHigh)) continue;
-
+        
         g_E820Info.RawEntries[g_E820Info.RawEntryCount++] = e820_entries[i];
         U32 base = (U32)e820_entries[i].BaseAddressLow;
         U32 len  = (U32)e820_entries[i].LengthLow;

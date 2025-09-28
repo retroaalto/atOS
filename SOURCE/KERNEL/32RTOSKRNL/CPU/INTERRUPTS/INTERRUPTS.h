@@ -1,5 +1,5 @@
 /*+++
-    Source/KERNEL/32RTOSKRNL/CPU/INTERRUPTS.h - Interrupts Definitions
+    Source/KERNEL/32RTOSKRNL/CPU/INTERRUPTS/INTERRUPTS.h - Interrupts Definitions
 
     Part of atOS
 

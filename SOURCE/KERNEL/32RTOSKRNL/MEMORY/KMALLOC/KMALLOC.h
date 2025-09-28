@@ -1,0 +1,10 @@
+#ifndef KMALLOC_H
+#define KMALLOC_H
+#include <STD/TYPEDEF.h>
+
+VOIDPTR KMALLOC(U32 size);
+VOID KFREE(VOIDPTR ptr);
+VOIDPTR KCALLOC(U32 num, U32 size);
+BOOLEAN KREALLOC(VOIDPTR *addr, U32 oldSize, U32 newSize);
+
+#endif // KMALLOC_H

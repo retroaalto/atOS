@@ -55,3 +55,9 @@ I32 round_down(I32 x) {
 I32 round_to_nearest(I32 x) {
     return (x + 1) & ~1;
 }
+
+BOOLEAN range_overlap(U32 a_start, U32 a_len, U32 b_start, U32 b_len) {
+    U32 a_end = a_start + a_len;
+    U32 b_end = b_start + b_len;
+    return !(a_end <= b_start || b_end <= a_start);
+}

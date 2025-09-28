@@ -168,7 +168,16 @@ Remarks
 ---*/
 U32 READ_CDROM(U32 ATAPICheckRes, U32 lba, U32 sectors, U8 *buf);
 
-
 #ifndef KERNEL_ENTRY
+
+/// @brief Initializes the ATAPI interface.
+/// @return Same as ATAPI_CHECK result.
+/// @note This is same as calling ATAPI_CHECK, but it only runs once and saves the result for later use.
+U32 INITIALIZE_ATAPI();
+
+/// @brief Gets the ATAPI drive information.
+/// @return Same as ATAPI_CHECK result.
+U32 GET_ATAPI_INFO();
+// Hard disk functions
 #endif // KERNEL_ENTRY
 #endif // ATA_ATAPI_DRIVER_H

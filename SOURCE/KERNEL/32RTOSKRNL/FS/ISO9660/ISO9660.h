@@ -2,12 +2,17 @@
 #define ISO9660_H
 
 #include "../../../STD/TYPEDEF.h"
-#include "../../DRIVERS/DISK/ATA_ATAPI.h"
 
 #define ISO9660_SECTOR_SIZE 2048
 #define ISO9660_VOLUME_DESCRIPTOR_START 16
 #define ISO9660_PVD_OFFSET ((ISO9660_VOLUME_DESCRIPTOR_START*ISO9660_SECTOR_SIZE)/ISO9660_SECTOR_SIZE)
-#define ISO9660_MAX_PATH 256
+#define ISO9660_MAX_PATH 255
+#define ISO9660_MAX_DIR_DEPTH 8
+#define ISO9660_MAX_EXTENSION_LENGTH 3
+#define ISO9660_MAX_FILENAME_LENGTH 8 // excluding extension and ;1
+#define ISO9660_MAX_FULLNAME_LENGTH (ISO9660_MAX_FILENAME_LENGTH + 1 + ISO9660_MAX_EXTENSION_LENGTH + 2) // including . and ;1
+#define ISO9660_MAX_DIR_RECORDS 64 // Max records in a directory. Practically could be more, but we limit it for simplicity
+#define ISO9660_FILE_FLAG_DIRECTORY 0b00000010
 
 typedef U8 strD;
 typedef U8 strA;
@@ -115,11 +120,55 @@ __attribute__((packed))
 PrimaryVolumeDescriptor;
 
 #ifndef ISO9660_ONLY_DEFINES
-BOOLEAN ISO9660_IMAGE_CHECK(U0);
-BOOLEAN ISO9660_READ_PRIMARYVOLUMEDESCRIPTOR(PrimaryVolumeDescriptor *descriptor);
-BOOLEAN ISO9660_NORMALIZE_PATH(CHAR *path);
-BOOLEAN ISO9660_READ_DIRECTORY_RECORD(CHAR *path, IsoDirectoryRecord *record, U32 size);
-BOOLEAN ISO9660_READFILE_TO_MEMORY(CHAR *path, U0 *outBuffer, U32 outSize);
+
+/// @brief Check if the ISO9660 image is valid.
+/// @param pvd Pointer to the PrimaryVolumeDescriptor to check.
+/// @return TRUE if valid, FALSE otherwise.
+BOOLEAN ISO9660_IMAGE_CHECK(PrimaryVolumeDescriptor *pvd);
+
+/// @brief Read the primary volume descriptor from the ISO9660 image.
+/// @param descriptor Pointer to the PrimaryVolumeDescriptor structure to fill.
+/// @param size Size of the descriptor structure.
+/// @return TRUE if successful, FALSE otherwise.
+BOOLEAN ISO9660_READ_PVD(PrimaryVolumeDescriptor *descriptor, U32 size);
+
+/// @brief Normalize the given path to conform to ISO9660 standards.
+/// @param path Pointer to the path string to normalize.
+/// @note By normalize, we mean converting path
+///       separators to the ISO9660 standard ('/').
+///       Example: "DIR1\DIR2\FILE.TXT" -> "DIR1/DIR2/FILE.TXT"
+///       Example2: "DIR1/DIR2/FILE" -> "DIR1/DIR2/FILE;1"
+///       The function modifies the path in place.
+/// @return Pointer to the normalized path string, or NULLPTR on failure.
+/// @note About the return value: If the function is called by kernel, free via KFREE.
+///       If called by user program, free via free().
+STRING ISO9660_NORMALIZE_PATH(CHAR *path);
+
+/// @brief Extract the root directory record from the primary volume descriptor.
+/// @param pvd Pointer to the PrimaryVolumeDescriptor.
+/// @param root Pointer to the IsoDirectoryRecord to fill with the root directory record.
+void ISO9660_EXTRACT_ROOT_FROM_PVD(PrimaryVolumeDescriptor *pvd, IsoDirectoryRecord *root);
+
+/// @brief Read a directory record from the ISO9660 filesystem.
+/// @param path Path inside the ISO9660 image, formatted inside the function.
+/// @param root_record Pointer to the root IsoDirectoryRecord structure.
+/// @param out_record Pointer to the IsoDirectoryRecord structure to fill with the found record.
+/// @return TRUE if successful, FALSE otherwise.
+BOOLEAN ISO9660_READ_DIRECTORY_RECORD(CHAR *path, IsoDirectoryRecord *root_record, IsoDirectoryRecord *out_record);
+
+/// @brief Reads file record from the ISO9660 image into memory.
+/// @param path Path inside the ISO9660 image, formatted inside the function
+/// @return Pointer to the allocated buffer containing the file data, or NULLPTR on failure.
+IsoDirectoryRecord *ISO9660_FILERECORD_TO_MEMORY(CHAR *path);
+
+/// @brief Reads file data from the ISO9660 image into memory.
+/// @param fileptr Pointer to the IsoDirectoryRecord of the file to read.
+/// @return Pointer to the allocated buffer containing the file data, or NULLPTR on failure.
+VOIDPTR ISO9660_READ_FILEDATA_TO_MEMORY(IsoDirectoryRecord *fileptr);
+
+/// @brief Frees the memory allocated by ISO9660 functions.
+/// @param ptr Pointer to the memory to free.
+void ISO9660_FREE_MEMORY(VOIDPTR ptr);
 
 #endif
 

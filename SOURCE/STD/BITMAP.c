@@ -3,15 +3,13 @@
 #include <STD/MEM.h>
 
 BOOLEAN BITMAP_GET(BITMAP *bitmap, U32 index) {
-    if(index > bitmap->size * 8) return FALSE;
+    if(index >= bitmap->size * 8) return FALSE;
     U32 byteIndex = index / 8;
     U8 bitIndex = index % 8;
-    U8 bitIndexer = SHR(0b10000000, bitIndex);
-    if ((bitmap->data[byteIndex] & bitIndexer) > 0) {
-        return TRUE;
-    }
-    return FALSE;
+    U8 mask = 1 << bitIndex;
+    return (bitmap->data[byteIndex] & mask) != 0;
 }
+
 
 BOOLEAN BITMAP_SET(BITMAP *bitmap, U32 index, BOOLEAN value) {
     if(index > bitmap->size * 8) return FALSE;

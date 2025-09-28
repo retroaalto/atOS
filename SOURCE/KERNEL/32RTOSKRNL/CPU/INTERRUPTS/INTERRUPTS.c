@@ -1,58 +1,57 @@
-#include "./INTERRUPTS.h"
+#include "./INTERRUPTS/INTERRUPTS.h"
 
 // Common ISR handler wrapper
 typedef void (*isr_t)(void);
 
-
-// Define IRQ wrappers 32..47 (we will create generic wrappers)
+// Adjusted ISR macros to pass correct regs pointer
 // Exceptions without CPU error code
 #define ISR_NOERRORCODE(n) \
 __attribute__((naked)) void isr##n(void) { \
     asm volatile( \
-        "pusha\n\t"                    /* save regs */ \
-        "movl %%esp, %%ecx\n\t"          /* regs_ptr = start of pusha frame */ \
-        "pushl %%ecx\n\t"               /* regs_ptr (3rd) */ \
-        "pushl $0\n\t"                 /* errcode (2nd) */ \
-        "pushl $" #n "\n\t"            /* vector  (1st) */ \
+        "pusha\n\t" \
+        "movl %%esp, %%eax\n\t"   /* eax = current esp */ \
+        "addl $28, %%eax\n\t"     /* adjust to point to EAX (first pusha register) */ \
+        "pushl %%eax\n\t"         /* push regs* argument */ \
+        "pushl $0\n\t"            /* fake errcode */ \
+        "pushl $" #n "\n\t"       /* vector */ \
         "call isr_dispatch_c\n\t" \
-        "addl $12, %%esp\n\t"           /* pop args */ \
+        "addl $12, %%esp\n\t"     /* pop args */ \
         "popa\n\t" \
-        "iret\n\t" ::: "memory"); \
+        "iret\n\t" ::: "eax", "memory"); \
 }
 
-// Exceptions with CPU error code (e.g., 0x0E page fault)
-// After pusha, CPU error code is at [esp+32]
+// Exceptions with CPU error code (e.g., page fault)
 #define ISR_ERRORCODE(n) \
 __attribute__((naked)) void isr##n(void) { \
     asm volatile( \
         "pusha\n\t" \
-        "movl 32(%%esp), %%edx\n\t"      /* edx = CPU error code (read BEFORE more pushes) */ \
-        "movl %%esp, %%ecx\n\t"          /* regs_ptr = start of pusha frame */ \
-        "pushl %%ecx\n\t"               /* regs_ptr (3rd) */ \
-        "pushl %%edx\n\t"               /* errcode  (2nd) */ \
-        "pushl $" #n "\n\t"            /* vector   (1st) */ \
+        "movl 32(%%esp), %%edx\n\t" /* edx = CPU error code BEFORE pushing more */ \
+        "movl %%esp, %%eax\n\t" \
+        "addl $28, %%eax\n\t"      /* adjust to point to EAX */ \
+        "pushl %%eax\n\t"          /* push regs* */ \
+        "pushl %%edx\n\t"          /* push CPU error code */ \
+        "pushl $" #n "\n\t"        /* vector */ \
         "call isr_dispatch_c\n\t" \
         "addl $12, %%esp\n\t" \
         "popa\n\t" \
-        "iret\n\t" ::: "memory"); \
+        "iret\n\t" ::: "eax","edx","memory"); \
 }
 
-// IRQ wrappers (vectors 0x20..0x2F). Pass VECTOR to C.
+// IRQ wrappers (vectors 0x20..0x2F)
 #define IRQ_WRAPPER(vec) \
 __attribute__((naked)) void irq##vec(void) { \
     asm volatile( \
         "pusha\n\t" \
-        "movl %%esp, %%ecx\n\t"          /* regs_ptr = start of pusha frame */ \
-        "pushl %%ecx\n\t"               /* regs_ptr (3rd) */ \
-        "pushl $0\n\t"                 /* errcode  (2nd) */ \
-        "pushl $" #vec "\n\t"          /* vector   (1st) */ \
+        "movl %%esp, %%eax\n\t" \
+        "addl $28, %%eax\n\t"     /* adjust to start of pusha */ \
+        "pushl %%eax\n\t"         /* push regs* */ \
+        "pushl $0\n\t"            /* fake errcode */ \
+        "pushl $" #vec "\n\t"     /* vector */ \
         "call irq_dispatch_c\n\t" \
         "addl $12, %%esp\n\t" \
         "popa\n\t" \
-        "iret\n\t" ::: "memory"); \
+        "iret\n\t" ::: "eax","memory"); \
 }
-
-
 
 // ----------------------------------------------------
 // Generate stubs

@@ -1,12 +1,13 @@
 #include <DRIVERS/PS2/KEYBOARD.h>
-#include <CPU/PIC.h>
-#include <DRIVERS/VIDEO/VBE.h>
+#include <CPU/PIC/PIC.h>
 #include <RTOSKRNL/RTOSKRNL_INTERNAL.h>
 #include <CPU/ISR/ISR.h>
 #include <STD/BINARY.h>
 
-static CMD_QUEUE cmd_queue;
+static PS2KB_CMD_QUEUE cmd_queue;
 static PS2_INFO ps2_info = {0};
+static KEYPRESS last_key = {0}; // Store the last key pressed to avoid repeats
+static MODIFIERS modifiers = {0};
 
 PS2_INFO *GET_PS2_INFO(VOID) {
     return &ps2_info;
@@ -24,7 +25,7 @@ void PUSH_TO_CMD_QUEUE(U8 byte) {
     cmd_queue.head = next;
 }
 
-CMD_QUEUE *GET_CMD_QUEUE(VOID) { 
+PS2KB_CMD_QUEUE *GET_CMD_QUEUE(VOID) { 
     return &cmd_queue; 
 }
 U8 POP_FROM_CMD_QUEUE(VOID) {
@@ -55,9 +56,6 @@ void PS2_KEYBOARD_HANDLER(I32 num, U32 errcode) {
     (void)num; (void)errcode; // not used
     U8 scancode = PS2_INB(PS2_DATAPORT);
     PUSH_TO_CMD_QUEUE(scancode);
-
-    VBE_DRAW_ELLIPSE(300, 300, 50, 25, VBE_AQUA);
-    VBE_UPDATE_VRAM();
 }
 
 
@@ -162,7 +160,6 @@ U16 PS2_Identify(VOID) {
 // #define PS2_TEST
 BOOLEAN PS2_KEYBOARD_INIT(VOID) {
     #ifndef PS2_TEST
-    CLI;
     // Initialize USB controllers
     
     if(!PS2_DisableScanning()) return FALSE;
@@ -228,6 +225,9 @@ BOOLEAN PS2_KEYBOARD_INIT(VOID) {
         if(!PS2_SET_SCAN_CODE_SET(SECONDARY_SCANCODESET)) {
             return FALSE; // Set scan code set failed
         }
+        ps2_info.scancode_set = SECONDARY_SCANCODESET;
+    } else {
+        ps2_info.scancode_set = DEFAULT_SCANCODESET;
     }
 
     if(!PS2_EMPTY_KEYBOARD_BUFFER()) { // Clear keyboard buffer
@@ -235,33 +235,557 @@ BOOLEAN PS2_KEYBOARD_INIT(VOID) {
     }
 
     CLEAR_CMD_QUEUE();
-    #endif
+    #endif // PS2_TEST
 
     ISR_REGISTER_HANDLER(PIC_REMAP_OFFSET + 1, PS2_KEYBOARD_HANDLER);
     PIC_Unmask(1);
     #ifndef PS2_TEST
     // enable scanning
     if(!PS2_EnableScanning()) return FALSE;
-    STI;
-    #endif
+    #endif // PS2_TEST
+
+    modifiers.shift = FALSE;
+    modifiers.ctrl = FALSE;
+    modifiers.alt = FALSE;
+    modifiers.capslock = FALSE;
+    modifiers.numlock = FALSE;
+    modifiers.scrolllock = FALSE;
+    last_key.keycode = KEY_UNKNOWN;
+    last_key.pressed = FALSE;
     return TRUE;
 }
 
 
 
+KEYPRESS ParsePS2_CS1(U32 scancode1, U32 scancode2) {
+    return (KEYPRESS){0};
+}
+U32 aaa = 200;
+KEYPRESS ParsePS2_CS2(U32 scancode1, U32 scancode2, U8 scancode1_bytes, U8 scancode2_bytes) {
+    U8 byte1 = 0, byte2 = 0, byte3 = 0, byte4 = 0,
+        byte5 = 0, byte6 = 0, byte7 = 0, byte8 = 0;
+    KEYPRESS keypress = {0};
+    keypress.keycode = KEY_UNKNOWN;
+    keypress.pressed = TRUE; // Assume pressed, unless we detect it's released
 
-Keys1 ParsePS2_CS1(U8 scancode) {
-    switch (scancode) {
-        case 0x01: return SC1_ESC;
-        default: return 0; // Unknown key
+    byte1 = (scancode1 >> 8*(scancode1_bytes-1)) & 0xFF; // first sent byte
+    byte2 = (scancode1 >> 8*(scancode1_bytes-2)) & 0xFF; // second byte
+    byte3 = (scancode1 >> 8*(scancode1_bytes-3)) & 0xFF;
+    byte4 = (scancode1 >> 8*(scancode1_bytes-4)) & 0xFF;
+    byte5 = (scancode2 & 8*(scancode2_bytes-1)) & 0xFF; // first sent byte of second scancode
+    byte6 = (scancode2 & 8*(scancode2_bytes-2)) & 0xFF; // second byte of second scancode
+    byte7 = (scancode2 & 8*(scancode2_bytes-3)) & 0xFF;
+    byte8 = (scancode2 & 8*(scancode2_bytes-4)) & 0xFF;
+
+    switch(byte1) {
+        case SC2_PRESSED_F9: keypress.keycode = KEY_F9; break;
+        case SC2_PRESSED_F5: keypress.keycode = KEY_F5; break;
+        case SC2_PRESSED_F3: keypress.keycode = KEY_F3; break;
+        case SC2_PRESSED_F1: keypress.keycode = KEY_F1; break;
+        case SC2_PRESSED_F2: keypress.keycode = KEY_F2; break;
+        case SC2_PRESSED_F12: keypress.keycode = KEY_F12; break;
+        case SC2_PRESSED_F10: keypress.keycode = KEY_F10; break;
+        case SC2_PRESSED_F8: keypress.keycode = KEY_F8; break;
+        case SC2_PRESSED_F6: keypress.keycode = KEY_F6; break;
+        case SC2_PRESSED_F4: keypress.keycode = KEY_F4; break;
+        case SC2_PRESSED_TAB: keypress.keycode = KEY_TAB; break;
+        case SC2_PRESSED_GRAVE: keypress.keycode = KEY_GRAVE; break;
+        case SC2_PRESSED_LALT: keypress.keycode = KEY_LALT; break;
+        case SC2_PRESSED_LSHIFT: keypress.keycode = KEY_LSHIFT; break;
+        case SC2_PRESSED_LCTRL: keypress.keycode = KEY_LCTRL; break;
+        case SC2_PRESSED_Q: keypress.keycode = KEY_Q; break;
+        case SC2_PRESSED_1: keypress.keycode = KEY_1; break;
+        case SC2_PRESSED_Z: keypress.keycode = KEY_Z; break;
+        case SC2_PRESSED_S: keypress.keycode = KEY_S; break;
+        case SC2_PRESSED_A: keypress.keycode = KEY_A; break;
+        case SC2_PRESSED_W: keypress.keycode = KEY_W; break;
+        case SC2_PRESSED_2: keypress.keycode = KEY_2; break;
+        case SC2_PRESSED_C: keypress.keycode = KEY_C; break;
+        case SC2_PRESSED_X: keypress.keycode = KEY_X; break;
+        case SC2_PRESSED_D: keypress.keycode = KEY_D; break;
+        case SC2_PRESSED_E: keypress.keycode = KEY_E; break;
+        case SC2_PRESSED_4: keypress.keycode = KEY_4; break;
+        case SC2_PRESSED_3: keypress.keycode = KEY_3; break;
+        case SC2_PRESSED_SPACE: keypress.keycode = KEY_SPACE; break;
+        case SC2_PRESSED_V: keypress.keycode = KEY_V; break;
+        case SC2_PRESSED_F: keypress.keycode = KEY_F; break;
+        case SC2_PRESSED_T: keypress.keycode = KEY_T; break;
+        case SC2_PRESSED_R: keypress.keycode = KEY_R; break;
+        case SC2_PRESSED_5: keypress.keycode = KEY_5; break;
+        case SC2_PRESSED_N: keypress.keycode = KEY_N; break;
+        case SC2_PRESSED_B: keypress.keycode = KEY_B; break;
+        case SC2_PRESSED_H: keypress.keycode = KEY_H; break;
+        case SC2_PRESSED_G: keypress.keycode = KEY_G; break;
+        case SC2_PRESSED_Y: keypress.keycode = KEY_Y; break;
+        case SC2_PRESSED_6: keypress.keycode = KEY_6; break;
+        case SC2_PRESSED_U: keypress.keycode = KEY_U; break;
+        case SC2_PRESSED_7: keypress.keycode = KEY_7; break;
+        case SC2_PRESSED_8: keypress.keycode = KEY_8; break;
+        case SC2_PRESSED_COMMA: keypress.keycode = KEY_COMMA; break;
+        case SC2_PRESSED_K: keypress.keycode = KEY_K; break;
+        case SC2_PRESSED_I: keypress.keycode = KEY_I; break;
+        case SC2_PRESSED_O: keypress.keycode = KEY_O; break;
+        case SC2_PRESSED_ZERO: keypress.keycode = KEY_0; break;
+        case SC2_PRESSED_NINE: keypress.keycode = KEY_9; break;
+        case SC2_PRESSED_DOT: keypress.keycode = KEY_DOT; break;
+        case SC2_PRESSED_SLASH: keypress.keycode = KEY_SLASH; break;
+        case SC2_PRESSED_L: keypress.keycode = KEY_L; break;
+        case SC2_PRESSED_SEMICOLON: keypress.keycode = KEY_SEMICOLON; break;    
+        case SC2_PRESSED_P: keypress.keycode = KEY_P; break;
+        case SC2_PRESSED_MINUS: keypress.keycode = KEY_MINUS; break;
+        case SC2_PRESSED_APOSTROPHE: keypress.keycode = KEY_APOSTROPHE; break;
+        case SC2_PRESSED_LSQUARE: keypress.keycode = KEY_LBRACKET; break;
+        case SC2_PRESSED_EQUALS: keypress.keycode = KEY_EQUALS; break;
+        case SC2_PRESSED_CAPSLOCK: keypress.keycode = KEY_CAPSLOCK; break;
+        case SC2_PRESSED_RSHIFT: keypress.keycode = KEY_RSHIFT; break;
+        case SC2_PRESSED_ENTER: keypress.keycode = KEY_ENTER; break;
+        case SC2_PRESSED_RSQUARE: keypress.keycode = KEY_RBRACKET; break;
+        case SC2_PRESSED_BACKSLASH: keypress.keycode = KEY_BACKSLASH; break;
+        case SC2_PRESSED_BACKSPACE: keypress.keycode = KEY_BACKSPACE; break;
+        case SC2_PRESSED_KEYPAD1: keypress.keycode = KEYPAD_1; break;
+        case SC2_PRESSED_KEYPAD4: keypress.keycode = KEYPAD_4; break;
+        case SC2_PRESSED_KEYPAD7: keypress.keycode = KEYPAD_7; break;
+        case SC2_PRESSED_KEYPAD0: keypress.keycode = KEYPAD_0; break;
+        case SC2_PRESSED_KEYPADDOT: keypress.keycode = KEYPAD_DOT; break;
+        case SC2_PRESSED_KEYPAD2: keypress.keycode = KEYPAD_2; break;
+        case SC2_PRESSED_KEYPAD5: keypress.keycode = KEYPAD_5; break;
+        case SC2_PRESSED_KEYPAD6: keypress.keycode = KEYPAD_6; break;
+        case SC2_PRESSED_KEYPAD8: keypress.keycode = KEYPAD_8; break;
+        case SC2_PRESSED_ESC: keypress.keycode = KEY_ESC; break;
+        case SC2_PRESSED_NUMLOCK: keypress.keycode = KEYPAD_NUMLOCK; break;
+        case SC2_PRESSED_F11: keypress.keycode = KEY_F11; break;
+        case SC2_PRESSED_KEYPADPLUS: keypress.keycode = KEYPAD_PLUS; break;
+        case SC2_PRESSED_KEYPAD3: keypress.keycode = KEYPAD_3; break;
+        case SC2_PRESSED_KEYPADMINUS: keypress.keycode = KEYPAD_MINUS; break;
+        case SC2_PRESSED_KEYPADASTERISK: keypress.keycode = KEYPAD_ASTERISK; break;
+        case SC2_PRESSED_KEYPAD9: keypress.keycode = KEYPAD_9; break;
+        case SC2_PRESSED_SCROLLLOCK: keypress.keycode = KEY_SCROLLLOCK; break;
+        case SC2_PRESSED_F7: keypress.keycode = KEY_F7; break;
+
+        // 0xF0 starting brakes
+        case SC2_RELEASE_F0: {
+            keypress.pressed = FALSE;
+            switch(byte2){
+                case SC2_RELEASED_PART2_F9: keypress.keycode = KEY_F9; break;
+                case SC2_RELEASED_PART2_F5: keypress.keycode = KEY_F5; break;
+                case SC2_RELEASED_PART2_F3: keypress.keycode = KEY_F3; break;
+                case SC2_RELEASED_PART2_F1: keypress.keycode = KEY_F1; break;
+                case SC2_RELEASED_PART2_F2: keypress.keycode = KEY_F2; break;
+                case SC2_RELEASED_PART2_F12: keypress.keycode = KEY_F12; break;
+                case SC2_RELEASED_PART2_F10: keypress.keycode = KEY_F10; break;
+                case SC2_RELEASED_PART2_F8: keypress.keycode = KEY_F8; break;
+                case SC2_RELEASED_PART2_F6: keypress.keycode = KEY_F6; break;
+                case SC2_RELEASED_PART2_F4: keypress.keycode = KEY_F4; break;
+                case SC2_RELEASED_PART2_TAB: keypress.keycode = KEY_TAB; break;
+                case SC2_RELEASED_PART2_GRAVE: keypress.keycode = KEY_GRAVE; break;
+                case SC2_RELEASED_PART2_LALT: keypress.keycode = KEY_LALT; break;
+                case SC2_RELEASED_PART2_LSHIFT: keypress.keycode = KEY_LSHIFT; break;
+                case SC2_RELEASED_PART2_LCTRL: keypress.keycode = KEY_LCTRL; break;
+                case SC2_RELEASED_PART2_Q: keypress.keycode = KEY_Q; break;
+                case SC2_RELEASED_PART2_1: keypress.keycode = KEY_1; break;
+                case SC2_RELEASED_PART2_Z: keypress.keycode = KEY_Z; break;
+                case SC2_RELEASED_PART2_S: keypress.keycode = KEY_S; break;
+                case SC2_RELEASED_PART2_A: keypress.keycode = KEY_A; break;
+                case SC2_RELEASED_PART2_W: keypress.keycode = KEY_W; break;
+                case SC2_RELEASED_PART2_2: keypress.keycode = KEY_2; break;
+                case SC2_RELEASED_PART2_C: keypress.keycode = KEY_C; break;
+                case SC2_RELEASED_PART2_X: keypress.keycode = KEY_X; break;
+                case SC2_RELEASED_PART2_D: keypress.keycode = KEY_D; break;
+                case SC2_RELEASED_PART2_E: keypress.keycode = KEY_E; break;
+                case SC2_RELEASED_PART2_4: keypress.keycode = KEY_4; break;
+                case SC2_RELEASED_PART2_3: keypress.keycode = KEY_3; break;
+                case SC2_RELEASED_PART2_SPACE: keypress.keycode = KEY_SPACE; break;
+                case SC2_RELEASED_PART2_V: keypress.keycode = KEY_V; break;
+                case SC2_RELEASED_PART2_F: keypress.keycode = KEY_F; break;
+                case SC2_RELEASED_PART2_T: keypress.keycode = KEY_T; break;
+                case SC2_RELEASED_PART2_R: keypress.keycode = KEY_R; break;
+                case SC2_RELEASED_PART2_5: keypress.keycode = KEY_5; break;
+                case SC2_RELEASED_PART2_N: keypress.keycode = KEY_N; break;
+                case SC2_RELEASED_PART2_B: keypress.keycode = KEY_B; break;
+                case SC2_RELEASED_PART2_H: keypress.keycode = KEY_H; break;
+                case SC2_RELEASED_PART2_G: keypress.keycode = KEY_G; break;
+                case SC2_RELEASED_PART2_Y: keypress.keycode = KEY_Y; break;
+                case SC2_RELEASED_PART2_6: keypress.keycode = KEY_6; break;
+                case SC2_RELEASED_PART2_U: keypress.keycode = KEY_U; break;
+                case SC2_RELEASED_PART2_7: keypress.keycode = KEY_7; break;
+                case SC2_RELEASED_PART2_8: keypress.keycode = KEY_8; break;
+                case SC2_RELEASED_PART2_COMMA: keypress.keycode = KEY_COMMA; break;
+                case SC2_RELEASED_PART2_K: keypress.keycode = KEY_K; break;
+                case SC2_RELEASED_PART2_I: keypress.keycode = KEY_I; break;
+                case SC2_RELEASED_PART2_O: keypress.keycode = KEY_O; break;
+                case SC2_RELEASED_PART2_ZERO: keypress.keycode = KEY_0; break;
+                case SC2_RELEASED_PART2_NINE: keypress.keycode = KEY_9; break;
+                case SC2_RELEASED_PART2_DOT: keypress.keycode = KEY_DOT; break;
+                case SC2_RELEASED_PART2_SLASH: keypress.keycode = KEY_SLASH; break;
+                case SC2_RELEASED_PART2_L: keypress.keycode = KEY_L; break;
+                case SC2_RELEASED_PART2_SEMICOLON: keypress.keycode = KEY_SEMICOLON; break;    
+                case SC2_RELEASED_PART2_P: keypress.keycode = KEY_P; break;
+                case SC2_RELEASED_PART2_MINUS: keypress.keycode = KEY_MINUS; break;
+                case SC2_RELEASED_PART2_APOSTROPHE: keypress.keycode = KEY_APOSTROPHE; break;
+                case SC2_RELEASED_PART2_LSQUARE: keypress.keycode = KEY_LBRACKET; break;
+                case SC2_RELEASED_PART2_EQUALS: keypress.keycode = KEY_EQUALS; break;
+                case SC2_RELEASED_PART2_CAPSLOCK: keypress.keycode = KEY_CAPSLOCK; break;
+                case SC2_RELEASED_PART2_RSHIFT: keypress.keycode = KEY_RSHIFT; break;
+                case SC2_RELEASED_PART2_ENTER: keypress.keycode = KEY_ENTER; break;
+                case SC2_RELEASED_PART2_RSQUARE: keypress.keycode = KEY_RBRACKET; break;
+                case SC2_RELEASED_PART2_BACKSLASH: keypress.keycode = KEY_BACKSLASH; break;
+                case SC2_RELEASED_PART2_BACKSPACE: keypress.keycode = KEY_BACKSPACE; break;
+                case SC2_RELEASED_PART2_KEYPAD1: keypress.keycode = KEYPAD_1; break;
+                case SC2_RELEASED_PART2_KEYPAD4: keypress.keycode = KEYPAD_4; break;
+                case SC2_RELEASED_PART2_KEYPAD7: keypress.keycode = KEYPAD_7; break;
+                case SC2_RELEASED_PART2_KEYPAD0: keypress.keycode = KEYPAD_0; break;
+                case SC2_RELEASED_PART2_KEYPADDOT: keypress.keycode = KEYPAD_DOT; break;
+                case SC2_RELEASED_PART2_KEYPAD2: keypress.keycode = KEYPAD_2; break;
+                case SC2_RELEASED_PART2_KEYPAD5: keypress.keycode = KEYPAD_5; break;
+                case SC2_RELEASED_PART2_KEYPAD6: keypress.keycode = KEYPAD_6; break;
+                case SC2_RELEASED_PART2_KEYPAD8: keypress.keycode = KEYPAD_8; break;
+                case SC2_RELEASED_PART2_ESC: keypress.keycode = KEY_ESC; break;
+                case SC2_RELEASED_PART2_NUMLOCK: keypress.keycode = KEYPAD_NUMLOCK; break;
+                case SC2_RELEASED_PART2_F11: keypress.keycode = KEY_F11; break;
+                case SC2_RELEASED_PART2_KEYPADPLUS: keypress.keycode = KEYPAD_PLUS; break;
+                case SC2_RELEASED_PART2_KEYPAD3: keypress.keycode = KEYPAD_3; break;
+                case SC2_RELEASED_PART2_KEYPADMINUS: keypress.keycode = KEYPAD_MINUS; break;
+                case SC2_RELEASED_PART2_KEYPADASTERISK: keypress.keycode = KEYPAD_ASTERISK; break;
+                case SC2_RELEASED_PART2_KEYPAD9: keypress.keycode = KEYPAD_9; break;
+                case SC2_RELEASED_PART2_SCROLLLOCK: keypress.keycode = KEY_SCROLLLOCK; break;
+                case SC2_RELEASED_PART2_F7: keypress.keycode = KEY_F7; break;
+                default: keypress.keycode = KEY_UNKNOWN; break;
+            }
+        } break;
+
+
+        // 0xE0 starting codes
+        case SC2_RELEASE_E0:
+            if(byte2 == SC2_RELEASE_F0) { // Released
+                keypress.pressed = FALSE;
+                    switch(byte3) {
+                    case SC2_RELEASED_PART3_PRINT_SCREEN:
+                        if(byte4 == SC2_RELEASED_PART4_PRINT_SCREEN && 
+                            byte5 == SC2_RELEASED_PART5_PRINT_SCREEN &&
+                            byte6 == SC2_RELEASED_PART6_PRINT_SCREEN &&
+                            byte7 == SC2_RELEASED_PART7_PRINT_SCREEN
+                        ) {
+                            keypress.pressed = FALSE;
+                            keypress.keycode = KEY_PRINT_SCREEN;
+                        } else {
+                            keypress.keycode = KEY_UNKNOWN;
+                        }
+                        break;
+                    case SC2_RELEASED_PART3_MEDIA_WWW_SEARCH: keypress.keycode = KEY_MEDIA_WWW_SEARCH; break;
+                    case SC2_RELEASED_PART3_RALT: keypress.keycode = KEY_RALT; break;
+                    case SC2_RELEASED_PART3_RCTRL: keypress.keycode = KEY_RCTRL; break;
+                    case SC2_RELEASED_PART3_MEDIA_PREVIOUS_TRACK: keypress.keycode = KEY_MEDIA_PREVIOUS_TRACK; break;
+                    case SC2_RELEASED_PART3_MEDIA_WWW_FAVOURITES: keypress.keycode = KEY_MEDIA_WWW_FAVOURITES; break;
+                    case SC2_RELEASED_PART3_MEDIA_WWW_REFRESH: keypress.keycode = KEY_MEDIA_WWW_REFRESH; break;
+                    case SC2_RELEASED_PART3_MEDIA_LGUI: keypress.keycode = KEY_MEDIA_LGUI; break;
+                    case SC2_RELEASED_PART3_MEDIA_VOLUME_DOWN: keypress.keycode = KEY_MEDIA_VOLUME_DOWN; break;
+                    case SC2_RELEASED_PART3_MEDIA_MUTE: keypress.keycode = KEY_MEDIA_MUTE; break;
+                    case SC2_RELEASED_PART3_MEDIA_RGUI: keypress.keycode = KEY_MEDIA_RGUI; break;
+                    case SC2_RELEASED_PART3_MEDIA_WWW_STOP: keypress.keycode = KEY_MEDIA_WWW_STOP; break;
+                    case SC2_RELEASED_PART3_MEDIA_CALCULATOR: keypress.keycode = KEY_MEDIA_CALCULATOR; break;
+                    case SC2_RELEASED_PART3_APPS: keypress.keycode = KEY_APPS; break;
+                    case SC2_RELEASED_PART3_MEDIA_FORWARD: keypress.keycode = KEY_MEDIA_FORWARD; break;
+                    case SC2_RELEASED_PART3_MEDIA_VOLUME_UP: keypress.keycode = KEY_MEDIA_VOLUME_UP; break;
+                    case SC2_RELEASED_PART3_MEDIA_PLAY_PAUSE: keypress.keycode = KEY_MEDIA_PLAY_PAUSE; break;
+                    case SC2_RELEASED_PART3_ACPI_POWER: keypress.keycode = KEY_ACPI_POWER; break;
+                    case SC2_RELEASED_PART3_MEDIA_WWW_BACK: keypress.keycode = KEY_MEDIA_WWW_BACK; break;
+                    case SC2_RELEASED_PART3_MEDIA_WWW_HOME: keypress.keycode = KEY_MEDIA_WWW_HOME; break;
+                    case SC2_RELEASED_PART3_MEDIA_STOP: keypress.keycode = KEY_MEDIA_STOP; break;
+                    case SC2_RELEASED_PART3_ACPI_SLEEP: keypress.keycode = KEY_ACPI_SLEEP; break;
+                    case SC2_RELEASED_PART3_MEDIA_MY_COMPUTER: keypress.keycode = KEY_MEDIA_MY_COMPUTER; break;
+                    case SC2_RELEASED_PART3_MEDIA_EMAIL: keypress.keycode = KEY_MEDIA_EMAIL; break;
+                    case SC2_RELEASED_PART3_KEYPAD_BACKSLASH: keypress.keycode = KEYPAD_BACKSLASH; break;
+                    case SC2_RELEASED_PART3_MEDIA_NEXT_TRACK: keypress.keycode = KEY_MEDIA_NEXT_TRACK; break;
+                    case SC2_RELEASED_PART3_MEDIA_SELECT: keypress.keycode = KEY_MEDIA_SELECT; break;
+                    case SC2_RELEASED_PART3_KEYPAD_ENTER: keypress.keycode = KEYPAD_ENTER; break;
+                    case SC2_RELEASED_PART3_ACPI_WAKE: keypress.keycode = KEY_ACPI_WAKE; break;
+                    case SC2_RELEASED_PART3_END: keypress.keycode = KEY_END; break;
+                    case SC2_RELEASED_PART3_CURSOR_LEFT: keypress.keycode = KEY_ARROW_LEFT; break;
+                    case SC2_RELEASED_PART3_HOME: keypress.keycode = KEY_HOME; break;
+                    case SC2_RELEASED_PART3_INSERT: keypress.keycode = KEY_INSERT; break;
+                    case SC2_RELEASED_PART3_DELETE: keypress.keycode = KEY_DELETE; break;
+                    case SC2_RELEASED_PART3_CURSOR_DOWN: keypress.keycode = KEY_ARROW_DOWN; break;
+                    case SC2_RELEASED_PART3_CURSOR_RIGHT: keypress.keycode = KEY_ARROW_RIGHT; break;
+                    case SC2_RELEASED_PART3_CURSOR_UP: keypress.keycode = KEY_ARROW_UP; break;
+                    case SC2_RELEASED_PART3_PAGE_DOWN: keypress.keycode = KEY_PAGEDOWN; break;
+                    case SC2_RELEASED_PART3_PAGE_UP: keypress.keycode = KEY_PAGEUP; break;
+                    default: keypress.keycode = KEY_UNKNOWN; break;
+                }
+            } else {
+                switch(byte2) {
+                    case SC2_PRESSED_PART2_PRINT_SCREEN:
+                        if(byte3 == SC2_PRESSED_PART3_PRINT_SCREEN && byte4 == SC2_PRESSED_PART4_PRINT_SCREEN) {
+                            keypress.keycode = KEY_PRINT_SCREEN;
+                        } else {
+                            keypress.keycode = KEY_UNKNOWN;
+                        }
+                        break;
+                    case SC2_PRESSED_PART2_MEDIA_WWW_SEARCH: keypress.keycode = KEY_MEDIA_WWW_SEARCH; break;
+                    case SC2_PRESSED_PART2_RALT: keypress.keycode = KEY_RALT; break;
+                    case SC2_PRESSED_PART2_RCTRL: keypress.keycode = KEY_RCTRL; break;
+                    case SC2_PRESSED_PART2_MEDIA_PREVIOUS_TRACK: keypress.keycode = KEY_MEDIA_PREVIOUS_TRACK; break;
+                    case SC2_PRESSED_PART2_MEDIA_WWW_FAVOURITES: keypress.keycode = KEY_MEDIA_WWW_FAVOURITES; break;
+                    case SC2_PRESSED_PART2_MEDIA_WWW_REFRESH: keypress.keycode = KEY_MEDIA_WWW_REFRESH; break;
+                    case SC2_PRESSED_PART2_MEDIA_LGUI: keypress.keycode = KEY_MEDIA_LGUI; break;
+                    case SC2_PRESSED_PART2_MEDIA_VOLUME_DOWN: keypress.keycode = KEY_MEDIA_VOLUME_DOWN; break;
+                    case SC2_PRESSED_PART2_MEDIA_MUTE: keypress.keycode = KEY_MEDIA_MUTE; break;
+                    case SC2_PRESSED_PART2_MEDIA_RGUI: keypress.keycode = KEY_MEDIA_RGUI; break;
+                    case SC2_PRESSED_PART2_MEDIA_WWW_STOP: keypress.keycode = KEY_MEDIA_WWW_STOP; break;
+                    case SC2_PRESSED_PART2_MEDIA_CALCULATOR: keypress.keycode = KEY_MEDIA_CALCULATOR; break;
+                    case SC2_PRESSED_PART2_APPS: keypress.keycode = KEY_APPS; break;
+                    case SC2_PRESSED_PART2_MEDIA_FORWARD: keypress.keycode = KEY_MEDIA_FORWARD; break;
+                    case SC2_PRESSED_PART2_MEDIA_VOLUME_UP: keypress.keycode = KEY_MEDIA_VOLUME_UP; break;
+                    case SC2_PRESSED_PART2_MEDIA_PLAY_PAUSE: keypress.keycode = KEY_MEDIA_PLAY_PAUSE; break;
+                    case SC2_PRESSED_PART2_ACPI_POWER: keypress.keycode = KEY_ACPI_POWER; break;
+                    case SC2_PRESSED_PART2_MEDIA_WWW_BACK: keypress.keycode = KEY_MEDIA_WWW_BACK; break;
+                    case SC2_PRESSED_PART2_MEDIA_WWW_HOME: keypress.keycode = KEY_MEDIA_WWW_HOME; break;
+                    case SC2_PRESSED_PART2_MEDIA_STOP: keypress.keycode = KEY_MEDIA_STOP; break;
+                    case SC2_PRESSED_PART2_ACPI_SLEEP: keypress.keycode = KEY_ACPI_SLEEP; break;
+                    case SC2_PRESSED_PART2_MEDIA_MY_COMPUTER: keypress.keycode = KEY_MEDIA_MY_COMPUTER; break;
+                    case SC2_PRESSED_PART2_MEDIA_EMAIL: keypress.keycode = KEY_MEDIA_EMAIL; break;
+                    case SC2_PRESSED_PART2_KEYPAD_BACKSLASH: keypress.keycode = KEYPAD_BACKSLASH; break;
+                    case SC2_PRESSED_PART2_MEDIA_NEXT_TRACK: keypress.keycode = KEY_MEDIA_NEXT_TRACK; break;
+                    case SC2_PRESSED_PART2_MEDIA_SELECT: keypress.keycode = KEY_MEDIA_SELECT; break;
+                    case SC2_PRESSED_PART2_KEYPAD_ENTER: keypress.keycode = KEYPAD_ENTER; break;
+                    case SC2_PRESSED_PART2_ACPI_WAKE: keypress.keycode = KEY_ACPI_WAKE; break;
+                    case SC2_PRESSED_PART2_END: keypress.keycode = KEY_END; break;
+                    case SC2_PRESSED_PART2_CURSOR_LEFT: keypress.keycode = KEY_ARROW_LEFT; break;
+                    case SC2_PRESSED_PART2_HOME: keypress.keycode = KEY_HOME; break;
+                    case SC2_PRESSED_PART2_INSERT: keypress.keycode = KEY_INSERT; break;
+                    case SC2_PRESSED_PART2_DELETE: keypress.keycode = KEY_DELETE; break;
+                    case SC2_PRESSED_PART2_CURSOR_DOWN: keypress.keycode = KEY_ARROW_DOWN; break;
+                    case SC2_PRESSED_PART2_CURSOR_RIGHT: keypress.keycode = KEY_ARROW_RIGHT; break;
+                    case SC2_PRESSED_PART2_CURSOR_UP: keypress.keycode = KEY_ARROW_UP; break;
+                    case SC2_PRESSED_PART2_PAGE_DOWN: keypress.keycode = KEY_PAGEDOWN; break;
+                    case SC2_PRESSED_PART2_PAGE_UP: keypress.keycode = KEY_PAGEUP; break;
+                    default: keypress.keycode = KEY_UNKNOWN; break;
+                }
+            }
+            break;
+        case SC2_PRESSED_PART1_PAUSE: // Pause key (special case)
+            if(byte2 == SC2_PRESSED_PART2_PAUSE &&
+               byte3 == SC2_PRESSED_PART3_PAUSE &&
+               byte4 == SC2_PRESSED_PART4_PAUSE &&
+               byte5 == SC2_PRESSED_PART5_PAUSE &&
+               byte6 == SC2_PRESSED_PART6_PAUSE &&
+               byte7 == SC2_PRESSED_PART7_PAUSE &&
+               byte8 == SC2_PRESSED_PART8_PAUSE
+            ) {
+                keypress.keycode = KEY_PAUSE;
+            } else {
+                keypress.keycode = KEY_UNKNOWN;
+            }
+            break;
+        default:
+            keypress.keycode = KEY_UNKNOWN;
+            keypress.pressed = FALSE;
+            break;
     }
+
+    return keypress;
 }
 
-Keys2 ParsePS2_CS2(U8 scancode) {
-    switch (scancode) {
-        case 0x1C: return SC2_A;
-        case 0x32: return SC2_B;
-        case 0x21: return SC2_C;
-        default: return 0; // Unknown key
+void PARSE_KEYPRESS(KEYPRESS *key) {
+    if (!key) return;
+    
+    if(key->pressed) {
+        switch(key->keycode) {
+            case KEY_CAPSLOCK:
+                modifiers.capslock = !modifiers.capslock;
+                return; // No further processing needed
+            case KEYPAD_NUMLOCK:
+                modifiers.numlock = !modifiers.numlock;
+                return; // No further processing needed
+            case KEY_SCROLLLOCK:
+                modifiers.scrolllock = !modifiers.scrolllock;
+                return; // No further processing needed
+            case KEY_RALT:
+            case KEY_LALT:
+                modifiers.alt = TRUE;
+                break; // No further processing needed
+            case KEY_LCTRL:
+            case KEY_RCTRL:
+                modifiers.ctrl = TRUE;
+                break; // No further processing needed
+            case KEY_LSHIFT:
+            case KEY_RSHIFT:
+                modifiers.shift = TRUE;
+                break; // No further processing needed
+            default:
+                break;
+        }
+    } else {
+        switch(key->keycode) {
+            case KEY_RALT:
+            case KEY_LALT:
+                modifiers.alt = FALSE;
+                break; // No further processing needed
+            case KEY_LCTRL:
+            case KEY_RCTRL:
+                modifiers.ctrl = FALSE;
+                break; // No further processing needed
+            case KEY_LSHIFT:
+            case KEY_RSHIFT:
+                modifiers.shift = FALSE;
+                break; // No further processing needed
+            default:
+                break;
+        }
     }
+
+    if(modifiers.shift)
+        switch(key->keycode) {
+            case KEY_1: key->keycode = KEY_EXCLAMATION; break;
+            case KEY_2: key->keycode = KEY_AT; break;
+            case KEY_3: key->keycode = KEY_HASH; break;
+            case KEY_4: key->keycode = KEY_DOLLAR; break;
+            case KEY_5: key->keycode = KEY_PERCENT; break;
+            case KEY_6: key->keycode = KEY_CARET; break;
+            case KEY_7: key->keycode = KEY_AMPERSAND; break;
+            case KEY_8: key->keycode = KEY_ASTERISK; break;
+            case KEY_9: key->keycode = KEY_LEFT_PAREN; break;
+            case KEY_0: key->keycode = KEY_RIGHT_PAREN; break;
+            case KEY_MINUS: key->keycode = KEY_UNDERSCORE; break;
+            case KEY_EQUALS: key->keycode = KEY_PLUS; break;
+            case KEY_GRAVE: key->keycode = KEY_TILDE; break;
+            case KEY_LBRACKET: key->keycode = KEY_LEFT_CURLY; break;
+            case KEY_RBRACKET: key->keycode = KEY_RIGHT_CURLY; break;
+            case KEY_BACKSLASH: key->keycode = KEY_PIPE; break;
+            case KEY_SEMICOLON: key->keycode = KEY_COLON; break;
+            case KEY_APOSTROPHE: key->keycode = KEY_QUOTE; break;
+            case KEY_COMMA: key->keycode = KEY_LESS; break;
+            case KEY_DOT: key->keycode = KEY_GREATER; break;
+            case KEY_SLASH: key->keycode = KEY_QUESTION; break;
+            default:
+                break;
+        }
+}
+
+KEYPRESS *GET_LAST_KEY_PRESSED(VOID) {
+    return &last_key;
+}
+KEYPRESS GET_CURRENT_KEY_PRESSED(VOID) {
+    if(IS_CMD_QUEUE_EMPTY()) return (KEYPRESS){0};
+    U32 scancode1 = 0, scancode2 = 0;
+    U8 scancode1_size = 0, scancode2_size = 0;    
+    KEYPRESS keypress = {0};
+    while(!IS_CMD_QUEUE_EMPTY()) {
+        U8 scancode = POP_FROM_CMD_QUEUE();
+        if(scancode1_size == 4) {
+            if(scancode2_size++ == 0) {
+                scancode2 = scancode;
+            } else {
+                scancode2 = (scancode2 << 8) | scancode;
+            }
+        } else {
+            if(scancode1_size++ == 0) {
+                scancode1 = scancode;
+            } else {
+                scancode1 = (scancode1 << 8) | scancode;
+            }
+        }
+        if(ps2_info.scancode_set == SCANCODESET1) {
+            keypress = ParsePS2_CS1(scancode1, scancode2); // Assuming default scan code set 2
+        } else {
+            if(scancode1 == SC2_RELEASE_F0 || 
+                scancode1 == SC2_RELEASE_E0 || 
+                scancode1 == SC2_RELEASE_E0F0) {
+                continue; // Wait for more bytes
+            }
+            keypress = ParsePS2_CS2(scancode1, scancode2, scancode1_size, scancode2_size); // Assuming default scan code set 2
+        }
+    }
+    
+    PARSE_KEYPRESS(&keypress); // Handle special cases or modifiers if needed
+    last_key = keypress;
+    return keypress;
+}
+
+U8 *KEYPRESS_TO_CHARS(KEYPRESS *kp) {
+    if(!kp) return NULL;
+    static U8 str[3] = {0};
+    str[0] = '\0';
+    str[1] = '\0';
+    str[2] = '\0';
+
+    if(!kp->pressed) return str; // Return empty string for key releases
+
+    switch(kp->keycode) {
+        case KEY_A: str[0] = modifiers.shift || modifiers.capslock ? 'A' : 'a'; break;
+        case KEY_B: str[0] = modifiers.shift || modifiers.capslock ? 'B' : 'b'; break;
+        case KEY_C: str[0] = modifiers.shift || modifiers.capslock ? 'C' : 'c'; break;
+        case KEY_D: str[0] = modifiers.shift || modifiers.capslock ? 'D' : 'd'; break;
+        case KEY_E: str[0] = modifiers.shift || modifiers.capslock ? 'E' : 'e'; break;
+        case KEY_F: str[0] = modifiers.shift || modifiers.capslock ? 'F' : 'f'; break;
+        case KEY_G: str[0] = modifiers.shift || modifiers.capslock ? 'G' : 'g'; break;
+        case KEY_H: str[0] = modifiers.shift || modifiers.capslock ? 'H' : 'h'; break;
+        case KEY_I: str[0] = modifiers.shift || modifiers.capslock ? 'I' : 'i'; break;
+        case KEY_J: str[0] = modifiers.shift || modifiers.capslock ? 'J' : 'j'; break;
+        case KEY_K: str[0] = modifiers.shift || modifiers.capslock ? 'K' : 'k'; break;
+        case KEY_L: str[0] = modifiers.shift || modifiers.capslock ? 'L' : 'l'; break;
+        case KEY_M: str[0] = modifiers.shift || modifiers.capslock ? 'M' : 'm'; break;
+        case KEY_N: str[0] = modifiers.shift || modifiers.capslock ? 'N' : 'n'; break;
+        case KEY_O: str[0] = modifiers.shift || modifiers.capslock ? 'O' : 'o'; break;
+        case KEY_P: str[0] = modifiers.shift || modifiers.capslock ? 'P' : 'p'; break;
+        case KEY_Q: str[0] = modifiers.shift || modifiers.capslock ? 'Q' : 'q'; break;
+        case KEY_R: str[0] = modifiers.shift || modifiers.capslock ? 'R' : 'r'; break;
+        case KEY_S: str[0] = modifiers.shift || modifiers.capslock ? 'S' : 's'; break;
+        case KEY_T: str[0] = modifiers.shift || modifiers.capslock ? 'T' : 't'; break;
+        case KEY_U: str[0] = modifiers.shift || modifiers.capslock ? 'U' : 'u'; break;
+        case KEY_V: str[0] = modifiers.shift || modifiers.capslock ? 'V' : 'v'; break;
+        case KEY_W: str[0] = modifiers.shift || modifiers.capslock ? 'W' : 'w'; break;
+        case KEY_X: str[0] = modifiers.shift || modifiers.capslock ? 'X' : 'x'; break;
+        case KEY_Y: str[0] = modifiers.shift || modifiers.capslock ? 'Y' : 'y'; break;
+        case KEY_Z: str[0] = modifiers.shift || modifiers.capslock ? 'Z' : 'z'; break;
+
+        case KEY_1: str[0] = '1'; break;
+        case KEY_2: str[0] = '2'; break;
+        case KEY_3: str[0] = '3'; break;
+        case KEY_4: str[0] = '4'; break;
+        case KEY_5: str[0] = '5'; break;
+        case KEY_6: str[0] = '6'; break;
+        case KEY_7: str[0] = '7'; break;
+        case KEY_8: str[0] = '8'; break;
+        case KEY_9: str[0] = '9'; break;
+        case KEY_0: str[0] = '0'; break;
+        case KEY_SPACE: str[0] = ' '; break;
+        case KEY_ENTER: str[0] = '\n'; break;
+        case KEY_TAB: str[0] = '\t'; break;
+        case KEY_GRAVE: str[0] = '`'; break;
+        case KEY_MINUS: str[0] = '-'; break;
+        case KEY_EQUALS: str[0] = '='; break;
+        case KEY_LBRACKET: str[0] = '['; break;
+        case KEY_RBRACKET: str[0] = ']'; break;
+        case KEY_BACKSLASH: str[0] = '\\'; break;
+        case KEY_SEMICOLON: str[0] = ';'; break;
+        case KEY_APOSTROPHE: str[0] = '\''; break;
+        case KEY_COMMA: str[0] = ','; break;
+        case KEY_DOT: str[0] = '.'; break;
+        case KEY_SLASH: str[0] = '/'; break;
+        case KEY_EXCLAMATION: str[0] = '!'; break;
+        case KEY_AT: str[0] = '@'; break;
+        case KEY_HASH: str[0] = '#'; break;
+        case KEY_DOLLAR: str[0] = '$'; break;
+        case KEY_PERCENT: str[0] = '%'; break;
+        case KEY_CARET: str[0] = '^'; break;
+        case KEY_AMPERSAND: str[0] = '&'; break;
+        case KEY_ASTERISK: str[0] = '*'; break;
+        case KEY_LEFT_PAREN: str[0] = '('; break;
+        case KEY_RIGHT_PAREN: str[0] = ')'; break;
+        case KEY_UNDERSCORE: str[0] = '_'; break;
+        case KEY_PLUS: str[0] = '+'; break;
+        case KEY_TILDE: str[0] = '~'; break;
+        case KEY_LEFT_CURLY: str[0] = '{'; break;
+        case KEY_RIGHT_CURLY: str[0] = '}'; break;
+        case KEY_PIPE: str[0] = '|'; break;
+        case KEY_COLON: str[0] = ':'; break;
+        case KEY_QUOTE: str[0] = '"'; break;
+        case KEY_LESS: str[0] = '<'; break;
+        case KEY_GREATER: str[0] = '>'; break;
+        case KEY_QUESTION: str[0] = '?'; break;
+        default:
+            str[0] = '\0'; // Non-printable key
+            break;
+    }
+    return str;
 }

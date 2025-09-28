@@ -1,7 +1,9 @@
-#include "./PIT.h"
-#include <PIC.h>
-#include "../../../STD/ASM.h"
-#include "../../CPU/ISR/ISR.h"
+#include <DRIVERS/PIT/PIT.h>
+#include <CPU/PIC/PIC.h>
+#include <STD/ASM.h>
+#include <CPU/ISR/ISR.h>
+#include <RTOSKRNL_INTERNAL.h>
+
 #define PIT_CHANNEL0 0x40
 #define PIT_COMMAND  0x43
 #define PIT_FREQUENCY 1193182
@@ -22,6 +24,7 @@ static U32 hz = 100;
 void pit_handler(I32 num, U32 errcode) {
     (void)errcode; (void)num;
     ticks++;
+    pit_handler_task_control();
     return;
 }
 

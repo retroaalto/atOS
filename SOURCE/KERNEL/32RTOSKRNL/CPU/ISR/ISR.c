@@ -20,10 +20,14 @@ REMARKS
 #include "../IRQ/IRQ.h"
 #include "../IDT/IDT.h"
 #include "../../../../STD/ASM.h"
-#include "../INTERRUPTS.h"
-#include "../PIC.h"
+#include "../INTERRUPTS/INTERRUPTS.h"
+#include "../PIC/PIC.h"
 #include "../../DRIVERS/PIT/PIT.h"
 
+#ifdef __RTOS__
+#include <CPU/SYSCALL/SYSCALL.h> // For SYSCALL_VECTOR
+// #include <RTOSKRNL/RTOSKRNL_INTERNAL.h>
+#endif // __RTOS__
 
 static ISRHandler g_Handlers[IDT_COUNT] = { 0 };
 
@@ -51,15 +55,37 @@ void irq_common_handler(I32 vector, U32 errcode) {
 
 }
 
-
+#ifdef __RTOS__
+#include <DRIVERS/VIDEO/VOUTPUT.h>
+#endif // __RTOS__
 
 // This function is called from assembly
 void isr_dispatch_c(int vector, U32 errcode, regs *regs_ptr) {
+    #ifdef __RTOS__
+    if (vector == SYSCALL_VECTOR) {
+        // DUMP_REGS(regs_ptr);
+        // DUMP_ERRCODE(errcode);
+        // DUMP_INTNO(vector);
+        // DUMP_MEMORY((U32)regs_ptr, 64);
+        // Syscall handling (must run regardless of g_Handlers)
+        U32 syscall_num = regs_ptr->eax;
+        U32 a1 = regs_ptr->ebx;
+        U32 a2 = regs_ptr->ecx;
+        U32 a3 = regs_ptr->edx;
+        U32 a4 = regs_ptr->esi;
+        U32 a5 = regs_ptr->edi;
+        U32 ret = syscall_dispatcher(syscall_num, a1, a2, a3, a4, a5);
+        regs_ptr->eax = ret; // Return value in eax
+        return;
+    }
+    #else
     (void)regs_ptr;
+    #endif // __RTOS__
     if(g_Handlers[vector]) {
         g_Handlers[vector](vector, errcode);
         return;
     }
+    isr_common_handler(vector, errcode);
 }
 
 void irq_dispatch_c(int vector, U32 errcode, regs *regs_ptr) {
@@ -91,6 +117,9 @@ U0 SETUP_ISRS(U0) {
         if (i < 49) idt_set_gate(i, isr[i], cs, flags);
         else        idt_set_gate(i, isr[48], cs, flags);
     }
+    #ifdef __RTOS__
+        idt_set_gate(SYSCALL_VECTOR, isr_syscall, cs, flags);
+    #endif // __RTOS__
 }
 VOID SETUP_ISR_HANDLERS(VOID) {
     for(int i = 0; i < IDT_COUNT; i++) {
@@ -104,8 +133,14 @@ VOID SETUP_ISR_HANDLERS(VOID) {
             }
         } else if(i >= 32 && i < 48) {
             ISR_REGISTER_HANDLER(i, irq_common_handler); // No default handler
-        } else {
-            ISR_REGISTER_HANDLER(i, handlers[1]); // Reserved / unused
+        } 
+        #ifdef __RTOS__
+        else if(i == SYSCALL_VECTOR) {
+            ISR_REGISTER_HANDLER(i, isr_syscall);
+        }
+        #endif // __RTOS__
+        else {
+            ISR_REGISTER_HANDLER(i, isr_common_handler); // Reserved / unused
         }
     }
 }

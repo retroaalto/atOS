@@ -27,7 +27,7 @@ The following `.inc` files contain useful definitions, constants, and macros for
 | Path                                                 | Description                                                                   |
 | ---------------------------------------------------- | ----------------------------------------------------------------------------- |
 | `SOURCE/KERNEL/32RTOSKRNL/DRIVERS/VIDEO/DEFINES.inc` | Contains video driver definitions, including color constants and video modes. |
-| `SOURCE/KERNEL/32RTOSKRNL/SYSCALL/SYSCALL_MIN.inc`   | Provides system call constants and interface definitions for user programs.   |
+| `SOURCE/KERNEL/32RTOSKRNL/CPU/SYSCALL/CPU/SYSCALL_MIN.inc`   | Provides system call constants and interface definitions for user programs.   |
 
 > Refer to the `README.md` in each file's directory for usage examples and additional context.
 

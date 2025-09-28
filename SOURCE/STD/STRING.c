@@ -34,6 +34,24 @@ U0 *STRNCAT(U8* dest, CONST U8* src, U32 maxlen) {
     if (maxlen) *dest = 0;
     return start;
 }
+U8* STRNCONCAT(U8 *dest, U32 dest_pos, U8 *src, U32 max_len) {
+    if (!dest || !src || dest_pos >= max_len) return dest;
+
+    U32 i = dest_pos;
+    U32 j = 0;
+
+    while (i < max_len && src[j] != '\0') {
+        dest[i++] = src[j++];
+    }
+
+    dest[i] = '\0';
+
+    while(i < max_len) {
+        dest[i++] = '\0';
+    }
+
+    return dest;
+}
 BOOLEAN STRCMP(CONST U8* str1, CONST U8* str2) {
     while (*str1 && (*str1 == *str2)) {
         str1++;
@@ -84,7 +102,12 @@ U32 ATOI_BIN(CONST U8* str) {
     }
     return res;
 }
-U0 *ITOA(S32 value, U8* buffer, U32 base) {
+U0 *ITOA(S32 value, I8* buffer, U32 base) {
+    if(value == 0) {
+        buffer[0] = '0';
+        buffer[1] = '\0';
+        return buffer;
+    }
     switch (base) {
         case 2:
             // Convert integer to binary string
@@ -145,6 +168,11 @@ U0 *ITOA(S32 value, U8* buffer, U32 base) {
 }
 
 U0 *ITOA_U(U32 value, U8* buffer, U32 base) {
+    if(value == 0) {
+        buffer[0] = '0';
+        buffer[1] = '\0';
+        return buffer;
+    }
     switch (base) {
         case 2:
             // Convert integer to binary string
@@ -198,3 +226,30 @@ U0 *ITOA_U(U32 value, U8* buffer, U32 base) {
     return buffer;
 }
 
+U8 TOUPPER(U8 c) {
+    if(c >= 'a' && c <= 'z') {
+        return c - 32;
+    }
+    return c;
+}
+
+U8 TOLOWER(U8 c) {
+    if(c >= 'A' && c <= 'Z') {
+        return c + 32;
+    }
+    return c;
+}
+
+U0 STR_TOUPPER(U8* str) {
+    while(*str) {
+        *str = TOUPPER(*str);
+        str++;
+    }
+}
+
+U0 STR_TOLOWER(U8* str) {
+    while(*str) {
+        *str = TOLOWER(*str);
+        str++;
+    }
+}
