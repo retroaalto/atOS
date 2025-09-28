@@ -1,7 +1,7 @@
 #include "IDT.h"
 #include "../ISR/ISR.h"
 #include "../../../../STD/ASM.h"
-#include "../INTERRUPTS.h"
+#include "../INTERRUPTS/INTERRUPTS.h"
 #include "../../../../STD/BINARY.h"
 
 #define IDT_COUNT 256

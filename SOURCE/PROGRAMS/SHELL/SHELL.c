@@ -1,10 +1,16 @@
 #include <SHELL/SHELL.h>
+#include <STD/STRING.h>
+#include <STD/TYPEDEF.h>
+#include <DRIVERS/VIDEO/VOUTPUT.h>
+#include <DRIVERS/PS2/KEYBOARD.h>
 
 U0 SHELL_LOOP(U0) {
     // Placeholder for shell loop function
     U32 strpos = 0;
     U32 row = 20;
     U8 buf[256] = {0};
+
+    VBE_MODEINFO* mode = GET_VBE_MODE();
     for (;;) {
         KEYPRESS kp = GET_CURRENT_KEY_PRESSED();
         U8 *keychar = KEYPRESS_TO_CHARS(&kp);
@@ -29,6 +35,8 @@ U0 SHELL_LOOP(U0) {
 
         VBE_DRAW_STRING(0, row, buf, VBE_AQUA, VBE_BLACK);
         VBE_UPDATE_VRAM();
+
+        PUTC(32);
     }
 }
 

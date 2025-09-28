@@ -30,7 +30,7 @@ REMARKS
 
 #include "./DRIVERS/VIDEO/VBE.h"
 #include "./DRIVERS/DISK/ATA_ATAPI.h"
-#include "./CPU/INTERRUPTS.h"
+#include "./CPU/INTERRUPTS/INTERRUPTS.h"
 
 #define RM2LA(seg, off)  (((U32)(seg) << 4) + (U32)(off))
 #define FAR_PTR_TO_LINEAR(ptr)  RM2LA(((ptr) >> 16) & 0xFFFF, (ptr) & 0xFFFF)

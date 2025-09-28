@@ -10,8 +10,6 @@
 #include <STD/STRING.h>
 #include <STD/MEM.h>
 
-#include <SHELL/SHELL.h>
-
 #include <DRIVERS/VIDEO/VBE.h>
 #include <DRIVERS/VIDEO/VESA.h>
 #include <DRIVERS/VIDEO/VOUTPUT.h>
@@ -23,8 +21,8 @@
 #include <MEMORY/PAGING/PAGING.h>
 #include <MEMORY/PAGING/PAGEFRAME.h>
 
-#include <CPU/PIC.h>
-#include <CPU/INTERRUPTS.h>
+#include <CPU/PIC/PIC.h>
+#include <CPU/INTERRUPTS/INTERRUPTS.h>
 #include <CPU/GDT/GDT.h>
 #include <CPU/IDT/IDT.h>
 #include <CPU/ISR/ISR.h>

@@ -66,12 +66,13 @@
 #define MEM_RESERVED_BASE          0x01344000
 #define MEM_RESERVED_END           0x02344000  // 16 MiB
 
+
+
 // User Space
 #define MEM_USER_SPACE_BASE        0x02344000
 #define MEM_USER_SPACE_END_MIN     0x03D09000
 
 #define MAX_ALLOWED_MEMORY         0x1FEFE0000
-
 
 
 #endif // MEMORY_H

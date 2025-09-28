@@ -32,14 +32,8 @@ typedef struct regs {
     U32 ebp;
     U32 esi;
     U32 edi;
-
-    U32 eip;   /* pushed by CPU on interrupt entry */
-    U32 cs;
-    U32 eflags;
-
-    /* For exceptions with error code, CPU pushes it here */
-    U32 err_code;   /* only valid for some exceptions */
 } regs;
+
 
 
 

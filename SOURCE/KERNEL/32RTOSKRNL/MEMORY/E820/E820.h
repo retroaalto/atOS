@@ -37,6 +37,7 @@ REMARKS
 #define TYPE_E820_ACPI_RECLAIMABLE 0x03
 #define TYPE_E820_ACPI_NVS 0x04
 
+#define E820_MAX_ENTRIES 32
 static inline BOOLEAN fits_in_32(U32 hi) { return hi == 0; }
 
 typedef struct __attribute__((packed)) {
@@ -56,7 +57,7 @@ typedef struct {
     U32 AtTableIndex;
 
     // All suitable E820 entries
-    E820_ENTRY *RawEntries;
+    E820_ENTRY RawEntries[E820_MAX_ENTRIES];
     U32 RawEntryCount;
 } E820Info;
 

@@ -7,14 +7,16 @@
 typedef struct {
     U32 Column;
     U32 Row;
-    U32 bgColor;
-    U32 fgColor;
+    VBE_PIXEL_COLOUR bgColor;
+    VBE_PIXEL_COLOUR fgColor;
     BOOLEAN AUTO_SCROLL;
     BOOLEAN AUTO_WRAP;
     BOOLEAN CURSOR_VISIBLE;
     BOOLEAN CURSOR_BLINK; 
     BOOLEAN FLUSH_ON_CHANGE; // If TRUE, the screen is updated immediately after drawing
 } OutputInfo;
+
+#define OUTPUT_INFO_INIT {0, 0, VBE_BLACK, VBE_WHITE, TRUE, TRUE, TRUE, TRUE, TRUE}
 
 typedef OutputInfo* OutputHandle;
 
@@ -32,22 +34,42 @@ typedef OutputInfo* OutputHandle;
 #define FILLSHAPE 0x0000001
 typedef U32 DrawInfo;
 
+// Increases the cursor column by one, moving to next row if at end
 U0 COLUMN_INC(U0);
+// Decreases the cursor column by one, if not at the start
 U0 COLUMN_DEC(U0);
+// Increases the cursor row by one, moving to next column if at end
 U0 ROW_INC(U0);
+// Decreases the cursor row by one, if not at the top
 U0 ROW_DEC(U0);
-U0 SET_BG_COLOR(U32 color);
-U0 SET_FG_COLOR(U32 color);
+// Sets the background color
+U0 SET_BG_COLOR(VBE_PIXEL_COLOUR color);
+// Sets the foreground (text) color
+U0 SET_FG_COLOR(VBE_PIXEL_COLOUR color);
+// Sets the cursor position to (col, row)
 U0 SET_CURSOR_POS(U32 col, U32 row);
+// Gets the current cursor position as a single U32, with high 16 bits as row and low 16 bits as column
 U32 GET_CURSOR_POS(U0);
+// Sets the visibility of the cursor
 U0 SET_CURSOR_VISIBLE(BOOLEAN visible);
+// Enables or disables cursor blinking
 U0 SET_CURSOR_BLINK(BOOLEAN blink);
+// Enables or disables automatic scrolling when the cursor moves beyond the last row
 U0 SET_AUTO_SCROLL(BOOLEAN enable);
+// Enables or disables automatic line wrapping when the end of a line is reached
 U0 SET_AUTO_WRAP(BOOLEAN enable);
+// Writes a null-terminated string to the screen
 U32 PUTS(U8 *str);
+// Draws a single character at (x, y) in pixels
 U32 PUTC(U8 c);
+// Clears the screen and resets cursor position
 VOID CLS(U0);
+// Immediately updates the screen with the current text buffer
 VOID FLUSH_SCREEN(U0);
+// Converts a text column number to pixel X coordinate
+U32 COL_TO_PIX(U32 col);
+// Converts a text row number to pixel Y coordinate
+U32 ROW_TO_PIX(U32 row);
 
 BOOLEAN BEGIN_DRAWING(DrawInfo drawInfo);
 

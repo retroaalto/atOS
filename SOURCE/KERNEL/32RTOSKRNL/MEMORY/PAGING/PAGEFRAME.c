@@ -10,14 +10,12 @@
 #include <RTOSKRNL/RTOSKRNL_INTERNAL.h>
 #include <STD/MATH.h>
 
+#include <MEMORY/KMALLOC/KMALLOC.h>
+#include <MEMORY/UMALLOC/UMALLOC.h>
 
-typedef struct KERNEL_HEAP_BLOCK {
-    U32 size;                      // total size including header
-    BOOLEAN free;                   // free or used
-    struct KERNEL_HEAP_BLOCK *next; // next block in heap
-} KERNEL_HEAP_BLOCK;
 
 static KERNEL_HEAP_BLOCK *heap_start = NULL;
+static USER_HEAP_BLOCK *user_heap_start = NULL;
 
 static inline U32 align8(U32 size) {
     return (size + 7) & ~7U;
@@ -25,68 +23,13 @@ static inline U32 align8(U32 size) {
 
 #define BYTE_TO_PAGE(x) ((x) / PAGE_SIZE)
 
-typedef struct {
-    U32 freeMemory; // in bytes
-    U32 reservedMemory; // in bytes
-    U32 usedMemory; // in bytes
-    U32 pIndex; // page index (last search pos)
-    BOOLEAN initialized; // boolean
-} PAGEFRAME_INFO;
-
 static BITMAP pageFrameBitmap;
 static PAGEFRAME_INFO pageFrameInfo;
 
-/* helpers -----------------------------------------------------------------*/
-
-static inline U32 pages_from_bytes(U32 bytes) {
-    return (bytes + PAGE_SIZE - 1) / PAGE_SIZE;
+PAGEFRAME_INFO* GET_PAGEFRAME_INFO() {
+    return &pageFrameInfo;
 }
 
-/* find a suitable region to place bitmap:
-   prefer largestFreeSeg but ensure it's big enough and page-aligned.
-   If not, search through E820 RAM entries.
-*/
-static VOID *find_bitmap_placement(E820Info *info, U32 bitmap_bytes) {
-    VOID *candidate = NULL;
-    U32 candidate_size = 0;
-
-    for (U32 i = 0; i < info->RawEntryCount; i++) {
-        U32 type = info->RawEntries[i].Type;
-        if (type != TYPE_E820_RAM) continue;
-        U32 base = (U32)info->RawEntries[i].BaseAddressLow;
-        U32 len  = (U32)info->RawEntries[i].LengthLow;
-        // ensure placement is page-aligned and fits
-        U32 aligned_base = ALIGN_UP(base, PAGE_SIZE);
-        if (len < (aligned_base - base)) continue;
-        U32 avail = len - (aligned_base - base);
-        if (avail >= bitmap_bytes) {
-            // pick the largest fit
-            if (avail > candidate_size) {
-                candidate = (VOID *)aligned_base;
-                candidate_size = avail;
-            }
-        }
-    }
-
-    return candidate;
-}
-
-/* set/clear wrapper that updates counters exactly when bit flips */
-static VOID set_bitmap_bit_and_account(U32 index, BOOLEAN set) {
-    BOOLEAN current = BITMAP_GET(&pageFrameBitmap, index);
-    if (current == set) return; // no-op, avoid double counting
-
-    if (!BITMAP_SET(&pageFrameBitmap, index, set)) return; // fail-safe
-
-    if (set) {
-        // marking as reserved/used
-        // We don't know caller intent (reserve vs lock) here, so caller must
-        // call the specific functions (RESERVE_PAGE/LOCK_PAGE) which
-        // perform counters. This wrapper is used only in init path.
-    } else {
-        // marking free - counters to be adjusted by caller
-    }
-}
 
 /* PUBLIC API --------------------------------------------------------------*/
 
@@ -223,25 +166,25 @@ BOOLEAN READ_E820_MEMORYMAP(VOID) {
 
     // check overlap with kernel, framebuffer, VBE structures etc.
     if (range_overlap(bmp_addr, bmp_len, MEM_RTOSKRNL_BASE, MEM_RTOSKRNL_END - MEM_RTOSKRNL_BASE)) {
-        panic("PANIC: bitmap overlaps kernel!");
+        panic("PANIC: bitmap overlaps kernel!", PANIC_PAGE_FAULT_IN_KERNEL);
     }
     if (range_overlap(bmp_addr, bmp_len, MEM_FRAMEBUFFER_BASE, FRAMEBUFFER_SIZE)) {
-        panic("PANIC: bitmap overlaps framebuffer!");
+        panic("PANIC: bitmap overlaps framebuffer!", PANIC_PAGE_FAULT_IN_KERNEL);
     }
     if (range_overlap(bmp_addr, bmp_len, mode->PhysBasePtr, FRAMEBUFFER_SIZE)) {
-        panic("PANIC: bitmap overlaps VBE mode!");
+        panic("PANIC: bitmap overlaps VBE mode!", PANIC_PAGE_FAULT_IN_KERNEL);
     }
     if (range_overlap(bmp_addr, bmp_len, MEM_BIOS_BASE, MEM_BIOS_END - MEM_BIOS_BASE)) {
-        panic("PANIC: bitmap overlaps BIOS area!");
+        panic("PANIC: bitmap overlaps BIOS area!", PANIC_PAGE_FAULT_IN_KERNEL);
     }
     if (range_overlap(bmp_addr, bmp_len, STACK_0_BASE, STACK_0_END - STACK_0_BASE)) {
-        panic("PANIC: bitmap overlaps stack!");
+        panic("PANIC: bitmap overlaps stack!", PANIC_PAGE_FAULT_IN_KERNEL);
     }
     if (range_overlap(bmp_addr, bmp_len, MEM_E820_BASE, MEM_E820_END - MEM_E820_BASE)) {
-        panic("PANIC: bitmap overlaps E820 area!");
+        panic("PANIC: bitmap overlaps E820 area!", PANIC_PAGE_FAULT_IN_KERNEL);
     }
     if (range_overlap(bmp_addr, bmp_len, MEM_VESA_BASE, MEM_VESA_END - MEM_VESA_BASE)) {
-        panic("PANIC: bitmap overlaps VESA area!");
+        panic("PANIC: bitmap overlaps VESA area!", PANIC_PAGE_FAULT_IN_KERNEL);
     }
 
     // Immediately reserve pages that contain the bitmap so subsequent bitmap ops cannot clobber kernel
@@ -332,10 +275,12 @@ U32 GET_RESERVED_RAM() {
 
 /* page allocator ---------------------------------------------------------*/
 
+
 VOIDPTR REQUEST_PAGE() {
     U32 total_pages = pageFrameBitmap.size * 8;
     for (; pageFrameInfo.pIndex < total_pages; pageFrameInfo.pIndex++) {
         if (BITMAP_GET(&pageFrameBitmap, pageFrameInfo.pIndex)) continue; // in use/reserved
+
         // lock and return page
         LOCK_PAGE((VOIDPTR)(pageFrameInfo.pIndex * PAGE_SIZE));
         return (VOIDPTR)(pageFrameInfo.pIndex * PAGE_SIZE);
@@ -346,9 +291,8 @@ VOIDPTR REQUEST_PAGE() {
 }
 
 
-
-/* Ensure heap is initialized */
-static void kernel_heap_init() {
+/* Ensure heaps are initialized */
+void kernel_heap_init() {
     if (heap_start) return; // already initialized
     heap_start = (KERNEL_HEAP_BLOCK *)MEM_RTOSKRNL_HEAP_BASE;
     heap_start->size = MEM_RTOSKRNL_HEAP_END - MEM_RTOSKRNL_HEAP_BASE;
@@ -356,25 +300,75 @@ static void kernel_heap_init() {
     heap_start->next = NULL;
 }
 
-/* Request additional pages if heap block runs out */
-static BOOLEAN expand_heap(KERNEL_HEAP_BLOCK *last, U32 required_size) {
-    U32 required_pages = pages_from_bytes(required_size);
-    VOIDPTR addr = NULL;
+void user_heap_init() {
+    if (user_heap_start) return;
 
-    for (U32 i = 0; i < required_pages; i++) {
-        addr = REQUEST_PAGE();
-        if (!addr) return FALSE; // out of physical memory
+    U32 heap_size = MEM_USER_SPACE_END_MIN - MEM_USER_SPACE_BASE;
+    U32 heap_pages = pages_from_bytes(heap_size);
+    // Map all user heap pages first
+    for (U32 i = 0; i < heap_pages; i++) {
+        VOIDPTR phys = REQUEST_PAGE();
+        if (!phys) panic("Out of physical memory for user heap", PANIC_OUT_OF_MEMORY);
+        
+        MAP_USER_PAGE((VOIDPTR)(MEM_USER_SPACE_BASE + i*PAGE_SIZE), phys,
+                    PAGE_PRESENT | PAGE_WRITE | PAGE_USER);
     }
+
+    // Now it's safe to initialize the header
+    user_heap_start = (USER_HEAP_BLOCK*)MEM_USER_SPACE_BASE;
+    user_heap_start->size = heap_size;
+    user_heap_start->free = TRUE;
+    user_heap_start->next = NULL;
+}
+
+
+
+/* Request additional pages if heap block runs out */
+static BOOLEAN expand_heap_user(USER_HEAP_BLOCK *last, U32 required_size) {
+    // Align required size to page boundary
+    U32 required_pages = pages_from_bytes(required_size);
+    U32 alloc_size = required_pages * PAGE_SIZE;
+
+    // Compute aligned vaddr for the new block
+    U32 vaddr = (U32)last + last->size;
+    vaddr = (vaddr + PAGE_SIZE - 1) & ~(PAGE_SIZE - 1); 
+
+    if (vaddr < MEM_USER_SPACE_BASE || vaddr + alloc_size >= MEM_USER_SPACE_END_MIN) {
+        return FALSE; // out of user space
+    }
+
+    // Map pages
+    for (U32 i = 0; i < required_pages; i++) {
+        VOIDPTR phys = REQUEST_PAGE();
+        if (!phys) return FALSE; // out of physical memory
+
+        MAP_USER_PAGE((VOIDPTR)(vaddr + i*PAGE_SIZE), phys,
+                      PAGE_PRESENT | PAGE_WRITE | PAGE_USER);
+    }
+
+    // Install new block header
+    USER_HEAP_BLOCK *block = (USER_HEAP_BLOCK*)vaddr;
+    block->size = alloc_size;
+    block->free = TRUE;
+    block->next = NULL;
+    last->next = block;
+
     return TRUE;
 }
+
+
+static BOOLEAN expand_heap_kernel(KERNEL_HEAP_BLOCK *last, U32 required_size) {
+    if ((U8*)last + last->size + required_size > (U8*)MEM_RTOSKRNL_HEAP_END) return FALSE;
+    return TRUE;
+}
+
 
 
 /* --------------------------------------------------------------------------
    Allocation
 -----------------------------------------------------------------------------*/
-VOIDPTR KERNEL_MALLOC(U32 size) {
+VOIDPTR KMALLOC(U32 size) {
     if (size == 0) return NULL;
-    kernel_heap_init();
 
     U32 total_size = align8(size + sizeof(KERNEL_HEAP_BLOCK));
     KERNEL_HEAP_BLOCK *block = heap_start;
@@ -391,6 +385,48 @@ VOIDPTR KERNEL_MALLOC(U32 size) {
                 block->size = total_size;
                 block->next = new_block;
             }
+            block->free = FALSE;
+            return (VOIDPTR)(block + 1);
+        }
+        last = block;
+        block = block->next;
+    }
+
+    // No free block found
+    if (!last) return NULL; // heap not initialized?
+
+    // Check heap boundary
+    if ((U8*)last + last->size + total_size > (U8*)MEM_RTOSKRNL_HEAP_END) return NULL;
+
+    // Allocate at the end of last block
+    block = (KERNEL_HEAP_BLOCK *)((U8*)last + last->size);
+    block->size = total_size;
+    block->free = FALSE;
+    block->next = NULL;
+    last->next = block;
+
+    return (VOIDPTR)(block + 1);
+}
+
+
+VOIDPTR UMALLOC(U32 size) {
+    if (size == 0) return NULL;
+
+    U32 total_size = align8(size + sizeof(USER_HEAP_BLOCK));
+    USER_HEAP_BLOCK *block = user_heap_start;
+    USER_HEAP_BLOCK *last = NULL;
+
+    while (block) {
+        if (block->free && block->size >= total_size) {
+            // split block if possible
+            if (block->size >= total_size + sizeof(USER_HEAP_BLOCK) + 8) {
+                USER_HEAP_BLOCK *new_block = (USER_HEAP_BLOCK *)((U8 *)block + total_size);
+                new_block->size = block->size - total_size;
+                new_block->free = TRUE;
+                new_block->next = block->next;
+                block->size = total_size;
+                block->next = new_block;
+            }
 
             block->free = FALSE;
             return (VOIDPTR)(block + 1); // memory after header
@@ -400,10 +436,10 @@ VOIDPTR KERNEL_MALLOC(U32 size) {
     }
 
     // Heap exhausted; try expanding
-    if (!expand_heap(last, total_size)) return NULL;
+    if(!expand_heap_user(last, total_size)) return NULL;
 
     // allocate at last block end
-    block = (KERNEL_HEAP_BLOCK *)((U8 *)last + last->size);
+    block = (USER_HEAP_BLOCK *)((U8 *)last + last->size);
     block->size = total_size;
     block->free = FALSE;
     block->next = NULL;
@@ -415,7 +451,7 @@ VOIDPTR KERNEL_MALLOC(U32 size) {
 /* --------------------------------------------------------------------------
    Free
 -----------------------------------------------------------------------------*/
-VOID KERNEL_FREE(VOIDPTR ptr) {
+VOID KFREE(VOIDPTR ptr) {
     if (!ptr) return;
 
     KERNEL_HEAP_BLOCK *block = ((KERNEL_HEAP_BLOCK *)ptr) - 1;
@@ -428,37 +464,78 @@ VOID KERNEL_FREE(VOIDPTR ptr) {
     }
 }
 
+VOID UFREE(VOIDPTR ptr) {
+    if (!ptr) return;
+
+    USER_HEAP_BLOCK *block = ((USER_HEAP_BLOCK *)ptr) - 1;
+    block->free = TRUE;
+
+    // coalesce next free blocks
+    while (block->next && block->next->free) {
+        block->size += block->next->size;
+        block->next = block->next->next;
+    }
+}
+
 /* --------------------------------------------------------------------------
    Calloc
 -----------------------------------------------------------------------------*/
-VOIDPTR KERNEL_CALLOC(U32 num, U32 size) {
+VOIDPTR KCALLOC(U32 num, U32 size) {
     U32 total = num * size;
-    VOIDPTR ptr = KERNEL_MALLOC(total);
+    VOIDPTR ptr = KMALLOC(total);
     if (ptr) MEMSET(ptr, 0, total);
     return ptr;
 }
 
+VOIDPTR UCALLOC(U32 num, U32 size) {
+    U32 total = num * size;
+    VOIDPTR ptr = UMALLOC(total);
+    if (ptr) MEMSET(ptr, 0, total);
+    return ptr;
+}
 /* --------------------------------------------------------------------------
    Realloc
 -----------------------------------------------------------------------------*/
-BOOLEAN KERNEL_REALLOC(VOIDPTR *addr, U32 oldSize, U32 newSize) {
+BOOLEAN KREALLOC(VOIDPTR *addr, U32 oldSize, U32 newSize) {
     if (!addr) return FALSE;
     if (newSize == 0) {
-        KERNEL_FREE(*addr);
+        KFREE(*addr);
         *addr = NULL;
         return TRUE;
     }
     if (!*addr) {
-        *addr = KERNEL_MALLOC(newSize);
+        *addr = KMALLOC(newSize);
         return (*addr != NULL);
     }
     if (newSize <= oldSize) return TRUE;
 
-    VOIDPTR newPtr = KERNEL_MALLOC(newSize);
+    VOIDPTR newPtr = KMALLOC(newSize);
     if (!newPtr) return FALSE;
 
     MEMCPY(newPtr, *addr, oldSize);
-    KERNEL_FREE(*addr);
+    KFREE(*addr);
+    *addr = newPtr;
+    return TRUE;
+}
+
+BOOLEAN UREALLOC(VOIDPTR *addr, U32 oldSize, U32 newSize) {
+    if (!addr) return FALSE;
+    if (newSize == 0) {
+        UFREE(*addr);
+        *addr = NULL;
+        return TRUE;
+    }
+    if (!*addr) {
+        *addr = UMALLOC(newSize);
+        return (*addr != NULL);
+    }
+    if (newSize <= oldSize) return TRUE;
+
+    VOIDPTR newPtr = UMALLOC(newSize);
+    if (!newPtr) return FALSE;
+
+    MEMCPY(newPtr, *addr, oldSize);
+    UFREE(*addr);
     *addr = newPtr;
     return TRUE;
 }

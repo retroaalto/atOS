@@ -51,7 +51,7 @@ BOOLEAN E820_INIT(VOID) {
         if(e820_entries[i].Type != TYPE_E820_RAM) continue;
         if (!fits_in_32(e820_entries[i].BaseAddressHigh) ||
             !fits_in_32(e820_entries[i].LengthHigh)) continue;
-
+        
         g_E820Info.RawEntries[g_E820Info.RawEntryCount++] = e820_entries[i];
         U32 base = (U32)e820_entries[i].BaseAddressLow;
         U32 len  = (U32)e820_entries[i].LengthLow;

@@ -2,18 +2,19 @@
 #define RTOS_KERNEL
 #endif
 #include <RTOSKRNL.h>
-
+#include <CPU/SYSCALL/SYSCALL.h>
 /*
 TODO:
-    E820 & Paging
-    Keyboard driver
-    HDD driver
-    Speaker driver
-    Syscalls
+    Test via Shell:
+        E820 & Paging
+        Process Management
+        Multitasking
+        Inter-Process Communication
+
     Shell ATOSH
-    Process Management
-    Multitasking?
-    Inter-Process Communication
+    HDD driver
+    Syscalls
+    Speaker driver
 
     bitmap atmp
     shell atosh
@@ -28,7 +29,7 @@ __attribute__((noreturn))
 void rtos_kernel(U0) {
     U32 row = 0;
     CLI;
-    // Recalled here, to fix address issues
+    // These are called here, to fix address issues and to set up new values
     GDT_INIT();
     IDT_INIT();
     SETUP_ISR_HANDLERS();
@@ -42,8 +43,11 @@ void rtos_kernel(U0) {
         DRAW_STRING("Failed to initialize page frame. Possibly not enough memory.", VBE_RED);
         HLT;
     }
-    // INIT_PAGING();
-    
+    INIT_PAGING();
+
+    kernel_heap_init();
+    // user_heap_init(); // TODO: This mess
+
     if(!PS2_KEYBOARD_INIT()) {
         DRAW_STRING("Failed to initialize PS2 keyboard", VBE_RED);
         HLT;
@@ -51,25 +55,8 @@ void rtos_kernel(U0) {
 
     STI;
 
-    U8 buf[100];
-    U32 *pit_ticks = PIT_GET_TICKS_PTR();
-    U32 i = 0;
-    for(; i < 10; i++) {
-        ITOA(*pit_ticks, buf, 10);
-        VBE_DRAW_STRING(400, 0, buf, VBE_AQUA, VBE_BLACK);
-        VBE_UPDATE_VRAM();
-    }
+    LOAD_AND_RUN_KERNEL_SHELL();
 
-    DRAW_STRING("PS2 keyboard initialized successfully", VBE_GREEN);
-    DRAW_STRING("RTOS kernel started", VBE_GREEN);
-
-
-    
-
-    SHELL_START();
-
-
-    HLT;
 }
 
 __attribute__((noreturn, section(".text")))

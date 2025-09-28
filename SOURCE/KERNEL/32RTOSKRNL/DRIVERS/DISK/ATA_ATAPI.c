@@ -2,6 +2,10 @@
 #include "../VIDEO/VBE.h"
 #include "../../../../STD/ASM.h"
 
+#ifndef KERNEL_ENTRY
+static U32 atapi_drive_info = 0;
+#endif // KERNEL_ENTRY
+
 static inline void ata_io_wait(const U8 p) {
 	_inb(p + ATA_CONTROL_REG + ATA_ALTERNATE_STATUS);
 	_inb(p + ATA_CONTROL_REG + ATA_ALTERNATE_STATUS);
@@ -69,6 +73,17 @@ U32 ATAPI_CHECK() {
 
     return 0; // No ATAPI CD-ROM found
 }
+
+#ifndef KERNEL_ENTRY
+U32 INITIALIZE_ATAPI() {
+    if(!atapi_drive_info) 
+        atapi_drive_info = ATAPI_CHECK();
+    return atapi_drive_info;
+}
+U32 GET_ATAPI_INFO() {
+    return atapi_drive_info;
+}
+#endif // KERNEL_ENTRY
 
 
 int read_cdrom(U32 atapiWhere, U32 lba, U32 sectors, U16 *buffer) {

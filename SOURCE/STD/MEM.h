@@ -23,6 +23,11 @@ REMARKS
 
 #include <STD/TYPEDEF.h>
 
+/// @brief Copy memory area.
+/// @param dest Pointer to destination memory area.
+/// @param src Pointer to source memory area.
+/// @param size Number of bytes to copy.
+/// @return Pointer to destination memory area.
 U0 *MEMCPY(U0* dest, CONST U0* src, U32 size);
 U0 *MEMSET(U0* dest, U8 value, U32 size);
 U0 *MEMZERO(U0* dest, U32 size);

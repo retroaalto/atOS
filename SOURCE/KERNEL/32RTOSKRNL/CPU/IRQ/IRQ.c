@@ -3,7 +3,7 @@
 #include "../ISR/ISR.h"
 #include "../GDT/GDT.h"
 #include "../../../../STD/ASM.h"
-#include "./PIC.h"
+#include "./PIC/PIC.h"
 
 
 // Initialize IRQs

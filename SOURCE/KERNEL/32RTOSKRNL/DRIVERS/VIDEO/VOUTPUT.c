@@ -1,12 +1,7 @@
 #include <DRIVERS/VIDEO/VOUTPUT.h>
 #include <DRIVERS/VIDEO/FONT12x24.h>
 
-static OutputInfo cursor = {
-    0, 0, 
-    VBE_BLACK, 
-    VBE_WHITE, 
-    TRUE, TRUE, 
-    TRUE, TRUE};
+static OutputInfo cursor = OUTPUT_INFO_INIT;
 
 static U8 text_buffer[AMOUNT_OF_ROWS][AMOUNT_OF_COLS] = {{0}};
 
@@ -49,7 +44,12 @@ U0 COLUMN_DEC(U0) {
 U0 ROW_INC(U0) {
     cursor.Row++;
     if(cursor.Row >= AMOUNT_OF_ROWS) {
-        cursor.Row = AMOUNT_OF_ROWS - 1;
+        if(cursor.AUTO_SCROLL) {
+            cursor.Row = AMOUNT_OF_ROWS - 1;
+            SCROLL_TEXTBUFFER_UP();
+        } else {
+            cursor.Row = 0;
+        }
     }
 }
 U0 ROW_DEC(U0) {
@@ -65,35 +65,47 @@ U32 ROW_TO_PIX(U32 row) {
     return row * (CHAR_HEIGHT + CHAR_SPACING);
 }
 U32 PUTC(U8 c) {
-    if(AMOUNT_OF_COLS == 0 || AMOUNT_OF_ROWS == 0) return; // Avoid division by zero
+    if(AMOUNT_OF_COLS == 0 || AMOUNT_OF_ROWS == 0) return 0;
+
     if(c == '\n') {
-        COLUMN_INC();
-        return FALSE;
+        cursor.Column = 0;
+        ROW_INC();
+        return 1;
     }
+
     if(c == '\t') {
-        for(U8 i = 0; i < 2; i++) {
-            COLUMN_INC();
-        }
-        return FALSE;
+        U32 spaces = 4 - (cursor.Column % 4);
+        for(U32 i = 0; i < spaces; i++) COLUMN_INC();
+        return 1;
     }
-    if(c < 32) return FALSE; // Ignore other control characters
-    if(c > 255) return FALSE; // Ignore non-ASCII characters
+
+    if(c < 32 || c > 255) return 0;
+
+    text_buffer[cursor.Row][cursor.Column] = c; // update text buffer
+
     U32 x = COL_TO_PIX(cursor.Column);
     U32 y = ROW_TO_PIX(cursor.Row);
-    for (U32 i = 0; i < CHAR_HEIGHT; i++) {
+    for(U32 i = 0; i < CHAR_HEIGHT; i++) {
         VBE_LETTERS_TYPE row = FONT12x24[c][i];
-        for (U32 j = 0; j < CHAR_WIDTH; j++) {
-            VBE_PIXEL_COLOUR colour = (row & (1 << (11 - j))) ? cursor.fgColor : cursor.bgColor;
+        for(U32 j = 0; j < CHAR_WIDTH; j++) {
+            VBE_PIXEL_COLOUR colour = (row & (1 << ((CHAR_WIDTH - 1) - j))) ? cursor.fgColor : cursor.bgColor;
             VBE_DRAW_PIXEL(CREATE_VBE_PIXEL_INFO(x + j, y + i, colour));
         }
     }
 
-    return TRUE;
+    COLUMN_INC();
+
+    if(cursor.FLUSH_ON_CHANGE) {
+        FLUSH_SCREEN();
+    }
+
+    return 1;
 }
 
+
 VOID CLS(U0) {}
-U0 SET_BG_COLOR(U32 color) {}
-U0 SET_FG_COLOR(U32 color) {}
+U0 SET_BG_COLOR(VBE_PIXEL_COLOUR color) {}
+U0 SET_FG_COLOR(VBE_PIXEL_COLOUR color) {}
 U0 SET_CURSOR_POS(U32 col, U32 row) {}
 U32 GET_CURSOR_POS(U0) {}
 U0 SET_CURSOR_VISIBLE(BOOLEAN visible) {}

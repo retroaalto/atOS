@@ -1,5 +1,5 @@
 #include <DRIVERS/PS2/KEYBOARD.h>
-#include <CPU/PIC.h>
+#include <CPU/PIC/PIC.h>
 #include <RTOSKRNL/RTOSKRNL_INTERNAL.h>
 #include <CPU/ISR/ISR.h>
 #include <STD/BINARY.h>

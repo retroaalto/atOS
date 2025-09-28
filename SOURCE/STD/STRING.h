@@ -16,8 +16,11 @@ U0 *STRCHR(CONST U8* str, U8 c);
 U32 ATOI(CONST U8* str);
 U32 ATOI_HEX(CONST U8* str);
 U32 ATOI_BIN(CONST U8* str);
-U0 *ITOA(S32 value, U8* buffer, U32 base);
+U0 *ITOA(S32 value, I8* buffer, U32 base);
 U0 *ITOA_U(U32 value, U8* buffer, U32 base);
-
+U8 TOUPPER(U8 c);
+U8 TOLOWER(U8 c);
+U0 STR_TOUPPER(U8* str);
+U0 STR_TOLOWER(U8* str);
 
 #endif // STRING_H

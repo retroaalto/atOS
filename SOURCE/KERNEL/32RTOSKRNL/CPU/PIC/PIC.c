@@ -1,5 +1,5 @@
-#include "./INTERRUPTS.h"
-#include "./PIC.h"
+#include "./INTERRUPTS/INTERRUPTS.h"
+#include "./PIC/PIC.h"
 #include "../../../STD/ASM.h"
 
 
