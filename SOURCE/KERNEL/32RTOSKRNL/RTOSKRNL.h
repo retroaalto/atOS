@@ -10,6 +10,8 @@
 #include <STD/STRING.h>
 #include <STD/MEM.h>
 
+#include <SHELL/SHELL.h>
+
 #include <DRIVERS/VIDEO/VBE.h>
 #include <DRIVERS/VIDEO/VESA.h>
 #include <DRIVERS/VIDEO/VOUTPUT.h>

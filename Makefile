@@ -139,6 +139,7 @@ kernel:
 	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_DIR)/STD/MATH.c -o $(OUTPUT_KERNEL_DIR)/MATH.o
 	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/RTOSKRNL/ACPI/ACPI.c -o $(OUTPUT_KERNEL_DIR)/ACPI.o
 	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/RTOSKRNL/RTOSKRNL_INTERNAL.c -o $(OUTPUT_KERNEL_DIR)/RTOSKRNL_INTERNAL.o
+	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_DIR)/SHELL/SHELL.c -o $(OUTPUT_KERNEL_DIR)/SHELL.o
 
 	$(CComp) -m32 -nostdlib -ffreestanding \
 		-Wl,-T,$(SOURCE_KERNEL_DIR)/rtoskernel.ld,-e,_start,--oformat=binary \
@@ -165,6 +166,7 @@ kernel:
 		$(OUTPUT_KERNEL_DIR)/ATA_ATAPI.o \
 		$(OUTPUT_KERNEL_DIR)/ACPI.o \
 		$(OUTPUT_KERNEL_DIR)/MATH.o \
+		$(OUTPUT_KERNEL_DIR)/SHELL.o \
 
 
 	@echo "32RTOSKRNL.BIN compiled successfully."
