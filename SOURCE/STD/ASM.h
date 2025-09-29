@@ -4,7 +4,7 @@
 #include "./TYPEDEF.h"
 
 #define ASM_VOLATILE(...) \
-    __asm__ volatile(__VA_ARGS__)
+    __asm__ __volatile__(__VA_ARGS__)
 #define HLT for(;;) ASM_VOLATILE("cli; hlt")
 
 #define LN "\n\t"

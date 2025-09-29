@@ -1,24 +1,23 @@
 #include <STD/BITMAP.h>
-#include <STD/BINARY.h>
 #include <STD/MEM.h>
 
 BOOLEAN BITMAP_GET(BITMAP *bitmap, U32 index) {
-    if(index >= bitmap->size * 8) return FALSE;
+    if (index >= bitmap->size * 8) return FALSE;
     U32 byteIndex = index / 8;
     U8 bitIndex = index % 8;
-    U8 mask = 1 << bitIndex;
-    return (bitmap->data[byteIndex] & mask) != 0;
+    return (bitmap->data[byteIndex] >> bitIndex) & 1u;
 }
 
-
 BOOLEAN BITMAP_SET(BITMAP *bitmap, U32 index, BOOLEAN value) {
-    if(index > bitmap->size * 8) return FALSE;
+    if (index >= bitmap->size * 8) return FALSE;
     U32 byteIndex = index / 8;
     U8 bitIndex = index % 8;
-    U8 bitIndexer = SHR(0b10000000, bitIndex);
-    bitmap->data[byteIndex] &= ~bitIndexer;
-    if(value) {
-        bitmap->data[byteIndex] |= bitIndexer;
+    U8 mask = 1u << bitIndex;
+
+    if (value) {
+        bitmap->data[byteIndex] |= mask;
+    } else {
+        bitmap->data[byteIndex] &= ~mask;
     }
     return TRUE;
 }

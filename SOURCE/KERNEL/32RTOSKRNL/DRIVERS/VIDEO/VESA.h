@@ -89,5 +89,8 @@ typedef struct {
 #define VESA_CTRL_SIZE 512
 #define VESA_TARGET_MODE 0x116 // 1024x768x16
 
+#define GET_VESA_INFO() ((VESA_INFO*)VESA_LOAD_ADDRESS_PHYS)
+
 BOOL vesa_check(void);
+
 #endif // VESA_H

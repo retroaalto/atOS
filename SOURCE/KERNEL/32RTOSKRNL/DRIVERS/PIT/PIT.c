@@ -21,14 +21,17 @@ void pit_set_frequency(U32 freq) {
 
 static U32 ticks = 0;
 static U32 hz = 100;
+static BOOLEAN initialized = FALSE;
 void pit_handler(I32 num, U32 errcode) {
     (void)errcode; (void)num;
     ticks++;
-    pit_handler_task_control();
+    // pit_handler_task_control();
     return;
 }
 
 U0 PIT_INIT(U0) {
+    if(initialized) return;
+    initialized = TRUE;
     hz = 100;
     pit_set_frequency(hz);
     ISR_REGISTER_HANDLER(PIC_REMAP_OFFSET + 0, pit_handler);

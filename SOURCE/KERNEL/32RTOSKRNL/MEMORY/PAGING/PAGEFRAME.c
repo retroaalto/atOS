@@ -10,532 +10,302 @@
 #include <RTOSKRNL/RTOSKRNL_INTERNAL.h>
 #include <STD/MATH.h>
 
+#include <ERROR/ERROR.h>
+
 #include <MEMORY/KMALLOC/KMALLOC.h>
 #include <MEMORY/UMALLOC/UMALLOC.h>
 
 
 static KERNEL_HEAP_BLOCK *heap_start = NULL;
-static USER_HEAP_BLOCK *user_heap_start = NULL;
 
 static inline U32 align8(U32 size) {
     return (size + 7) & ~7U;
 }
 
 #define BYTE_TO_PAGE(x) ((x) / PAGE_SIZE)
-
-static BITMAP pageFrameBitmap;
-static PAGEFRAME_INFO pageFrameInfo;
+__attribute__((section(".data")))
+static BITMAP pageFrameBitmap = {0, 0};
+__attribute__((section(".data")))
+static PAGEFRAME_INFO pageFrameInfo = {0, 0, 0, 0, FALSE};
+__attribute__((section(".data")))
+static U8 bitmapData[MAX_BITMAP_SIZE] = {0}; // enough for largest physical memory
 
 PAGEFRAME_INFO* GET_PAGEFRAME_INFO() {
     return &pageFrameInfo;
 }
+BITMAP* GET_PAGEFRAME_BITMAP() {
+    return &pageFrameBitmap;
+}
 
 
-/* PUBLIC API --------------------------------------------------------------*/
 
-VOID RESET_PAGEINDEX() { pageFrameInfo.pIndex = 0; }
-
-VOID FREE_PAGE(VOIDPTR addr) {
-    U32 index = (U32)addr / PAGE_SIZE;
-    // If page already free, nothing to do.
-    if(!BITMAP_GET(&pageFrameBitmap, index)) return;
-    // Clear the bit
-    if(!BITMAP_SET(&pageFrameBitmap, index, FALSE)) return;
-
-    // Adjust accounting: this page was previously "used", so move it to free.
-    // Guard against underflow.
-    if (pageFrameInfo.usedMemory >= PAGE_SIZE) pageFrameInfo.usedMemory -= PAGE_SIZE;
-    pageFrameInfo.freeMemory += PAGE_SIZE;
-    if(pageFrameInfo.pIndex > index) {
-        pageFrameInfo.pIndex = index;
+static void reserve_range(U32 start, U32 end) {
+    U32 startFrame = start / PAGE_SIZE;
+    U32 endFrame   = (end + PAGE_SIZE - 1) / PAGE_SIZE;
+    for(U32 f = startFrame; f < endFrame; f++) {
+        BITMAP_SET(&pageFrameBitmap, f, PAGE_ALLOCATED);
     }
 }
 
-VOID FREE_PAGES(VOIDPTR addr, U32 numPages) {
-    for(U32 i = 0; i < numPages; i++) {
-        FREE_PAGE((VOIDPTR)((U32)addr + (i * PAGE_SIZE)));
+static void unreserve_range(U32 start, U32 end) {
+    U32 startFrame = start / PAGE_SIZE;
+    U32 endFrame   = (end + PAGE_SIZE - 1) / PAGE_SIZE;
+    for(U32 f = startFrame; f < endFrame; f++) {
+        BITMAP_SET(&pageFrameBitmap, f, PAGE_FREE);
     }
 }
 
-VOID LOCK_PAGE(VOIDPTR addr) {
-    U32 index = (U32)addr / PAGE_SIZE;
-    // if already marked (reserved or used) do nothing
-    if(BITMAP_GET(&pageFrameBitmap, index)) return;
-    // set bit
-    if(!BITMAP_SET(&pageFrameBitmap, index, TRUE)) return;
-    // Update accounting: this transitions from free -> used
-    if (pageFrameInfo.freeMemory >= PAGE_SIZE) pageFrameInfo.freeMemory -= PAGE_SIZE;
-    pageFrameInfo.usedMemory += PAGE_SIZE;
-}
-
-VOID LOCK_PAGES(VOIDPTR addr, U32 numPages) {
-    for(U32 i = 0; i < numPages; i++) {
-        LOCK_PAGE((VOIDPTR)((U32)addr + (i * PAGE_SIZE)));
-    }
-}
-
-VOID RESERVE_PAGE(VOIDPTR addr) {
-    U32 index = (U32)addr / PAGE_SIZE;
-    // if already marked (reserved or used) do nothing
-    if(BITMAP_GET(&pageFrameBitmap, index)) return;
-    if(!BITMAP_SET(&pageFrameBitmap, index, TRUE)) return;
-    // Update accounting: this transitions from free -> reserved
-    if (pageFrameInfo.freeMemory >= PAGE_SIZE) pageFrameInfo.freeMemory -= PAGE_SIZE;
-    pageFrameInfo.reservedMemory += PAGE_SIZE;
-}
-
-VOID RESERVE_PAGES(VOIDPTR addr, U32 numPages) {
-    for(U32 i = 0; i < numPages; i++) {
-        RESERVE_PAGE((VOIDPTR)((U32)addr + (i * PAGE_SIZE)));
-    }
-}
-
-VOID UNRESERVE_PAGE(VOIDPTR addr) {
-    U32 index = (U32)addr / PAGE_SIZE;
-    // If already free, nothing to do
-    if(!BITMAP_GET(&pageFrameBitmap, index)) return;
-    // Clear bit
-    if(!BITMAP_SET(&pageFrameBitmap, index, FALSE)) return;
-    // Update accounting: reserved -> free
-    if (pageFrameInfo.reservedMemory >= PAGE_SIZE) pageFrameInfo.reservedMemory -= PAGE_SIZE;
-    pageFrameInfo.freeMemory += PAGE_SIZE;
-    if(pageFrameInfo.pIndex > index) {
-        pageFrameInfo.pIndex = index;
-    }
-}
-
-VOID UNRESERVE_PAGES(VOIDPTR addr, U32 numPages) {
-    for(U32 i = 0; i < numPages; i++) {
-        UNRESERVE_PAGE((VOIDPTR)((U32)addr + (i * PAGE_SIZE)));
-    }
-}
-
-/* Read E820, build bitmap and initialize counters */
-BOOLEAN READ_E820_MEMORYMAP(VOID) {
-    E820Info *info = GET_E820_INFO();
-    if (!info) return FALSE;
-
-    // compute total RAM size and find largest suitable RAM entry
-    U32 total_ram_bytes = 0;
-    U32 largest_idx = (U32)-1;
-    U32 largest_size = 0;
-
-    for (U32 i = 0; i < info->RawEntryCount; i++) {
-        E820_ENTRY *e = &info->RawEntries[i];
-        if (e->Type != TYPE_E820_RAM) continue;
-        if (!fits_in_32(e->BaseAddressHigh) || !fits_in_32(e->LengthHigh)) continue;
-
-        U32 base = (U32)e->BaseAddressLow;
-        U32 len  = (U32)e->LengthLow;
-        total_ram_bytes += len;
-        if (len > largest_size) {
-            largest_size = len;
-            largest_idx = i;
-        }
+// Create bitmap based on E820 info
+BOOLEAN CREATE_PAGEFRAME_BITMAP() {
+    E820Info *e820 = GET_E820_INFO();
+    if (e820->RawEntryCount == 0) {
+        return FALSE; // No E820 entries available
     }
 
-    if (largest_idx == (U32)-1) return FALSE; // no usable RAM entry found
-
-    // total pages & bitmap size (bytes)
-    U32 total_pages = (total_ram_bytes + PAGE_SIZE - 1) / PAGE_SIZE;
-    U32 bitmap_bytes = (total_pages + 7) / 8; // ceil(pages / 8)
-
-    // choose placement: place bitmap at the END (high addresses) of the largest RAM entry
-    // so we don't risk overlapping kernel in low memory.
-    E820_ENTRY *largest = &info->RawEntries[largest_idx];
-    U32 largest_base = (U32)largest->BaseAddressLow;
-    U32 largest_len  = (U32)largest->LengthLow;
-
-    // Align placement to page: we put the bitmap at top of region, page-aligned down.
-    U32 place_end = ALIGN_DOWN(largest_base + largest_len, PAGE_SIZE);
-    if (place_end < bitmap_bytes) return FALSE; // shouldn't happen
-    U32 place_start = place_end - ALIGN_UP(bitmap_bytes, PAGE_SIZE);
-    VOIDPTR bitmap_place = (VOIDPTR)place_start;
-
-    // Reserve the pages that will hold the bitmap immediately to protect them
-    U32 bitmap_pages = ALIGN_UP(bitmap_bytes, PAGE_SIZE) / PAGE_SIZE;
-    // mark them reserved in bitmap data structure only after we create the bitmap object
-    
-
-    VBE_MODEINFO *mode = GET_VBE_MODE();
-    
-    // Create the bitmap structure pointing at the chosen area.
-    BITMAP_CREATE(bitmap_bytes, bitmap_place, &pageFrameBitmap);
-    U32 bmp_addr = (U32)pageFrameBitmap.data;
-    U32 bmp_len  = bitmap_pages * PAGE_SIZE;
-
-    // check overlap with kernel, framebuffer, VBE structures etc.
-    if (range_overlap(bmp_addr, bmp_len, MEM_RTOSKRNL_BASE, MEM_RTOSKRNL_END - MEM_RTOSKRNL_BASE)) {
-        panic("PANIC: bitmap overlaps kernel!", PANIC_PAGE_FAULT_IN_KERNEL);
-    }
-    if (range_overlap(bmp_addr, bmp_len, MEM_FRAMEBUFFER_BASE, FRAMEBUFFER_SIZE)) {
-        panic("PANIC: bitmap overlaps framebuffer!", PANIC_PAGE_FAULT_IN_KERNEL);
-    }
-    if (range_overlap(bmp_addr, bmp_len, mode->PhysBasePtr, FRAMEBUFFER_SIZE)) {
-        panic("PANIC: bitmap overlaps VBE mode!", PANIC_PAGE_FAULT_IN_KERNEL);
-    }
-    if (range_overlap(bmp_addr, bmp_len, MEM_BIOS_BASE, MEM_BIOS_END - MEM_BIOS_BASE)) {
-        panic("PANIC: bitmap overlaps BIOS area!", PANIC_PAGE_FAULT_IN_KERNEL);
-    }
-    if (range_overlap(bmp_addr, bmp_len, STACK_0_BASE, STACK_0_END - STACK_0_BASE)) {
-        panic("PANIC: bitmap overlaps stack!", PANIC_PAGE_FAULT_IN_KERNEL);
-    }
-    if (range_overlap(bmp_addr, bmp_len, MEM_E820_BASE, MEM_E820_END - MEM_E820_BASE)) {
-        panic("PANIC: bitmap overlaps E820 area!", PANIC_PAGE_FAULT_IN_KERNEL);
-    }
-    if (range_overlap(bmp_addr, bmp_len, MEM_VESA_BASE, MEM_VESA_END - MEM_VESA_BASE)) {
-        panic("PANIC: bitmap overlaps VESA area!", PANIC_PAGE_FAULT_IN_KERNEL);
-    }
-
-    // Immediately reserve pages that contain the bitmap so subsequent bitmap ops cannot clobber kernel
-    RESERVE_PAGES((VOIDPTR)pageFrameBitmap.data, bitmap_pages);
-
-    // Initialize all bits to 1 (reserved) so we start from safe state,
-    // then unreserve actual RAM areas below.
-    // Use direct memset on the bitmap memory to speed up init and avoid per-bit writes.
-    // Note: BITMAP.data is assumed writable and pageFrameBitmap.size >= bitmap_bytes
-    MEMSET(pageFrameBitmap.data, 0xFF, bitmap_bytes);
-
-    // Initialize accounting: everything reserved initially; we'll unreserve actual RAM ranges.
-    pageFrameInfo.freeMemory = 0;
-    pageFrameInfo.usedMemory = 0;
-    pageFrameInfo.reservedMemory = total_pages * PAGE_SIZE;
-    pageFrameInfo.pIndex = 0;
-
-    // Unreserve actual usable RAM ranges (TYPE_E820_RAM)
-    for (U32 i = 0; i < info->RawEntryCount; i++) {
-        E820_ENTRY *e = &info->RawEntries[i];
-        if (e->Type != TYPE_E820_RAM) continue;
-        if (!fits_in_32(e->BaseAddressHigh) || !fits_in_32(e->LengthHigh)) continue;
-        U32 base = ALIGN_UP((U32)e->BaseAddressLow, PAGE_SIZE);
-        U32 len  = ((U32)e->LengthLow) - (base - (U32)e->BaseAddressLow); // adjust if aligned
-        if (len == 0) continue;
-        U32 start_page = base / PAGE_SIZE;
-        U32 npages = len / PAGE_SIZE;
-        for (U32 p = 0; p < npages; p++) {
-            U32 idx = start_page + p;
-            // clear bit if currently set
-            U8 byte_idx = idx / 8;
-            U8 bit_mask = (1 << (idx % 8));
-            // If the bit is set (reserved), clear it and update counters
-            if (pageFrameBitmap.data[byte_idx] & bit_mask) {
-                pageFrameBitmap.data[byte_idx] &= ~bit_mask;
-                if (pageFrameInfo.reservedMemory >= PAGE_SIZE) pageFrameInfo.reservedMemory -= PAGE_SIZE;
-                pageFrameInfo.freeMemory += PAGE_SIZE;
+    // Calculate total memory size from E820 entries
+    U32 maxAddress = 0;
+    for (U32 i = 0; i < e820->RawEntryCount; i++) {
+        E820_ENTRY *entry = &e820->RawEntries[i];
+        if (entry->Type == TYPE_E820_RAM) {
+            U32 endAddress = entry->BaseAddressLow + entry->LengthLow;
+            if (endAddress > maxAddress) {
+                maxAddress = endAddress;
             }
         }
     }
 
-    // Now we have correct free/reserved accounting for RAM from E820.
-    // Reserve/lock other critical ranges (these will update accounting properly via RESERVE_PAGE/LOCK_PAGE)
-    RESERVE_PAGES(0, 0x100); // low BIOS area
+    // Calculate number of pages
+    U32 totalPages = pages_from_bytes(maxAddress);
 
-    // Reserve E820 structure region
-    RESERVE_PAGES(MEM_E820_BASE, ALIGN_UP(MEM_E820_END - MEM_E820_BASE, PAGE_SIZE) / PAGE_SIZE);
+    // Compute bitmap size in bytes
+    U32 bitmapSizeBytes = (totalPages + 7) / 8; // Round up to nearest byte
 
-    // VESA/VBE areas (if valid)
-    RESERVE_PAGES(MEM_VESA_BASE, ALIGN_UP(MEM_VESA_END - MEM_VESA_BASE, PAGE_SIZE) / PAGE_SIZE);
-    if (mode && mode->PhysBasePtr) {
-        RESERVE_PAGES((VOIDPTR)mode->PhysBasePtr, ALIGN_UP(FRAMEBUFFER_SIZE, PAGE_SIZE) / PAGE_SIZE);
+    // Create bitmap
+    BITMAP_CREATE(bitmapSizeBytes, bitmapData, &pageFrameBitmap);
+    if (!pageFrameBitmap.data) {
+        return FALSE; // Failed to create bitmap
     }
-    RESERVE_PAGES(MEM_FRAMEBUFFER_BASE, ALIGN_UP(FRAMEBUFFER_SIZE, PAGE_SIZE) / PAGE_SIZE);
-    RESERVE_PAGES(MEM_BIOS_BASE, ALIGN_UP(MEM_BIOS_END - MEM_BIOS_BASE, PAGE_SIZE) / PAGE_SIZE);
 
-    // Lock RTOS kernel code & data (these should move from free -> used)
-    LOCK_PAGES(MEM_RTOSKRNL_BASE, ALIGN_UP(MEM_RTOSKRNL_END - MEM_RTOSKRNL_BASE, PAGE_SIZE) / PAGE_SIZE);
+    // Mark all pages as free initially
+    for(U32 i = 0; i < e820->RawEntryCount; i++) {
+        E820_ENTRY *entry = &e820->RawEntries[i];
+        if(entry->Type == TYPE_E820_RAM) {
+            U32 startFrame = entry->BaseAddressLow / PAGE_SIZE;
+            U32 endFrame   = (entry->BaseAddressLow + entry->LengthLow + PAGE_SIZE - 1) / PAGE_SIZE;
+            for(U32 f = startFrame; f < endFrame; f++) {
+                BITMAP_SET(&pageFrameBitmap, f, PAGE_FREE); // mark free
+            }
+        }
+    }
 
-    // Do NOT lock whole heap here — leave it available for allocations (previous bug)
-    // Lock stack
-    LOCK_PAGES((VOIDPTR)STACK_0_BASE, ALIGN_UP(STACK_0_END - STACK_0_BASE, PAGE_SIZE) / PAGE_SIZE);
-
-    // Bitmap pages are already reserved above. Done.
+    // Reserve critical regions
+    reserve_range(0x00000000, 0x000FFFFF); // below 1MB
+    reserve_range((U32)MEM_KRNL_ENTRY_BASE, (U32)MEM_KRNL_ENTRY_END); // kernel itself
+    reserve_range(E820_TABLE_PHYS, E820_TABLE_END);         // E820 table
+    VESA_INFO *vesa = GET_VESA_INFO();
+    VBE_MODEINFO *vbe = GET_VBE_MODE();
+    reserve_range(MEM_VESA_BASE, VBE_MODE_LOAD_ADDRESS_PHYS + sizeof(VBE_MODEINFO));
+    reserve_range(vbe->PhysBasePtr, vbe->PhysBasePtr + (vbe->YResolution * vbe->BytesPerScanLineLinear));
+    reserve_range(vbe->PhysBasePtr2, vbe->PhysBasePtr2 + (vbe->YResolution * vbe->BytesPerScanLineLinear));
+    reserve_range(MEM_FRAMEBUFFER_BASE, MEM_FRAMEBUFFER_END); // video buffer
+    reserve_range(MEM_RTOSKRNL_HEAP_BASE, MEM_RTOSKRNL_HEAP_END); // kernel heap
+    reserve_range(MEM_BIOS_BASE, MEM_BIOS_END);
+    reserve_range(MEM_RESERVED_BASE, MEM_RESERVED_END); // reserved MMIO / firmware
     return TRUE;
 }
 
+BOOLEAN CREATE_PAGEFRAME() {
+    pageFrameInfo.freeMemory = 0;
+    U32 totalFrames = pageFrameBitmap.size * 8;
+    for(U32 i = 0; i < totalFrames; i++) {
+        if(!BITMAP_GET(&pageFrameBitmap, i))
+            pageFrameInfo.freeMemory += PAGE_SIZE;
+    }
+    pageFrameInfo.usedMemory = (totalFrames * PAGE_SIZE) - pageFrameInfo.freeMemory;
+    pageFrameInfo.reservedMemory = pageFrameInfo.usedMemory;
+
+    return TRUE;
+}
 
 BOOLEAN PAGEFRAME_INIT() {
-    if (pageFrameInfo.initialized) return TRUE;
-    if (!E820_INIT()) return FALSE;
-    if (!READ_E820_MEMORYMAP()) return FALSE;
+    if (pageFrameInfo.initialized) {
+        return TRUE; // Already initialized
+    }
+    if(!E820_INIT()) {
+        return FALSE;
+    }
+    if(!CREATE_PAGEFRAME_BITMAP()) {
+        return FALSE;
+    }
+    if(!CREATE_PAGEFRAME()) {
+        return FALSE;
+    }
     pageFrameInfo.initialized = TRUE;
     return TRUE;
 }
 
-/* simple getters ---------------------------------------------------------*/
-
-U32 GET_FREE_RAM() {
+ADDR GET_FREE_RAM() {
     return pageFrameInfo.freeMemory;
 }
-U32 GET_USED_RAM() {
+
+ADDR GET_USED_RAM() {
     return pageFrameInfo.usedMemory;
 }
-U32 GET_RESERVED_RAM() {
+
+ADDR GET_RESERVED_RAM() {
     return pageFrameInfo.reservedMemory;
 }
 
-/* page allocator ---------------------------------------------------------*/
+ADDR REQUEST_PAGE() {
+    BITMAP *bmp = &pageFrameBitmap;
+    PAGEFRAME_INFO *info = &pageFrameInfo;
 
-
-VOIDPTR REQUEST_PAGE() {
-    U32 total_pages = pageFrameBitmap.size * 8;
-    for (; pageFrameInfo.pIndex < total_pages; pageFrameInfo.pIndex++) {
-        if (BITMAP_GET(&pageFrameBitmap, pageFrameInfo.pIndex)) continue; // in use/reserved
-
-        // lock and return page
-        LOCK_PAGE((VOIDPTR)(pageFrameInfo.pIndex * PAGE_SIZE));
-        return (VOIDPTR)(pageFrameInfo.pIndex * PAGE_SIZE);
-    }
-    // no pages found, reset index and return NULL
-    RESET_PAGEINDEX();
-    return NULL;
-}
-
-
-/* Ensure heaps are initialized */
-void kernel_heap_init() {
-    if (heap_start) return; // already initialized
-    heap_start = (KERNEL_HEAP_BLOCK *)MEM_RTOSKRNL_HEAP_BASE;
-    heap_start->size = MEM_RTOSKRNL_HEAP_END - MEM_RTOSKRNL_HEAP_BASE;
-    heap_start->free = TRUE;
-    heap_start->next = NULL;
-}
-
-void user_heap_init() {
-    if (user_heap_start) return;
-
-    U32 heap_size = MEM_USER_SPACE_END_MIN - MEM_USER_SPACE_BASE;
-    U32 heap_pages = pages_from_bytes(heap_size);
-    // Map all user heap pages first
-    for (U32 i = 0; i < heap_pages; i++) {
-        VOIDPTR phys = REQUEST_PAGE();
-        if (!phys) panic("Out of physical memory for user heap", PANIC_OUT_OF_MEMORY);
-        
-        MAP_USER_PAGE((VOIDPTR)(MEM_USER_SPACE_BASE + i*PAGE_SIZE), phys,
-                    PAGE_PRESENT | PAGE_WRITE | PAGE_USER);
-    }
-
-    // Now it's safe to initialize the header
-    user_heap_start = (USER_HEAP_BLOCK*)MEM_USER_SPACE_BASE;
-    user_heap_start->size = heap_size;
-    user_heap_start->free = TRUE;
-    user_heap_start->next = NULL;
-}
-
-
-
-/* Request additional pages if heap block runs out */
-static BOOLEAN expand_heap_user(USER_HEAP_BLOCK *last, U32 required_size) {
-    // Align required size to page boundary
-    U32 required_pages = pages_from_bytes(required_size);
-    U32 alloc_size = required_pages * PAGE_SIZE;
-
-    // Compute aligned vaddr for the new block
-    U32 vaddr = (U32)last + last->size;
-    vaddr = (vaddr + PAGE_SIZE - 1) & ~(PAGE_SIZE - 1); 
-
-    if (vaddr < MEM_USER_SPACE_BASE || vaddr + alloc_size >= MEM_USER_SPACE_END_MIN) {
-        return FALSE; // out of user space
-    }
-
-    // Map pages
-    for (U32 i = 0; i < required_pages; i++) {
-        VOIDPTR phys = REQUEST_PAGE();
-        if (!phys) return FALSE; // out of physical memory
-
-        MAP_USER_PAGE((VOIDPTR)(vaddr + i*PAGE_SIZE), phys,
-                      PAGE_PRESENT | PAGE_WRITE | PAGE_USER);
-    }
-
-    // Install new block header
-    USER_HEAP_BLOCK *block = (USER_HEAP_BLOCK*)vaddr;
-    block->size = alloc_size;
-    block->free = TRUE;
-    block->next = NULL;
-    last->next = block;
-
-    return TRUE;
-}
-
-
-static BOOLEAN expand_heap_kernel(KERNEL_HEAP_BLOCK *last, U32 required_size) {
-    if ((U8*)last + last->size + required_size > (U8*)MEM_RTOSKRNL_HEAP_END) return FALSE;
-    return TRUE;
-}
-
-
-
-/* --------------------------------------------------------------------------
-   Allocation
------------------------------------------------------------------------------*/
-VOIDPTR KMALLOC(U32 size) {
-    if (size == 0) return NULL;
-
-    U32 total_size = align8(size + sizeof(KERNEL_HEAP_BLOCK));
-    KERNEL_HEAP_BLOCK *block = heap_start;
-    KERNEL_HEAP_BLOCK *last = NULL;
-
-    while (block) {
-        if (block->free && block->size >= total_size) {
-            // split block if possible
-            if (block->size >= total_size + sizeof(KERNEL_HEAP_BLOCK) + 8) {
-                KERNEL_HEAP_BLOCK *new_block = (KERNEL_HEAP_BLOCK *)((U8 *)block + total_size);
-                new_block->size = block->size - total_size;
-                new_block->free = TRUE;
-                new_block->next = block->next;
-                block->size = total_size;
-                block->next = new_block;
-            }
-            block->free = FALSE;
-            return (VOIDPTR)(block + 1);
+    for(U32 i = info->pIndex; i < bmp->size * 8; i++) {
+        if(!BITMAP_GET(bmp, i)) { // free page
+            BITMAP_SET(bmp, i, PAGE_ALLOCATED); // mark as used
+            info->freeMemory -= PAGE_SIZE;
+            info->usedMemory += PAGE_SIZE;
+            info->pIndex = i + 1; // next search starts here
+            return i * PAGE_SIZE;
         }
-        last = block;
-        block = block->next;
     }
-
-    // No free block found
-    if (!last) return NULL; // heap not initialized?
-
-    // Check heap boundary
-    if ((U8*)last + last->size + total_size > (U8*)MEM_RTOSKRNL_HEAP_END) return NULL;
-
-    // Allocate at the end of last block
-    block = (KERNEL_HEAP_BLOCK *)((U8*)last + last->size);
-    block->size = total_size;
-    block->free = FALSE;
-    block->next = NULL;
-    last->next = block;
-
-    return (VOIDPTR)(block + 1);
+    return 0; // no free pages
 }
 
+ADDR REQUEST_PAGES(U32 numPages) {
+    if (numPages == 0) return 0;
+    BITMAP *bmp = &pageFrameBitmap;
+    PAGEFRAME_INFO *info = &pageFrameInfo;
 
-VOIDPTR UMALLOC(U32 size) {
-    if (size == 0) return NULL;
+    U32 consecutive = 0;
+    U32 startIndex = 0;
 
-    U32 total_size = align8(size + sizeof(USER_HEAP_BLOCK));
-    USER_HEAP_BLOCK *block = user_heap_start;
-    USER_HEAP_BLOCK *last = NULL;
-
-    while (block) {
-        if (block->free && block->size >= total_size) {
-            // split block if possible
-            if (block->size >= total_size + sizeof(USER_HEAP_BLOCK) + 8) {
-                USER_HEAP_BLOCK *new_block = (USER_HEAP_BLOCK *)((U8 *)block + total_size);
-                new_block->size = block->size - total_size;
-                new_block->free = TRUE;
-                new_block->next = block->next;
-                block->size = total_size;
-                block->next = new_block;
+    for(U32 i = info->pIndex; i < bmp->size * 8; i++) {
+        if(!BITMAP_GET(bmp, i)) { // free page
+            if (consecutive == 0) {
+                startIndex = i; // potential start of block
             }
-
-            block->free = FALSE;
-            return (VOIDPTR)(block + 1); // memory after header
+            consecutive++;
+            if (consecutive == numPages) {
+                // Found a block
+                for (U32 j = startIndex; j < startIndex + numPages; j++) {
+                    BITMAP_SET(bmp, j, PAGE_ALLOCATED); // mark as used
+                }
+                info->freeMemory -= (numPages * PAGE_SIZE);
+                info->usedMemory += (numPages * PAGE_SIZE);
+                info->pIndex = startIndex + numPages; // next search starts here
+                return startIndex * PAGE_SIZE;
+            }
+        } else {
+            consecutive = 0; // reset count
         }
-        last = block;
-        block = block->next;
     }
-
-    // Heap exhausted; try expanding
-    if(!expand_heap_user(last, total_size)) return NULL;
-
-    // allocate at last block end
-    block = (USER_HEAP_BLOCK *)((U8 *)last + last->size);
-    block->size = total_size;
-    block->free = FALSE;
-    block->next = NULL;
-    last->next = block;
-
-    return (VOIDPTR)(block + 1);
+    return 0; // no suitable block found
 }
 
-/* --------------------------------------------------------------------------
-   Free
------------------------------------------------------------------------------*/
-VOID KFREE(VOIDPTR ptr) {
-    if (!ptr) return;
+VOID FREE_PAGE(ADDR addr) {
+    BITMAP *bmp = &pageFrameBitmap;
+    PAGEFRAME_INFO *info = &pageFrameInfo;
 
-    KERNEL_HEAP_BLOCK *block = ((KERNEL_HEAP_BLOCK *)ptr) - 1;
-    block->free = TRUE;
-
-    // coalesce next free blocks
-    while (block->next && block->next->free) {
-        block->size += block->next->size;
-        block->next = block->next->next;
+    U32 pageIndex = addr / PAGE_SIZE;
+    if (pageIndex >= bmp->size * 8) {
+        return; // Out of bounds
+    }
+    U32 bitmap_val = BITMAP_GET(bmp, pageIndex);
+    if(!bitmap_val ) {
+        SET_ERROR_CODE(ERROR_DOUBLE_PAGE_FREE);
+        return; // Already free
+    }
+    if(bitmap_val == PAGE_RESERVED || bitmap_val == PAGE_LOCKED) {
+        SET_ERROR_CODE(bitmap_val == PAGE_LOCKED ? ERROR_FREEING_OF_LOCKED_PAGE : ERROR_FREEING_OF_RESERVED_PAGE);
+        return; // Cannot free reserved or locked page
+    }
+    BITMAP_SET(bmp, pageIndex, PAGE_FREE); // Mark as free
+    info->freeMemory += PAGE_SIZE;
+    info->usedMemory -= PAGE_SIZE;
+    if (pageIndex < info->pIndex) {
+        info->pIndex = pageIndex; // Update pIndex for next search
     }
 }
 
-VOID UFREE(VOIDPTR ptr) {
-    if (!ptr) return;
-
-    USER_HEAP_BLOCK *block = ((USER_HEAP_BLOCK *)ptr) - 1;
-    block->free = TRUE;
-
-    // coalesce next free blocks
-    while (block->next && block->next->free) {
-        block->size += block->next->size;
-        block->next = block->next->next;
+VOID FREE_PAGES(ADDR addr, U32 numPages) {
+    for (U32 i = 0; i < numPages; i++) {
+        FREE_PAGE(addr + (i * PAGE_SIZE));
     }
 }
 
-/* --------------------------------------------------------------------------
-   Calloc
------------------------------------------------------------------------------*/
-VOIDPTR KCALLOC(U32 num, U32 size) {
-    U32 total = num * size;
-    VOIDPTR ptr = KMALLOC(total);
-    if (ptr) MEMSET(ptr, 0, total);
-    return ptr;
+VOID RESET_PAGEINDEX() {
+    pageFrameInfo.pIndex = 0;
 }
 
-VOIDPTR UCALLOC(U32 num, U32 size) {
-    U32 total = num * size;
-    VOIDPTR ptr = UMALLOC(total);
-    if (ptr) MEMSET(ptr, 0, total);
-    return ptr;
-}
-/* --------------------------------------------------------------------------
-   Realloc
------------------------------------------------------------------------------*/
-BOOLEAN KREALLOC(VOIDPTR *addr, U32 oldSize, U32 newSize) {
-    if (!addr) return FALSE;
-    if (newSize == 0) {
-        KFREE(*addr);
-        *addr = NULL;
-        return TRUE;
+VOID LOCK_PAGE(ADDR addr) {
+    U32 pageIndex = addr / PAGE_SIZE;
+    if (pageIndex >= pageFrameBitmap.size * 8) {
+        return; // Out of bounds
     }
-    if (!*addr) {
-        *addr = KMALLOC(newSize);
-        return (*addr != NULL);
+    if (!BITMAP_GET(&pageFrameBitmap, pageIndex)) { // only if free
+        BITMAP_SET(&pageFrameBitmap, pageIndex, PAGE_LOCKED); // Mark as used
+        pageFrameInfo.freeMemory -= PAGE_SIZE;
+        pageFrameInfo.usedMemory += PAGE_SIZE;
     }
-    if (newSize <= oldSize) return TRUE;
-
-    VOIDPTR newPtr = KMALLOC(newSize);
-    if (!newPtr) return FALSE;
-
-    MEMCPY(newPtr, *addr, oldSize);
-    KFREE(*addr);
-    *addr = newPtr;
-    return TRUE;
 }
 
-BOOLEAN UREALLOC(VOIDPTR *addr, U32 oldSize, U32 newSize) {
-    if (!addr) return FALSE;
-    if (newSize == 0) {
-        UFREE(*addr);
-        *addr = NULL;
-        return TRUE;
+VOID LOCK_PAGES(ADDR addr, U32 numPages) {
+    for (U32 i = 0; i < numPages; i++) {
+        LOCK_PAGE(addr + (i * PAGE_SIZE));
     }
-    if (!*addr) {
-        *addr = UMALLOC(newSize);
-        return (*addr != NULL);
+}
+
+VOID UNLOCK_PAGE(ADDR addr) {
+    U32 pageIndex = addr / PAGE_SIZE;
+    if (pageIndex >= pageFrameBitmap.size * 8) {
+        return; // Out of bounds
     }
-    if (newSize <= oldSize) return TRUE;
+    if (BITMAP_GET(&pageFrameBitmap, pageIndex) == PAGE_LOCKED) { // only if locked
+        BITMAP_SET(&pageFrameBitmap, pageIndex, PAGE_FREE); // Mark as free
+        pageFrameInfo.freeMemory += PAGE_SIZE;
+        pageFrameInfo.usedMemory -= PAGE_SIZE;
+    }
+}
 
-    VOIDPTR newPtr = UMALLOC(newSize);
-    if (!newPtr) return FALSE;
+VOID UNLOCK_PAGES(ADDR addr, U32 numPages) {
+    for (U32 i = 0; i < numPages; i++) {
+        UNLOCK_PAGE(addr + (i * PAGE_SIZE));
+    }
+}
 
-    MEMCPY(newPtr, *addr, oldSize);
-    UFREE(*addr);
-    *addr = newPtr;
-    return TRUE;
+VOID RESERVE_PAGE(ADDR addr) {
+    U32 pageIndex = addr / PAGE_SIZE;
+    if (pageIndex >= pageFrameBitmap.size * 8) {
+        return; // Out of bounds
+    }
+    if (!BITMAP_GET(&pageFrameBitmap, pageIndex)) { // only if free
+        BITMAP_SET(&pageFrameBitmap, pageIndex, PAGE_RESERVED); // Mark as used
+        pageFrameInfo.freeMemory -= PAGE_SIZE;
+        pageFrameInfo.reservedMemory += PAGE_SIZE;
+    }
+}
+
+VOID RESERVE_PAGES(ADDR addr, U32 numPages) {
+    for (U32 i = 0; i < numPages; i++) {
+        RESERVE_PAGE(addr + (i * PAGE_SIZE));
+    }
+}
+
+VOID UNRESERVE_PAGE(ADDR addr) {
+    U32 pageIndex = addr / PAGE_SIZE;
+    if (pageIndex >= pageFrameBitmap.size * 8) {
+        return; // Out of bounds
+    }
+    if (BITMAP_GET(&pageFrameBitmap, pageIndex) == PAGE_RESERVED) { // only if reserved
+        BITMAP_SET(&pageFrameBitmap, pageIndex, PAGE_FREE); // Mark as free
+        pageFrameInfo.freeMemory += PAGE_SIZE;
+        pageFrameInfo.reservedMemory -= PAGE_SIZE;
+    }
+}
+
+VOID UNRESERVE_PAGES(ADDR addr, U32 numPages) {
+    for (U32 i = 0; i < numPages; i++) {
+        UNRESERVE_PAGE(addr + (i * PAGE_SIZE));
+    }
 }

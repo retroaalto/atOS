@@ -27,6 +27,12 @@ E820_ENTRY *GET_E820_ENTRY(U32 index) {
     return &e820_entries[index];
 }
 
+static inline BOOLEAN add_u32_would_overflow(U32 a, U32 b) {
+    return b > (U32)(0xFFFFFFFFu - a);
+}
+
+
+// Reads all usable RAM entries from the E820 table into g_E820Info
 BOOLEAN E820_INIT(VOID) {
     E820_ENTRY *entry_table = (E820_ENTRY *)E820_TABLE_PHYS;
     U32 entries = 0;
@@ -41,47 +47,20 @@ BOOLEAN E820_INIT(VOID) {
     }
     e820_entry_count = entries;
 
-    // Find an entry that:
-    //  - has Type == RAM
-    //  - base <= MEM_USER_SPACE_BASE
-    //  - (base + length) >= (MEM_USER_SPACE_BASE + MIN_USER_SPACE_SIZE)
-    U32 found_idx = U32_MAX;
     g_E820Info.RawEntryCount = 0;
     for (U32 i = 0; i < e820_entry_count; i++) {
-        if(e820_entries[i].Type != TYPE_E820_RAM) continue;
-        if (!fits_in_32(e820_entries[i].BaseAddressHigh) ||
-            !fits_in_32(e820_entries[i].LengthHigh)) continue;
-        
-        g_E820Info.RawEntries[g_E820Info.RawEntryCount++] = e820_entries[i];
-        U32 base = (U32)e820_entries[i].BaseAddressLow;
-        U32 len  = (U32)e820_entries[i].LengthLow;
-        U32 region_end = base + len; // exclusive
-
-        U32 needed_start = (U32)MEM_USER_SPACE_BASE;
-        U32 needed_end   = needed_start + (U32)MIN_USER_SPACE_SIZE;
-
-        if (base <= needed_start && region_end >= needed_end) {
-            found_idx = i;
-            break;
+        if(e820_entries[i].Type == TYPE_E820_RAM) {
+            if (!fits_in_32(e820_entries[i].BaseAddressHigh) ||
+                !fits_in_32(e820_entries[i].LengthHigh)) continue;
+            if (g_E820Info.RawEntryCount < E820_MAX_ENTRIES) {
+                g_E820Info.RawEntries[g_E820Info.RawEntryCount++] = e820_entries[i];
+            }
+        } else {
+            continue; // Skip non-RAM entries
         }
     }
-    // No suitable E820 entry found
-    if(found_idx == U32_MAX) return FALSE;
-
-    // calculate heap layout
-    U32 heap_start = (U32)MEM_USER_SPACE_BASE;
-    U32 heap_end = e820_entries[found_idx].BaseAddressLow + e820_entries[found_idx].LengthLow;
-
-    if(heap_end <= heap_start) return FALSE;
-
-    g_E820Info.AtTableIndex = found_idx;
-    g_E820Info.HeapStartAddress = heap_start;
-    g_E820Info.HeapEndAddress = 
-        (heap_end > MEM_USER_SPACE_BASE + MIN_USER_SPACE_SIZE) 
-        ? heap_end : MEM_USER_SPACE_END_MIN;
-    g_E820Info.TotalHeap = g_E820Info.HeapEndAddress - g_E820Info.HeapStartAddress;
-    g_E820Info.FreeHeap = g_E820Info.TotalHeap;
-
+    if(g_E820Info.RawEntryCount == 0) {
+        return FALSE; // No usable RAM entries found
+    }
     return TRUE;
 }
-

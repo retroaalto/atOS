@@ -2,6 +2,12 @@
 #define BITMAP_H
 
 #include <STD/TYPEDEF.h>
+#define MAX_BITMAP_SIZE (0x100000 / 0x1000 / 8)
+
+#define PAGE_FREE 0
+#define PAGE_ALLOCATED 1
+#define PAGE_RESERVED 2
+#define PAGE_LOCKED 3
 
 typedef struct {
     U8 *data;

@@ -43,20 +43,21 @@ void rtos_kernel(U0) {
         DRAW_STRING("Failed to initialize page frame. Possibly not enough memory.", VBE_RED);
         HLT;
     }
-    INIT_PAGING();
-
-    kernel_heap_init();
-    // user_heap_init(); // TODO: This mess
-
+    VBE_DRAW_ELLIPSE(200, 200, 100, 50, VBE_WHITE);
+    VBE_UPDATE_VRAM();
+    HLT;
+    // INIT_PAGING();
+    // kernel_heap_init();
+  
     if(!PS2_KEYBOARD_INIT()) {
         DRAW_STRING("Failed to initialize PS2 keyboard", VBE_RED);
         HLT;
     }
+    // init_multitasking();
 
     STI;
 
-    LOAD_AND_RUN_KERNEL_SHELL();
-
+    // LOAD_AND_RUN_KERNEL_SHELL();
 }
 
 __attribute__((noreturn, section(".text")))

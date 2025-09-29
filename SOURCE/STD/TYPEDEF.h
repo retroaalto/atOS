@@ -70,6 +70,9 @@ typedef U8*          PU8;
 typedef U16*         PU16;
 typedef U32*         PU32;
 
+typedef U32          SIZE_T;
+typedef U32          PTR;
+typedef U32          ADDR;
 
 // Min - Max value definitions
 #define MIN(a, b)    ((a) < (b) ? (a) : (b))
