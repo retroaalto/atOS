@@ -44,9 +44,9 @@ Requirements for the Virtual Machine.
 
 |     | Recommended | Minimum |
 | --- | ----------- | ------- |
-| RAM | 256 MiB     | 128 MiB |
+| RAM | 256 MB     | 64 MB |
 | CPU | 1 Core      | 1 Core  |
-| HDD | 256 MiB     | 128 MiB  |
+| HDD | 256 MB     | 128 MB  |
 
 ### Installing QEMU
 
