@@ -1,6 +1,3 @@
-Perfect — here’s the updated README with a **Project Roadmap** section added:
-
-````markdown
 # atOS — a 32-bit Operating System
 
 ![Build](https://img.shields.io/badge/build-passing-brightgreen)
