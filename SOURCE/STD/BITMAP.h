@@ -2,7 +2,10 @@
 #define BITMAP_H
 
 #include <STD/TYPEDEF.h>
-#define MAX_BITMAP_SIZE (0x100000 / 0x1000 / 8)
+
+// Maximum bitmap size to handle up to 4GB of RAM with 4KB pages
+#define TOTAL_PAGES (0x100000000 / 0x1000) // 4GB / 4KB
+#define MAX_BITMAP_SIZE (TOTAL_PAGES / 8)
 
 #define PAGE_FREE 0
 #define PAGE_ALLOCATED 1
