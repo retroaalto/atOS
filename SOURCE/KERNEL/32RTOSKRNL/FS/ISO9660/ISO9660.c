@@ -2,7 +2,7 @@
 // #include "../MEMORY/MEMORY.h"
 // #include <STD/STRING.h>
 // #include <STD/MEM.h>
-// #include <MEMORY/KMALLOC/KMALLOC.h>
+// #include <MEMORY/HEAP/KHEAP.h>
 // #include <DRIVERS/DISK/ATA_ATAPI.h>
 // #include <DRIVERS/VIDEO/VBE.h>
 
@@ -109,7 +109,7 @@
 // }
 
 // U32 ISO9660_CALCULATE_SECTORS(U32 extent_length) {
-//     return (extent_length + 2047) / 2048; // 2048 bytes per sector
+//     return (extent_length + ISO9660_SECTOR_SIZE - 1) / ISO9660_SECTOR_SIZE;
 // }
 
 // /* Recursive directory reading */

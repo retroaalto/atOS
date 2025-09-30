@@ -32,10 +32,10 @@ REMARKS
 #define E820_TABLE_END    MEM_E820_END
 #define E820_TABLE_SIZE   (E820_TABLE_END - E820_TABLE_PHYS + 1)
 
-#define TYPE_E820_RAM 0x01
-#define TYPE_E820_RESERVED 0x02
-#define TYPE_E820_ACPI_RECLAIMABLE 0x03
-#define TYPE_E820_ACPI_NVS 0x04
+#define TYPE_E820_RAM               0x01
+#define TYPE_E820_RESERVED          0x02
+#define TYPE_E820_ACPI_RECLAIMABLE  0x03
+#define TYPE_E820_ACPI_NVS          0x04
 
 #define E820_MAX_ENTRIES 32
 static inline BOOLEAN fits_in_32(U32 hi) { return hi == 0; }
@@ -57,15 +57,17 @@ typedef struct {
 
 
 /*+++
-Only for kernel mode.
+Only for rtos kernel mode.
 You can use these in your application if you know what you're doing,
   but be aware of potential issues, such as memory corruption and stability.
 ---*/
-#if __RTOS__
-E820_ENTRY *GET_E820_ENTRIES(VOID); // Returns pointer to internal array of E820 entries
+#ifdef __RTOS__
+E820_ENTRY *GET_E820_RAW_TABLE(void); // Returns pointer to raw E820 table in physical memory. If outside kernel, use only this function. READ-ONLY.
+E820_ENTRY *GET_E820_ENTRIES(void); // Returns pointer to internal array of E820 entries. 64-bit entries are not supported.
 E820_ENTRY *GET_E820_ENTRY(U32 index); // Returns pointer to specific E820 entry by index, or NULL if out of bounds
-E820Info *GET_E820_INFO(VOID); // Returns pointer to E820Info structure
-BOOLEAN E820_INIT(VOID); // Initializes the E820 entries, returns TRUE on success, FALSE on failure
-
+E820Info *GET_E820_INFO(void); // Returns pointer to E820Info structure
+BOOLEAN E820_INIT(void); // Initializes the E820 entries, returns TRUE on success, FALSE on failure
+U32 e820_get_entry_count(void); // Returns the number of E820 entries read
+BOOLEAN REINIT_E820(void); // Re-initializes the E820 entries, returns TRUE on success, FALSE on failure
 #endif // __RTOS__
 #endif // E820_H

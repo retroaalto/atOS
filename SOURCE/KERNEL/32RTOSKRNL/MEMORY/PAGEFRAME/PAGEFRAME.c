@@ -1,4 +1,4 @@
-#include <MEMORY/PAGING/PAGEFRAME.h>
+#include <MEMORY/PAGEFRAME/PAGEFRAME.h>
 #include <MEMORY/PAGING/PAGING.h>
 #include <MEMORY/E820/E820.h>
 #include <MEMORY/MEMORY.h>
@@ -12,23 +12,18 @@
 
 #include <ERROR/ERROR.h>
 
-#include <MEMORY/KMALLOC/KMALLOC.h>
-#include <MEMORY/UMALLOC/UMALLOC.h>
+#include <MEMORY/HEAP/KHEAP.h>
+#include <MEMORY/HEAP/UHEAP.h>
 
-
-static KERNEL_HEAP_BLOCK *heap_start = NULL;
 
 static inline U32 align8(U32 size) {
     return (size + 7) & ~7U;
 }
 
 #define BYTE_TO_PAGE(x) ((x) / PAGE_SIZE)
-__attribute__((section(".data")))
-static BITMAP pageFrameBitmap = {0, 0};
-__attribute__((section(".data")))
-static PAGEFRAME_INFO pageFrameInfo = {0, 0, 0, 0, FALSE};
-__attribute__((section(".data")))
-static U8 bitmapData[MAX_BITMAP_SIZE] = {0}; // enough for largest physical memory
+static BITMAP pageFrameBitmap __attribute__((section(".data"))) = {0, 0};
+static PAGEFRAME_INFO pageFrameInfo __attribute__((section(".data"))) = {0, 0, 0, 0, FALSE};
+static U8 bitmapData[MAX_BITMAP_SIZE] __attribute__((section(".data"))) = {0}; // enough for largest physical memory
 
 PAGEFRAME_INFO* GET_PAGEFRAME_INFO() {
     return &pageFrameInfo;
@@ -39,15 +34,20 @@ BITMAP* GET_PAGEFRAME_BITMAP() {
 
 
 
-static void reserve_range(U32 start, U32 end) {
+void reserve_range(U32 start, U32 end) {
     U32 startFrame = start / PAGE_SIZE;
     U32 endFrame   = (end + PAGE_SIZE - 1) / PAGE_SIZE;
+
+    if (startFrame >= pageFrameBitmap.size * 8) return; // fully out of range
+    if (endFrame > pageFrameBitmap.size * 8) endFrame = pageFrameBitmap.size * 8;
+
     for(U32 f = startFrame; f < endFrame; f++) {
-        BITMAP_SET(&pageFrameBitmap, f, PAGE_ALLOCATED);
+        BITMAP_SET(&pageFrameBitmap, f, PAGE_RESERVED);
     }
 }
 
-static void unreserve_range(U32 start, U32 end) {
+
+void unreserve_range(U32 start, U32 end) {
     U32 startFrame = start / PAGE_SIZE;
     U32 endFrame   = (end + PAGE_SIZE - 1) / PAGE_SIZE;
     for(U32 f = startFrame; f < endFrame; f++) {
@@ -79,6 +79,10 @@ BOOLEAN CREATE_PAGEFRAME_BITMAP() {
 
     // Compute bitmap size in bytes
     U32 bitmapSizeBytes = (totalPages + 7) / 8; // Round up to nearest byte
+    
+    if (bitmapSizeBytes > MAX_BITMAP_SIZE) {
+        return FALSE; // bitmap too big for static buffer
+    }
 
     // Create bitmap
     BITMAP_CREATE(bitmapSizeBytes, bitmapData, &pageFrameBitmap);
@@ -100,13 +104,14 @@ BOOLEAN CREATE_PAGEFRAME_BITMAP() {
 
     // Reserve critical regions
     reserve_range(0x00000000, 0x000FFFFF); // below 1MB
-    reserve_range((U32)MEM_KRNL_ENTRY_BASE, (U32)MEM_KRNL_ENTRY_END); // kernel itself
+    reserve_range((U32)MEM_RTOSKRNL_BASE, (U32)MEM_RTOSKRNL_END); // kernel itself
     reserve_range(E820_TABLE_PHYS, E820_TABLE_END);         // E820 table
     VESA_INFO *vesa = GET_VESA_INFO();
     VBE_MODEINFO *vbe = GET_VBE_MODE();
     reserve_range(MEM_VESA_BASE, VBE_MODE_LOAD_ADDRESS_PHYS + sizeof(VBE_MODEINFO));
-    reserve_range(vbe->PhysBasePtr, vbe->PhysBasePtr + (vbe->YResolution * vbe->BytesPerScanLineLinear));
-    reserve_range(vbe->PhysBasePtr2, vbe->PhysBasePtr2 + (vbe->YResolution * vbe->BytesPerScanLineLinear));
+    if (vbe) {
+        if (vbe->PhysBasePtr) reserve_range(vbe->PhysBasePtr, vbe->PhysBasePtr + (vbe->YResolution * vbe->BytesPerScanLineLinear));
+    }
     reserve_range(MEM_FRAMEBUFFER_BASE, MEM_FRAMEBUFFER_END); // video buffer
     reserve_range(MEM_RTOSKRNL_HEAP_BASE, MEM_RTOSKRNL_HEAP_END); // kernel heap
     reserve_range(MEM_BIOS_BASE, MEM_BIOS_END);
@@ -118,8 +123,9 @@ BOOLEAN CREATE_PAGEFRAME() {
     pageFrameInfo.freeMemory = 0;
     U32 totalFrames = pageFrameBitmap.size * 8;
     for(U32 i = 0; i < totalFrames; i++) {
-        if(!BITMAP_GET(&pageFrameBitmap, i))
+        if(BITMAP_GET(&pageFrameBitmap, i) == PAGE_FREE) {
             pageFrameInfo.freeMemory += PAGE_SIZE;
+        }
     }
     pageFrameInfo.usedMemory = (totalFrames * PAGE_SIZE) - pageFrameInfo.freeMemory;
     pageFrameInfo.reservedMemory = pageFrameInfo.usedMemory;
@@ -130,9 +136,6 @@ BOOLEAN CREATE_PAGEFRAME() {
 BOOLEAN PAGEFRAME_INIT() {
     if (pageFrameInfo.initialized) {
         return TRUE; // Already initialized
-    }
-    if(!E820_INIT()) {
-        return FALSE;
     }
     if(!CREATE_PAGEFRAME_BITMAP()) {
         return FALSE;
@@ -161,14 +164,26 @@ ADDR REQUEST_PAGE() {
     PAGEFRAME_INFO *info = &pageFrameInfo;
 
     for(U32 i = info->pIndex; i < bmp->size * 8; i++) {
-        if(!BITMAP_GET(bmp, i)) { // free page
+        if(BITMAP_GET(bmp, i) == PAGE_FREE) { // free page
             BITMAP_SET(bmp, i, PAGE_ALLOCATED); // mark as used
             info->freeMemory -= PAGE_SIZE;
             info->usedMemory += PAGE_SIZE;
             info->pIndex = i + 1; // next search starts here
+            if(info->pIndex >= bmp->size * 8) info->pIndex = 0; // wrap around if end reached
             return i * PAGE_SIZE;
         }
     }
+
+    for(U32 i = 0; i < info->pIndex; i++) {
+        if(BITMAP_GET(bmp, i) == PAGE_FREE) {
+            BITMAP_SET(bmp, i, PAGE_ALLOCATED);
+            info->freeMemory -= PAGE_SIZE;
+            info->usedMemory += PAGE_SIZE;
+            info->pIndex = i + 1;
+            return i * PAGE_SIZE;
+        }
+    }
+
     return 0; // no free pages
 }
 
@@ -181,7 +196,7 @@ ADDR REQUEST_PAGES(U32 numPages) {
     U32 startIndex = 0;
 
     for(U32 i = info->pIndex; i < bmp->size * 8; i++) {
-        if(!BITMAP_GET(bmp, i)) { // free page
+        if(BITMAP_GET(bmp, i) == PAGE_FREE) { // free page
             if (consecutive == 0) {
                 startIndex = i; // potential start of block
             }
@@ -212,7 +227,7 @@ VOID FREE_PAGE(ADDR addr) {
         return; // Out of bounds
     }
     U32 bitmap_val = BITMAP_GET(bmp, pageIndex);
-    if(!bitmap_val ) {
+    if(bitmap_val == PAGE_FREE) {
         SET_ERROR_CODE(ERROR_DOUBLE_PAGE_FREE);
         return; // Already free
     }
@@ -243,7 +258,7 @@ VOID LOCK_PAGE(ADDR addr) {
     if (pageIndex >= pageFrameBitmap.size * 8) {
         return; // Out of bounds
     }
-    if (!BITMAP_GET(&pageFrameBitmap, pageIndex)) { // only if free
+    if (BITMAP_GET(&pageFrameBitmap, pageIndex) == PAGE_FREE) { // only if free
         BITMAP_SET(&pageFrameBitmap, pageIndex, PAGE_LOCKED); // Mark as used
         pageFrameInfo.freeMemory -= PAGE_SIZE;
         pageFrameInfo.usedMemory += PAGE_SIZE;
@@ -279,7 +294,7 @@ VOID RESERVE_PAGE(ADDR addr) {
     if (pageIndex >= pageFrameBitmap.size * 8) {
         return; // Out of bounds
     }
-    if (!BITMAP_GET(&pageFrameBitmap, pageIndex)) { // only if free
+    if (BITMAP_GET(&pageFrameBitmap, pageIndex) == PAGE_FREE) { // only if free
         BITMAP_SET(&pageFrameBitmap, pageIndex, PAGE_RESERVED); // Mark as used
         pageFrameInfo.freeMemory -= PAGE_SIZE;
         pageFrameInfo.reservedMemory += PAGE_SIZE;

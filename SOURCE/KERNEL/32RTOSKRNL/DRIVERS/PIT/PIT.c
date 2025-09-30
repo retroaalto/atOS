@@ -19,14 +19,24 @@ void pit_set_frequency(U32 freq) {
     _outb(PIT_CHANNEL0, (U8)((divisor >> 8) & 0xFF));
 }
 
-static U32 ticks = 0;
-static U32 hz = 100;
-static BOOLEAN initialized = FALSE;
+static U32 ticks __attribute__((section(".data"))) = 0;
+static U32 hz __attribute__((section(".data"))) = 100;
+static BOOLEAN initialized __attribute__((section(".data"))) = FALSE;
+
 void pit_handler(I32 num, U32 errcode) {
     (void)errcode; (void)num;
     ticks++;
-    // pit_handler_task_control();
+    pit_handler_task_control();
     return;
+}
+
+U0 PIT_WAIT_MS(U32 ms) {
+    U32 start = ticks;
+    U32 waitTicks = (hz * ms) / 1000;
+    if(waitTicks == 0) waitTicks = 1; // minimum wait of 1 tick
+    while((ticks - start) < waitTicks) {
+        ASM_VOLATILE("hlt");
+    }
 }
 
 U0 PIT_INIT(U0) {

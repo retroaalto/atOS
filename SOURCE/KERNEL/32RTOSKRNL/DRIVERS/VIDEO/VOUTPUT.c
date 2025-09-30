@@ -1,9 +1,9 @@
 #include <DRIVERS/VIDEO/VOUTPUT.h>
 #include <DRIVERS/VIDEO/FONT12x24.h>
 
-static OutputInfo cursor = OUTPUT_INFO_INIT;
+static OutputInfo cursor __attribute__((section(".data"))) = OUTPUT_INFO_INIT;
 
-static U8 text_buffer[AMOUNT_OF_ROWS][AMOUNT_OF_COLS] = {{0}};
+static U8 text_buffer[AMOUNT_OF_ROWS][AMOUNT_OF_COLS] __attribute__((section(".data"))) = {{0}};
 
 U0 SCROLL_TEXTBUFFER_UP(U0) {
     for(U32 r = 1; r < AMOUNT_OF_ROWS; r++) {

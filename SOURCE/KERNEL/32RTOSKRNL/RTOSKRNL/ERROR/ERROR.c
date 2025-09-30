@@ -1,5 +1,5 @@
 #include <ERROR/ERROR.h>
-static U32 error_code = ERROR_NONE;
+static U32 error_code __attribute__((section(".data"))) = ERROR_NONE;
 
 U32 GET_LAST_ERROR() {
     return error_code;

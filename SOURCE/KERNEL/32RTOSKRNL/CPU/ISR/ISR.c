@@ -26,10 +26,12 @@ REMARKS
 
 #ifdef __RTOS__
 #include <CPU/SYSCALL/SYSCALL.h> // For SYSCALL_VECTOR
-// #include <RTOSKRNL/RTOSKRNL_INTERNAL.h>
+#include <RTOSKRNL/RTOSKRNL_INTERNAL.h>
+static ISRHandler g_Handlers[IDT_COUNT] __attribute__((section(".data"))) = { 0 };
+#else // __RTOS__
+static ISRHandler g_Handlers[IDT_COUNT]  = { 0 };
 #endif // __RTOS__
 
-static ISRHandler g_Handlers[IDT_COUNT] = { 0 };
 
 ISRHandler *ISR_GET_PTR(void) {
     return g_Handlers;
@@ -43,6 +45,10 @@ void isr_common_handler(I32 num, U32 errcode) {
 
 void double_fault_handler(I32 num, U32 errcode) {
     (void)errcode; (void)num;
+    #ifdef __RTOS__
+    // TODO: try recovering from double fault by killing offending process
+    panic(PANIC_TEXT("Double Fault Exception"), PANIC_DOUBLE_FAULT);
+    #endif // __RTOS__
     HLT;
 }
 
@@ -56,7 +62,39 @@ void irq_common_handler(I32 vector, U32 errcode) {
 }
 
 #ifdef __RTOS__
-#include <DRIVERS/VIDEO/VOUTPUT.h>
+#include <DRIVERS/VIDEO/VBE.h>
+
+void page_fault_handler(I32 num, U32 errcode) {
+    (void)num;
+    // CR2 contains the faulting address
+    system_halt();
+    U32 faulting_address;
+    ASM_VOLATILE("mov %%cr2, %0" : "=r"(faulting_address));
+    // Error code bits:
+    // Bit 0: Present (0 = not-present page, 1 = protection violation)
+    // Bit 1: Write (0 = read operation, 1 = write operation)
+    // Bit 2: User (0 = kernel-mode access, 1 = user-mode access)
+    // Bit 3: Reserved Write (1 = caused by reserved bits set to 1 in page directory)
+    // Bit 4: Instruction Fetch (1 = caused by an instruction fetch)
+    U8 present   = !(errcode & 0x1); // Page not present
+    U8 rw        = errcode & 0x2;    // Write operation?
+    U8 us        = errcode & 0x4;    // Processor was in user-mode?
+    U8 reserved  = errcode & 0x8;    // Overwritten CPU-reserved bits of page entry?
+    U8 id        = errcode & 0x10;   // Caused by an instruction fetch?
+
+    U8 buf[128];
+    ITOA_U(faulting_address, buf, 16);
+    VBE_DRAW_STRING(10, 10, "Page fault at ", VBE_WHITE, VBE_BLACK);
+    VBE_DRAW_STRING(150, 10, buf, VBE_WHITE, VBE_BLACK);
+    VBE_DRAW_STRING(10, 30, "Error code: ", VBE_WHITE, VBE_BLACK);
+    ITOA_U(errcode, buf, 16);
+    VBE_DRAW_STRING(150, 30, buf, VBE_WHITE, VBE_BLACK);
+    VBE_DRAW_STRING(10, 50, "Details:", VBE_WHITE, VBE_BLACK);
+    VBE_DRAW_STRING(10, 70, present ? " - Not Present" : " - Protection Violation", VBE_WHITE, VBE_BLACK);
+    VBE_DRAW_STRING(10, 90, rw ? " - Write Operation" : " - Read Operation", VBE_WHITE, VBE_BLACK);
+    VBE_DRAW_STRING(10, 110, us ? " - User Mode" : " - Kernel Mode", VBE_WHITE, VBE_BLACK);
+    system_halt();
+}
 #endif // __RTOS__
 
 // This function is called from assembly
@@ -128,6 +166,11 @@ VOID SETUP_ISR_HANDLERS(VOID) {
                 case 8:
                     ISR_REGISTER_HANDLER(i, double_fault_handler);
                     break;
+                #ifdef __RTOS__
+                case 14:
+                    ISR_REGISTER_HANDLER(i, page_fault_handler);
+                    break;
+                #endif // __RTOS__
                 default:
                     ISR_REGISTER_HANDLER(i, isr_common_handler); // CPU exceptions
             }

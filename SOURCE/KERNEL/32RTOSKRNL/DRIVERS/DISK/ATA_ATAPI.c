@@ -3,7 +3,7 @@
 #include "../../../../STD/ASM.h"
 
 #ifndef KERNEL_ENTRY
-static U32 atapi_drive_info = 0;
+static U32 atapi_drive_info __attribute__((section(".data"))) = 0;
 #endif // KERNEL_ENTRY
 
 static inline void ata_io_wait(const U8 p) {

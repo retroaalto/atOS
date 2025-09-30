@@ -14,20 +14,24 @@
 #include <DRIVERS/VIDEO/VESA.h>
 #include <DRIVERS/VIDEO/VOUTPUT.h>
 #include <DRIVERS/PS2/KEYBOARD.h>
+#include <DRIVERS/PIT/PIT.h>
 
 #include <RTOSKRNL/RTOSKRNL_INTERNAL.h>
+#include <RTOSKRNL/PROC/PROC.h>
 
 #include <MEMORY/E820/E820.h>
 #include <MEMORY/PAGING/PAGING.h>
-#include <MEMORY/PAGING/PAGEFRAME.h>
+#include <MEMORY/PAGEFRAME/PAGEFRAME.h>
+#include <MEMORY/HEAP/KHEAP.h>
+#include <MEMORY/HEAP/UHEAP.h>
 
 #include <CPU/PIC/PIC.h>
-#include <CPU/INTERRUPTS/INTERRUPTS.h>
 #include <CPU/GDT/GDT.h>
 #include <CPU/IDT/IDT.h>
 #include <CPU/ISR/ISR.h>
 #include <CPU/IRQ/IRQ.h>
-#include <DRIVERS/PIT/PIT.h>
+#include <CPU/SYSCALL/SYSCALL.h>
+#include <CPU/INTERRUPTS/INTERRUPTS.h>
 #endif // NO_INCLUDES
 
 __attribute__((noreturn))

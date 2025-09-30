@@ -8,8 +8,6 @@
 | `0x00007000`      | `0x0000C000`    | Kernel entry / small gap page         | \~17 KiB|
 | `0x0009FC00`      | `0x00100000`    | Reserved memory | \~0.4MB |
 | `0x000E0000`      | `0x00100000`    | BIOS Reserved (option ROMs, ACPI area) | 128 KiB           |
-
-
 | `0x00100000`      | `0x00550000`    | Main Kernel (image)                    | \~4.33 MiB        |
 | `0x00550000`      | `0x00F34000`    | Kernel Heap / Kernel-managed RAM       | \~10 MiB (page aligned start)|
 | `0x00F34000`      | `0x00F44000`    | Stack       | 64 KiB |

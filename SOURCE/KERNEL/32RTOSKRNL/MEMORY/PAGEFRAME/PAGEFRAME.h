@@ -7,10 +7,6 @@
 #define PAGE_SIZE 0x1000
 #endif
 
-
-
-void kernel_heap_init(void);
-
 typedef struct {
     U32 freeMemory; // in bytes
     U32 reservedMemory; // in bytes
@@ -29,36 +25,41 @@ U32 GET_USED_RAM();
 U32 GET_RESERVED_RAM();
 
 // These both return the starting address of the allocated page(s), 0 on failure
+
+/// @brief Requests a block of contiguous pages.
+/// @param numPages Number of pages to allocate.
+/// @return Starting address of the allocated block, or 0 if allocation failed.
 ADDR REQUEST_PAGES(U32 numPages);
+
+/// @brief Requests a block of a single page.
+/// @return Starting address of the allocated page, or 0 if allocation failed.
 ADDR REQUEST_PAGE();
 
+// Resets the page index to 0, so the next search starts from the beginning
 VOID RESET_PAGEINDEX();
+
+// Freeing, locking, unlocking, reserving and unreserving pages
 VOID FREE_PAGE(ADDR addr);
 VOID FREE_PAGES(ADDR addr, U32 numPages);
 VOID LOCK_PAGE(ADDR addr);
 VOID LOCK_PAGES(ADDR addr, U32 numPages);
+VOID UNLOCK_PAGE(ADDR addr);
+VOID UNLOCK_PAGES(ADDR addr, U32 numPages);
 VOID RESERVE_PAGE(ADDR addr);
 VOID RESERVE_PAGES(ADDR addr, U32 numPages);
 VOID UNRESERVE_PAGE(ADDR addr);
 VOID UNRESERVE_PAGES(ADDR addr, U32 numPages);
 
 
-typedef struct KERNEL_HEAP_BLOCK {
-    U32 size;                      // total size including header
-    BOOLEAN free;                   // free or used
-    struct KERNEL_HEAP_BLOCK *next; // next block in heap
-} KERNEL_HEAP_BLOCK;
 
-typedef struct USER_HEAP_BLOCK {
-    U32 size;                      // total size including header
-    BOOLEAN free;                   // free or used
-    struct USER_HEAP_BLOCK *next; // next block in heap
-} USER_HEAP_BLOCK;
-
-
-/* helper to compute pages */
+/* helpers */
+static inline U32 bytes_to_pages(U32 bytes) {
+    return (bytes + PAGE_SIZE - 1) / PAGE_SIZE;
+}
 static inline U32 pages_from_bytes(U32 bytes) {
     return (bytes + PAGE_SIZE - 1) / PAGE_SIZE;
 }
+void reserve_range(U32 start, U32 end);
+void unreserve_range(U32 start, U32 end);
 
 #endif // PAGEFRAME_H

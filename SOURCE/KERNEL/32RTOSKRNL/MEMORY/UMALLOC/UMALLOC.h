@@ -1,8 +1,0 @@
-#ifndef UMALLOC_H
-#define UMALLOC_H
-#include <STD/TYPEDEF.h>
-VOIDPTR UMALLOC(U32 size);
-VOID UFREE(VOIDPTR ptr);
-BOOLEAN UREALLOC(VOIDPTR *addr, U32 oldSize, U32 newSize);
-VOIDPTR UCALLOC(U32 num, U32 size);
-#endif // UMALLOC_H
