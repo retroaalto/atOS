@@ -15,8 +15,6 @@ Intentionally built without modern security constraints to encourage deep low-le
 ## Preview
 
 ![atOS Preview](DOCS/IMAGES/preview.png)
-![atOS Shell](DOCS/IMAGES/shell.png)
-![atOS Memory Map](DOCS/IMAGES/memory_map.png)
 ![atOS Kernel Panic](DOCS/IMAGES/PANIC.png)
 
 ---
