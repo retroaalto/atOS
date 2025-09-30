@@ -30,6 +30,7 @@
 #include <CPU/IDT/IDT.h>
 #include <CPU/ISR/ISR.h>
 #include <CPU/IRQ/IRQ.h>
+#include <CPU/FPU/FPU.h>
 #include <CPU/SYSCALL/SYSCALL.h>
 #include <CPU/INTERRUPTS/INTERRUPTS.h>
 #endif // NO_INCLUDES

@@ -24,6 +24,8 @@ typedef enum {
     PANIC_PIT_INIT_FAILED,
     PANIC_DOUBLE_FAULT,
     PANIC_CONTEXT_SWITCH_NULL_TCB,
+    PANIC_FPU_FAULT,
+    PANIC_UNDEFINED_OPCODE,
 
     PANIC_PAGE_FAULT_IN_KERNEL,
 
@@ -31,6 +33,7 @@ typedef enum {
     PANIC_UNKNOWN_ERROR
 } PANIC_CODES;
 
+void panic_reg(regs *r, const U8 *msg, U32 errmsg);
 void panic(const U8 *msg, U32 errnum);
 void panic_if(BOOL condition, const U8 *msg, U32 errnum);
 void panic_debug(const U8 *msg, U32 errnum);
@@ -50,4 +53,5 @@ void DUMP_MEMORY(U32 addr, U32 length);
 
 void LOAD_AND_RUN_KERNEL_SHELL(VOID);
 
+void RTOSKRNL_LOOP(VOID);
 #endif // RTOSKRNL_INTERNAL_H

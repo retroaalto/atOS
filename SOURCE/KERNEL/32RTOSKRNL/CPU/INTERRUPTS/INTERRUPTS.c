@@ -8,6 +8,7 @@ typedef void (*isr_t)(void);
 #define ISR_NOERRORCODE(n) \
 __attribute__((naked)) void isr##n(void) { \
     asm volatile( \
+        "cli\n\t" \
         "pusha\n\t" \
         "movl %%esp, %%eax\n\t"   /* eax = current esp */ \
         "addl $28, %%eax\n\t"     /* adjust to point to EAX (first pusha register) */ \
@@ -17,6 +18,7 @@ __attribute__((naked)) void isr##n(void) { \
         "call isr_dispatch_c\n\t" \
         "addl $12, %%esp\n\t"     /* pop args */ \
         "popa\n\t" \
+        "sti\n\t" \
         "iret\n\t" ::: "eax", "memory"); \
 }
 
@@ -24,6 +26,7 @@ __attribute__((naked)) void isr##n(void) { \
 #define ISR_ERRORCODE(n) \
 __attribute__((naked)) void isr##n(void) { \
     asm volatile( \
+        "cli\n\t" \
         "pusha\n\t" \
         "movl 32(%%esp), %%edx\n\t" /* edx = CPU error code BEFORE pushing more */ \
         "movl %%esp, %%eax\n\t" \
@@ -34,6 +37,7 @@ __attribute__((naked)) void isr##n(void) { \
         "call isr_dispatch_c\n\t" \
         "addl $12, %%esp\n\t" \
         "popa\n\t" \
+        "sti\n\t" \
         "iret\n\t" ::: "eax","edx","memory"); \
 }
 
@@ -41,6 +45,7 @@ __attribute__((naked)) void isr##n(void) { \
 #define IRQ_WRAPPER(vec) \
 __attribute__((naked)) void irq##vec(void) { \
     asm volatile( \
+        "cli\n\t" \
         "pusha\n\t" \
         "movl %%esp, %%eax\n\t" \
         "addl $28, %%eax\n\t"     /* adjust to start of pusha */ \
@@ -50,6 +55,7 @@ __attribute__((naked)) void irq##vec(void) { \
         "call irq_dispatch_c\n\t" \
         "addl $12, %%esp\n\t" \
         "popa\n\t" \
+        "sti\n\t" \
         "iret\n\t" ::: "eax","memory"); \
 }
 
@@ -57,6 +63,10 @@ __attribute__((naked)) void irq##vec(void) { \
 // Generate stubs
 // ----------------------------------------------------
 // Exceptions (some with error code)
+
+#ifdef __RTOS__
+#define ISR_NOERRORCODE ISR_ERRORCODE
+#endif // __RTOS__
 ISR_NOERRORCODE(0)
 ISR_NOERRORCODE(1)
 ISR_NOERRORCODE(2)

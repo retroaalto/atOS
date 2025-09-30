@@ -28,6 +28,7 @@ void rtos_kernel(U0) {
     IDT_INIT();
     SETUP_ISR_HANDLERS();
     IRQ_INIT();
+    disable_fpu();
     panic_if(!vesa_check(), PANIC_TEXT("Failed to initialize VESA"), PANIC_INITIALIZATION_FAILED);
     
     panic_if(!vbe_check(), PANIC_TEXT("Failed to initialize VBE"), PANIC_INITIALIZATION_FAILED);
@@ -51,14 +52,11 @@ void rtos_kernel(U0) {
     VBE_UPDATE_VRAM();
 
     STI;
-    for(U32 i = 0; i < U32_MAX; i++) {
-        PIT_WAIT_MS(100);
-        VBE_DRAW_PIXEL(CREATE_VBE_PIXEL_INFO(i % 800, (i / 800) % 600, VBE_RED));
-        VBE_UPDATE_VRAM();
-    }
     
-    // LOAD_AND_RUN_KERNEL_SHELL();
-    system_halt();
+    LOAD_AND_RUN_KERNEL_SHELL();
+    RTOSKRNL_LOOP();
+    system_halt(); // should never reach here
+    HLT; // just in case
 }
 
 __attribute__((noreturn, section(".text")))

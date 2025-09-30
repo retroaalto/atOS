@@ -7,10 +7,13 @@
 #include <ERROR/ERROR.h>
 #include <RTOSKRNL_INTERNAL.h>
 
-#define PAGE_ENTRIES 1024
 
 static ADDR *page_directory __attribute__((section(".data"))) = NULL;
 static ADDR *next_free_table __attribute__((section(".data"))) = NULL;
+
+ADDR *get_page_directory(VOID) {
+    return page_directory;
+}
 
 // Load CR3 with page directory physical address
 VOID load_page_directory(ADDR phys_addr) {
@@ -65,4 +68,27 @@ BOOLEAN PAGING_INIT(VOID) {
     enable_paging();
 
     return TRUE;
+}
+
+void map_page(U32 *pd, U32 virt, U32 phys, U32 flags) {
+    U32 pd_index = (virt >> 22) & 0x3FF;
+    U32 pt_index = (virt >> 12) & 0x3FF;
+
+    // Get page table from page directory
+    U32 *pt;
+    if (pd[pd_index] & PAGE_PRESENT) {
+        pt = (U32 *)(pd[pd_index] & ~0xFFF);
+    } else {
+        // Allocate new page table
+        pt = (U32 *)REQUEST_PAGE();
+        panic_if(!pt, PANIC_TEXT("Failed to allocate page table"), PANIC_OUT_OF_MEMORY);
+        MEMZERO(pt, PAGE_SIZE);
+        pd[pd_index] = ((U32)pt & ~0xFFF) | PAGE_PRW;
+    }
+
+    // Map the page
+    pt[pt_index] = (phys & ~0xFFF) | (flags & 0xFFF);
+
+    // Invalidate TLB for this page
+    ASM_VOLATILE("invlpg (%0)" : : "r"(virt) : "memory");
 }

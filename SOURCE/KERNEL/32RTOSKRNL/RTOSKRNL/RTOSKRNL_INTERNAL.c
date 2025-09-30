@@ -1,3 +1,7 @@
+/*
+Internal RTOSKRNL functions. Some important functions like panic() are here,
+and some not-so-important functions are here.
+*/
 #include <RTOSKRNL/RTOSKRNL_INTERNAL.h>
 #include <DRIVERS/VIDEO/VOUTPUT.h>
 #include <STD/ASM.h>
@@ -11,6 +15,7 @@
 #include <DRIVERS/PIT/PIT.h>
 #include <ACPI/ACPI.h>
 #include <CPU/ISR/ISR.h> // for regs struct
+#include <PROC/PROC.h>
 
 
 #define INC_rki_row(rki_row) (rki_row += VBE_CHAR_HEIGHT + 2)
@@ -148,6 +153,43 @@ void DUMP_MEMORY(U32 addr, U32 length) {
     VBE_UPDATE_VRAM();
 }
 
+
+void panic_reg(regs *r, const U8 *msg, U32 errmsg) {
+    CLI;
+    VBE_COLOUR fg = VBE_WHITE;
+    VBE_COLOUR bg = VBE_BLUE;
+    VBE_CLEAR_SCREEN(bg);
+    U8 buf[16];
+    ITOA(errmsg, buf, 16);
+    VBE_DRAW_STRING(0, rki_row, "ERRORCODE: 0x", fg, bg);
+    // VBE_UPDATE_VRAM();
+    // HLT;
+    VBE_DRAW_STRING(VBE_CHAR_WIDTH*13, rki_row, buf, fg, bg);
+    INC_rki_row(rki_row);
+    VBE_DRAW_STRING(0, rki_row, msg, fg, bg);
+    INC_rki_row(rki_row);
+    VBE_DRAW_STRING(0, rki_row, "System halted, Dump as of error catch.", fg, bg);
+    INC_rki_row(rki_row);
+    U32 esp = r->esp;
+    U32 ebp = r->ebp;
+    
+    INC_rki_row(rki_row);    
+    VBE_DRAW_STRING(0, rki_row, "Registers:", fg, bg);
+    INC_rki_row(rki_row);
+    DUMP_REGS(r);
+    INC_rki_row(rki_row);
+    
+    INC_rki_row(rki_row);
+    DUMP_CALLER_STACK(10);
+    INC_rki_row(rki_row);
+
+    VBE_DRAW_STRING(0, rki_row, "Stack dump at ESP, starting from ESP-60", fg, bg);
+    INC_rki_row(rki_row);
+    DUMP_STACK(esp - 60, 80);
+    INC_rki_row(rki_row);
+    VBE_UPDATE_VRAM();
+    ASM_VOLATILE("cli; hlt");
+}
 void PANIC_RAW(const U8 *msg, U32 errmsg, VBE_COLOUR fg, VBE_COLOUR bg) {
     CLI;
     VBE_CLEAR_SCREEN(bg);
@@ -258,58 +300,74 @@ void assert(BOOL condition, const U8 *msg) {
 
 
 
+// #define SHELL_PATH "INNER/INNER2/INSIDE_1.TXT"
+// #define DEBUG_PRINT_SHELL_CONTENTS_AND_HALT
+
+#define SHELL_PATH "PROGRAMS/TEST1.BIN"
+
+BOOLEAN LOAD_KERNEL_SHELL(VOIDPTR *file_data_out, U32 *bin_size_out) {
+    U8 filename[] = SHELL_PATH; // ISO9660 format
+    IsoDirectoryRecord *fileptr = ISO9660_FILERECORD_TO_MEMORY((CHAR*)filename);
+    if(!fileptr) {
+        panic("PANIC: Failed to read kernel shell from disk!", PANIC_KERNEL_SHELL_GENERAL_FAILURE);
+        return FALSE;
+    }
+
+    *bin_size_out = fileptr->extentLengthLE;
+    *file_data_out = ISO9660_READ_FILEDATA_TO_MEMORY(fileptr);
+
+    if(!*file_data_out) {
+        ISO9660_FREE_MEMORY(fileptr);
+        panic("PANIC: Failed to read kernel shell data from disk!", PANIC_KERNEL_SHELL_GENERAL_FAILURE);
+        return FALSE;
+    }
+
+    ISO9660_FREE_MEMORY(fileptr);
+    return TRUE;
+}
 
 
 
-// BOOLEAN LOAD_KERNEL_SHELL(VOIDPTR *file_data_out, U32 *bin_size_out) {
+void LOAD_AND_RUN_KERNEL_SHELL(VOID) {
+    VOIDPTR file = NULLPTR;
+    U32 bin_size = 0;
 
-//     U8 filename[] = "PROGRAMS/TEST1.BIN"; // ISO9660 format
-//     IsoDirectoryRecord *fileptr = ISO9660_FILERECORD_TO_MEMORY((CHAR*)filename);
-//     if(!fileptr) {
-//         panic("PANIC: Failed to read kernel shell from disk!", PANIC_KERNEL_SHELL_GENERAL_FAILURE);
-//         return FALSE;
-//     }
+    if(!LOAD_KERNEL_SHELL(&file, &bin_size)) {
+        panic("PANIC: Failed to load kernel shell!", PANIC_KERNEL_SHELL_GENERAL_FAILURE);
+        return;
+    }
 
-//     *bin_size_out = fileptr->extentLengthLE;
-//     *file_data_out = ISO9660_READ_FILEDATA_TO_MEMORY(fileptr);
+    for (int j = 0; j < 10; j++) {
+        VOIDPTR page = REQUEST_PAGE();
+        panic_if(!page, PANIC_TEXT("Unable to request page after shell init!"), PANIC_OUT_OF_MEMORY);
+        FREE_PAGE(page);
+    }   
 
-//     if(!*file_data_out) {
-//         ISO9660_FREE_MEMORY(fileptr);
-//         panic("PANIC: Failed to read kernel shell data from disk!", PANIC_KERNEL_SHELL_GENERAL_FAILURE);
-//         return FALSE;
-//     }
-
-//     ISO9660_FREE_MEMORY(fileptr);
-//     return TRUE;
-// }
-
-
-
-// void LOAD_AND_RUN_KERNEL_SHELL(VOID) {
-//     VOIDPTR file = NULLPTR;
-//     U32 bin_size = 0;
-
-//     if(!LOAD_KERNEL_SHELL(&file, &bin_size)) {
-//         panic("PANIC: Failed to load kernel shell!", PANIC_KERNEL_SHELL_GENERAL_FAILURE);
-//         return;
-//     }
-
-//     U8 buf[50];
-//     ITOA(GET_RESERVED_RAM(), buf, 16);
-//     VBE_DRAW_STRING(0, rki_row, "Free memory before running kernel shell: 0x", PANIC_COLOUR);
-//     VBE_DRAW_STRING(VBE_CHAR_WIDTH*40, rki_row, buf, PANIC_COLOUR);
-//     INC_rki_row(rki_row);
-//     VBE_UPDATE_VRAM();
+    #ifdef DEBUG_PRINT_SHELL_CONTENTS_AND_HALT
+    VBE_DRAW_STRING(0, rki_row, file, PANIC_COLOUR);
+    VBE_UPDATE_VRAM();
+    HLT;
+    #endif
+    VBE_FLUSH_SCREEN();
+    RUN_BINARY(file, bin_size, USER_HEAP_SIZE, USER_STACK_SIZE);
+    ISO9660_FREE_MEMORY(file);
+    early_debug_tcb();
+}
 
 
-//     for (int j = 0; j < 10; j++) {
-//         VOIDPTR page = REQUEST_PAGE();
-//         if (!page) break; // no more pages
-//         // optionally, print page index for debug
-//     }   
-//     panic("PANIC: Stopping before running kernel shell to avoid page fault!", 0x0);
-//     // RUN_BINARY(file, bin_size, USER_HEAP_SIZE, USER_STACK_SIZE);
-    
-//     VBE_DRAW_STRING(0, rki_row, "Kernel shell loaded and running!", PANIC_COLOUR);
-//     VBE_UPDATE_VRAM();
-// }
+
+
+void RTOSKRNL_LOOP(VOID) {
+    VBE_DRAW_STRING(0, rki_row, "Entering RTOSKRNL main loop.", PANIC_COLOUR);
+    INC_rki_row(rki_row);
+    VBE_UPDATE_VRAM();
+
+    U32 i = 0;
+    U32 *tck = PIT_GET_TICKS_PTR();
+    while(1) {
+        // if(*tck % 100 == 0) {
+            // VBE_DRAW_LINE(0, i++, 400, i++, VBE_GREEN);
+            // VBE_UPDATE_VRAM();
+        // }
+    }
+}

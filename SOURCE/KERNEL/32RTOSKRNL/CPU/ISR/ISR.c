@@ -27,6 +27,8 @@ REMARKS
 #ifdef __RTOS__
 #include <CPU/SYSCALL/SYSCALL.h> // For SYSCALL_VECTOR
 #include <RTOSKRNL/RTOSKRNL_INTERNAL.h>
+#include <DRIVERS/VIDEO/VBE.h>
+#include <CPU/PIC/PIC.h>
 static ISRHandler g_Handlers[IDT_COUNT] __attribute__((section(".data"))) = { 0 };
 #else // __RTOS__
 static ISRHandler g_Handlers[IDT_COUNT]  = { 0 };
@@ -40,12 +42,27 @@ ISRHandler *ISR_GET_PTR(void) {
 // This is the c-level exception handler
 void isr_common_handler(I32 num, U32 errcode) {
     (void)errcode; (void)num;
+    #ifdef __RTOS__
+    CLI;
+    if(errcode >= 32 && errcode < 48) {
+        // IRQ - should not happen here
+        switch (errcode)
+        {
+        default:
+            panic(PANIC_TEXT("IRQ received in isr_common_handler!"), errcode);
+            return;
+        }
+    } else {
+        panic(PANIC_TEXT("Unhandled Exception. Error code provided as argument"), errcode);
+    }
+    #endif // __RTOS__
     HLT;
 }
 
 void double_fault_handler(I32 num, U32 errcode) {
     (void)errcode; (void)num;
     #ifdef __RTOS__
+    CLI;
     // TODO: try recovering from double fault by killing offending process
     panic(PANIC_TEXT("Double Fault Exception"), PANIC_DOUBLE_FAULT);
     #endif // __RTOS__
@@ -55,19 +72,25 @@ void double_fault_handler(I32 num, U32 errcode) {
 
 void irq_common_handler(I32 vector, U32 errcode) {
     (void)errcode;
-    if (g_Handlers[vector]) g_Handlers[vector](vector, 0);
+    if (g_Handlers[vector]) g_Handlers[vector](vector, errcode);
     int irq = vector - PIC_REMAP_OFFSET; // 0x20
     if ((unsigned)irq < 16) pic_send_eoi(irq);
-
 }
 
 #ifdef __RTOS__
 #include <DRIVERS/VIDEO/VBE.h>
 
+void ud_fault_handler(I32 num, U32 errcode, regs *r) {
+    (void)num; (void)errcode; (void)r;
+    CLI;
+    panic_reg(r, PANIC_TEXT("Undefined Opcode Exception"), PANIC_UNDEFINED_OPCODE);
+    HLT;
+}
+
 void page_fault_handler(I32 num, U32 errcode) {
     (void)num;
     // CR2 contains the faulting address
-    system_halt();
+    // system_halt();
     U32 faulting_address;
     ASM_VOLATILE("mov %%cr2, %0" : "=r"(faulting_address));
     // Error code bits:
@@ -116,20 +139,39 @@ void isr_dispatch_c(int vector, U32 errcode, regs *regs_ptr) {
         regs_ptr->eax = ret; // Return value in eax
         return;
     }
+    
+    switch (errcode)
+    {
+    case 8: // Double Fault
+        double_fault_handler(vector, errcode);
+        break;
+    case 14: // Page Fault
+        page_fault_handler(vector, errcode);
+        break;
+    case 45: // Undefined Opcode Fault
+        ud_fault_handler(vector, errcode, regs_ptr);
+        break;
+    default:
+        if(g_Handlers[errcode]) {
+            g_Handlers[errcode](vector, errcode);
+            return;
+        }
+    }
     #else
     (void)regs_ptr;
-    #endif // __RTOS__
-    if(g_Handlers[vector]) {
-        g_Handlers[vector](vector, errcode);
+
+    if(g_Handlers[errcode]) {
+        g_Handlers[errcode](vector, errcode);
         return;
     }
+    #endif // __RTOS__
+    
     isr_common_handler(vector, errcode);
 }
 
 void irq_dispatch_c(int vector, U32 errcode, regs *regs_ptr) {
     (void)regs_ptr;
     irq_common_handler(vector, errcode);
-
 }
 
 
@@ -161,29 +203,18 @@ U0 SETUP_ISRS(U0) {
 }
 VOID SETUP_ISR_HANDLERS(VOID) {
     for(int i = 0; i < IDT_COUNT; i++) {
-        if(i < 32) {
-            switch(i) {
-                case 8:
-                    ISR_REGISTER_HANDLER(i, double_fault_handler);
-                    break;
-                #ifdef __RTOS__
-                case 14:
-                    ISR_REGISTER_HANDLER(i, page_fault_handler);
-                    break;
-                #endif // __RTOS__
-                default:
-                    ISR_REGISTER_HANDLER(i, isr_common_handler); // CPU exceptions
-            }
-        } else if(i >= 32 && i < 48) {
+        if(i >= 32 && i < 48) {
             ISR_REGISTER_HANDLER(i, irq_common_handler); // No default handler
-        } 
-        #ifdef __RTOS__
-        else if(i == SYSCALL_VECTOR) {
-            ISR_REGISTER_HANDLER(i, isr_syscall);
-        }
-        #endif // __RTOS__
-        else {
+        } else {
             ISR_REGISTER_HANDLER(i, isr_common_handler); // Reserved / unused
         }
     }
+
+    #ifdef __RTOS__
+    // Register FPU/87 handler for IRQ13 (vector 45)
+    ISR_REGISTER_HANDLER(45, ud_fault_handler);
+    ISR_REGISTER_HANDLER(14, page_fault_handler);
+    ISR_REGISTER_HANDLER(8, double_fault_handler);
+    ISR_REGISTER_HANDLER(SYSCALL_VECTOR, isr_syscall);
+    #endif // __RTOS__
 }
