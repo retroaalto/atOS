@@ -44,6 +44,14 @@ typedef I32           S32;
 // Floating-point definitions
 typedef float         F32;
 
+// 64-bit integer definition... not nice...
+typedef struct {
+    U32 Low;
+    U32 High;
+} 
+__attribute__((packed))
+U64;
+
 // Boolean definitions
 #define BOOL         U32
 #define BOOLEAN      BOOL
