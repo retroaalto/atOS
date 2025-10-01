@@ -3,6 +3,7 @@
 #include <MEMORY/PAGEFRAME/PAGEFRAME.h>
 #include <ERROR/ERROR.h>
 #include <STD/MEM.h>
+#include <MEMORY/MEMORY.h>
 
 /*+++
 
@@ -15,17 +16,21 @@ static KHeap kernelHeap __attribute__((section(".data"))) = {0, 0, 0, NULL, NULL
 BOOLEAN KHEAP_INIT(U32 pageNum) {
     if (pageNum == 0) return FALSE;
 
-    
-    ADDR heapAddr = REQUEST_PAGES(pageNum);
-    if (heapAddr == 0) {
+    U32 heap_total_pages = (MEM_KERNEL_HEAP_END - MEM_KERNEL_HEAP_BASE + PAGE_SIZE - 1) / PAGE_SIZE;
+    if (pageNum > heap_total_pages) {
         SET_ERROR_CODE(ERROR_KHEAP_OUT_OF_MEMORY);
         return FALSE;
     }
-    
-    kernelHeap.baseAddress = (VOIDPTR)heapAddr;
-    kernelHeap.totalSize = pageNum * PAGE_SIZE;
-    kernelHeap.usedSize = 0;
-    kernelHeap.freeSize = kernelHeap.totalSize;
+
+    // Make sure the region is available to us: turn RESERVED into LOCKED (allocated)
+    // If you prefer, you can UNRESERVE then LOCK — but don’t leave it FREE, or other allocators may take it.
+    LOCK_PAGES(MEM_KERNEL_HEAP_BASE, pageNum);
+
+    kernelHeap.baseAddress = (VOIDPTR)MEM_KERNEL_HEAP_BASE; // identity-mapped
+    kernelHeap.totalSize   = pageNum * PAGE_SIZE;
+    kernelHeap.usedSize    = 0;
+    kernelHeap.freeSize    = kernelHeap.totalSize;
+    kernelHeap.currentPtr  = kernelHeap.baseAddress;
 
     // Initialize the first free block
     KHeapBlock *block = (KHeapBlock*)kernelHeap.baseAddress;

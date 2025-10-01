@@ -137,7 +137,7 @@ Please see DOCS/DEBUGGING.md for current options and tips.
 Planned and in-progress features for atOS:
 
 * [x] Bootloader and raw binary kernel loading
-* [x] Basic memory management (paging, allocator, frame bitmap)
+* [x] Basic memory management (paging, allocator, frame BYTEMAP)
 * [X] ISO9660 support
 * [X] Basic drivers (keyboard, screen, disk I/O)
 * [ ] FAT32 filesystem support

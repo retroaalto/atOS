@@ -22,9 +22,9 @@ REMARKS
 #include "../../../../STD/ASM.h"
 #include "../INTERRUPTS/INTERRUPTS.h"
 #include "../PIC/PIC.h"
-#include "../../DRIVERS/PIT/PIT.h"
 
 #ifdef __RTOS__
+#include "../../CPU/PIT/PIT.h"
 #include <CPU/SYSCALL/SYSCALL.h> // For SYSCALL_VECTOR
 #include <RTOSKRNL/RTOSKRNL_INTERNAL.h>
 #include <DRIVERS/VIDEO/VBE.h>
@@ -44,9 +44,9 @@ void isr_common_handler(I32 num, U32 errcode) {
     (void)errcode; (void)num;
     #ifdef __RTOS__
     CLI;
-    if(errcode >= 32 && errcode < 48) {
+    if(num >= 32 && num < 48) {
         // IRQ - should not happen here
-        switch (errcode)
+        switch (num)
         {
         default:
             panic(PANIC_TEXT("IRQ received in isr_common_handler!"), errcode);
@@ -69,9 +69,19 @@ void double_fault_handler(I32 num, U32 errcode) {
     HLT;
 }
 
-
 void irq_common_handler(I32 vector, U32 errcode) {
     (void)errcode;
+    #ifdef __RTOS__
+    if (vector < PIC_REMAP_OFFSET || vector >= PIC_REMAP_OFFSET + 16) {
+        // Not an IRQ, should not happen here
+        panic(PANIC_TEXT("Non-IRQ received in irq_common_handler!"), vector);
+        return;
+    }
+    if(vector == PIT_VECTOR) {
+        pic_send_eoi(0);
+        return;
+    }
+    #endif // __RTOS__
     if (g_Handlers[vector]) g_Handlers[vector](vector, errcode);
     int irq = vector - PIC_REMAP_OFFSET; // 0x20
     if ((unsigned)irq < 16) pic_send_eoi(irq);
@@ -80,17 +90,37 @@ void irq_common_handler(I32 vector, U32 errcode) {
 #ifdef __RTOS__
 #include <DRIVERS/VIDEO/VBE.h>
 
-void ud_fault_handler(I32 num, U32 errcode, regs *r) {
+void undefined_opcode_handler(I32 num, U32 errcode, regs *r) {
     (void)num; (void)errcode; (void)r;
     CLI;
     panic_reg(r, PANIC_TEXT("Undefined Opcode Exception"), PANIC_UNDEFINED_OPCODE);
     HLT;
 }
 
+void fpu87_fault_handler(I32 num, U32 errcode, regs *r) {
+    (void)num; (void)errcode; (void)r;
+    CLI;
+    panic_reg(r, PANIC_TEXT("Floating Point Exception"), PANIC_FPU_FAULT);
+    HLT;
+}
+
+void de_fault_handler(I32 num, U32 errcode, regs *r) {
+    (void)num; (void)errcode; (void)r;
+    CLI;
+    panic_reg(r, PANIC_TEXT("Divide Error Exception"), PANIC_DIVIDE_ERROR);
+    HLT;
+}
+
+void nmi_handler(I32 num, U32 errcode, regs *r) {
+    (void)num; (void)errcode; (void)r;
+    CLI;
+    panic_reg(r, PANIC_TEXT("Non-Maskable Interrupt"), PANIC_UNKNOWN_ERROR);
+    HLT;
+}
+
 void page_fault_handler(I32 num, U32 errcode) {
     (void)num;
     // CR2 contains the faulting address
-    // system_halt();
     U32 faulting_address;
     ASM_VOLATILE("mov %%cr2, %0" : "=r"(faulting_address));
     // Error code bits:
@@ -140,8 +170,17 @@ void isr_dispatch_c(int vector, U32 errcode, regs *regs_ptr) {
         return;
     }
     
-    switch (errcode)
+    switch (vector)
     {
+    case 0: // Divide Error
+        de_fault_handler(vector, errcode, regs_ptr);
+        break;
+    case 2: // NMI
+        nmi_handler(vector, errcode, regs_ptr);
+        break;
+    case 6: // Invalid Opcode
+        undefined_opcode_handler(vector, errcode, regs_ptr);
+        break;
     case 8: // Double Fault
         double_fault_handler(vector, errcode);
         break;
@@ -149,7 +188,7 @@ void isr_dispatch_c(int vector, U32 errcode, regs *regs_ptr) {
         page_fault_handler(vector, errcode);
         break;
     case 45: // Undefined Opcode Fault
-        ud_fault_handler(vector, errcode, regs_ptr);
+        fpu87_fault_handler(vector, errcode, regs_ptr);
         break;
     default:
         if(g_Handlers[errcode]) {
@@ -211,10 +250,12 @@ VOID SETUP_ISR_HANDLERS(VOID) {
     }
 
     #ifdef __RTOS__
-    // Register FPU/87 handler for IRQ13 (vector 45)
-    ISR_REGISTER_HANDLER(45, ud_fault_handler);
+    ISR_REGISTER_HANDLER(0, de_fault_handler);
+    ISR_REGISTER_HANDLER(6, undefined_opcode_handler);
+    ISR_REGISTER_HANDLER(45, fpu87_fault_handler);
     ISR_REGISTER_HANDLER(14, page_fault_handler);
     ISR_REGISTER_HANDLER(8, double_fault_handler);
+    ISR_REGISTER_HANDLER(2, nmi_handler);
     ISR_REGISTER_HANDLER(SYSCALL_VECTOR, isr_syscall);
     #endif // __RTOS__
 }

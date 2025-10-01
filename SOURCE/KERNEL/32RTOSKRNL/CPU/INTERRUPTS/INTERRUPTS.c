@@ -65,16 +65,17 @@ __attribute__((naked)) void irq##vec(void) { \
 // Exceptions (some with error code)
 
 #ifdef __RTOS__
-#define ISR_NOERRORCODE ISR_ERRORCODE
+// #define ISR_NOERRORCODE ISR_ERRORCODE
 #endif // __RTOS__
-ISR_NOERRORCODE(0)
-ISR_NOERRORCODE(1)
-ISR_NOERRORCODE(2)
-ISR_NOERRORCODE(3)
-ISR_NOERRORCODE(4)
-ISR_NOERRORCODE(5)
-ISR_NOERRORCODE(6)
-ISR_NOERRORCODE(7)
+
+ISR_NOERRORCODE(0) // Divide by zero
+ISR_NOERRORCODE(1) // Debug
+ISR_NOERRORCODE(2) // Non-maskable interrupt
+ISR_NOERRORCODE(3) // Breakpoint
+ISR_NOERRORCODE(4) // Overflow
+ISR_NOERRORCODE(5) // Bounds check
+ISR_NOERRORCODE(6) // Invalid opcode
+ISR_NOERRORCODE(7) // Device not available
 ISR_ERRORCODE(8)
 ISR_NOERRORCODE(9)
 ISR_ERRORCODE(10)

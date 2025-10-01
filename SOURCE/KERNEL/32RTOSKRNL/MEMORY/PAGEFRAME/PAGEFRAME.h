@@ -2,7 +2,7 @@
 #define PAGEFRAME_H
 
 #include <STD/TYPEDEF.h>
-#include <STD/BITMAP.h>
+#include <MEMORY/BYTEMAP/BYTEMAP.h>
 #ifndef PAGE_SIZE
 #define PAGE_SIZE 0x1000
 #endif
@@ -16,7 +16,7 @@ typedef struct {
 } PAGEFRAME_INFO;
 
 PAGEFRAME_INFO* GET_PAGEFRAME_INFO();
-BITMAP* GET_PAGEFRAME_BITMAP();
+// BYTEMAP* GET_PAGEFRAME_BYTEMAP();
 BOOLEAN PAGEFRAME_INIT();
 
 
@@ -50,15 +50,29 @@ VOID RESERVE_PAGES(ADDR addr, U32 numPages);
 VOID UNRESERVE_PAGE(ADDR addr);
 VOID UNRESERVE_PAGES(ADDR addr, U32 numPages);
 
+ADDR KREQUEST_PAGES(U32 numPages);
+ADDR KREQUEST_PAGE();
+VOID KFREE_PAGE(ADDR addr);
+VOID KFREE_PAGES(ADDR addr, U32 numPages);
+VOID KLOCK_PAGE(ADDR addr);
+VOID KLOCK_PAGES(ADDR addr, U32 numPages);
+VOID KUNLOCK_PAGE(ADDR addr);
+VOID KUNLOCK_PAGES(ADDR addr, U32 numPages);
+VOID KRESERVE_PAGE(ADDR addr);
+VOID KRESERVE_PAGES(ADDR addr, U32 numPages);
+VOID KUNRESERVE_PAGE(ADDR addr);
+VOID KUNRESERVE_PAGES(ADDR addr, U32 numPages);
 
 
 /* helpers */
-static inline U32 bytes_to_pages(U32 bytes) {
-    return (bytes + PAGE_SIZE - 1) / PAGE_SIZE;
-}
 static inline U32 pages_from_bytes(U32 bytes) {
-    return (bytes + PAGE_SIZE - 1) / PAGE_SIZE;
+    U32 pages = bytes + PAGE_SIZE - 1;
+    if(pages == 0) return 0; // avoid division by zero
+    return pages / PAGE_SIZE;
 }
+static inline U32 page_align_down(U32 x) { return x & ~0xFFF; }
+static inline U32 page_align_up(U32 x)   { return (x + 0xFFF) & ~0xFFF; }
+
 void reserve_range(U32 start, U32 end);
 void unreserve_range(U32 start, U32 end);
 

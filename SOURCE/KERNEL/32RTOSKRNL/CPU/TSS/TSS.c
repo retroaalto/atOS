@@ -203,7 +203,7 @@
 //     df_tss.ldt = 0;
 //     df_tss.trap = 0;
 
-//     /* Place I/O map base at end of TSS (no I/O bitmap) */
+//     /* Place I/O map base at end of TSS (no I/O BYTEMAP) */
 //     df_tss.iomap_base = (U16)sizeof(df_tss);
 
 //     /* Build TSS descriptor in GDT */

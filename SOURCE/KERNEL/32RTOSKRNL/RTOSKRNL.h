@@ -14,7 +14,7 @@
 #include <DRIVERS/VIDEO/VESA.h>
 #include <DRIVERS/VIDEO/VOUTPUT.h>
 #include <DRIVERS/PS2/KEYBOARD.h>
-#include <DRIVERS/PIT/PIT.h>
+#include <CPU/PIT/PIT.h>
 
 #include <RTOSKRNL/RTOSKRNL_INTERNAL.h>
 #include <RTOSKRNL/PROC/PROC.h>

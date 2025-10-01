@@ -7,4 +7,4 @@ if [ ! -f "$file_path" ]; then
     exit 1
 fi
 
-objdump -d "$file_path" -M intel,i386 --architecture=i386
+objdump -D -b binary -m i386 "$file_path" > dissasembled_output.txt

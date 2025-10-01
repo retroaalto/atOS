@@ -12,7 +12,7 @@ and some not-so-important functions are here.
 #include <FS/FAT32/FAT32.h>
 #include <STD/STRING.h>
 #include <MEMORY/HEAP/KHEAP.h>
-#include <DRIVERS/PIT/PIT.h>
+#include <CPU/PIT/PIT.h>
 #include <ACPI/ACPI.h>
 #include <CPU/ISR/ISR.h> // for regs struct
 #include <PROC/PROC.h>
@@ -168,7 +168,7 @@ void panic_reg(regs *r, const U8 *msg, U32 errmsg) {
     INC_rki_row(rki_row);
     VBE_DRAW_STRING(0, rki_row, msg, fg, bg);
     INC_rki_row(rki_row);
-    VBE_DRAW_STRING(0, rki_row, "System halted, Dump as of error catch.", fg, bg);
+    VBE_DRAW_STRING(0, rki_row, "System halted, Dump as of exception raise.", fg, bg);
     INC_rki_row(rki_row);
     U32 esp = r->esp;
     U32 ebp = r->ebp;
@@ -256,6 +256,11 @@ void panic_debug_if(BOOL condition, const U8 *msg, U32 errmsg) {
 
 void system_halt(VOID) {
     ASM_VOLATILE("cli; hlt");
+    NOP;
+    NOP;
+    NOP;
+    NOP;
+    NOP;
 }
 
 void system_halt_if(BOOL condition) {
@@ -338,10 +343,10 @@ void LOAD_AND_RUN_KERNEL_SHELL(VOID) {
     }
 
     for (int j = 0; j < 10; j++) {
-        VOIDPTR page = REQUEST_PAGE();
+        VOIDPTR page = KREQUEST_PAGE();
         panic_if(!page, PANIC_TEXT("Unable to request page after shell init!"), PANIC_OUT_OF_MEMORY);
-        FREE_PAGE(page);
-    }   
+        KFREE_PAGE(page);
+    }
 
     #ifdef DEBUG_PRINT_SHELL_CONTENTS_AND_HALT
     VBE_DRAW_STRING(0, rki_row, file, PANIC_COLOUR);
@@ -349,7 +354,7 @@ void LOAD_AND_RUN_KERNEL_SHELL(VOID) {
     HLT;
     #endif
     VBE_FLUSH_SCREEN();
-    RUN_BINARY(file, bin_size, USER_HEAP_SIZE, USER_STACK_SIZE);
+    RUN_BINARY(file, bin_size, USER_HEAP_SIZE, USER_STACK_SIZE, TCB_STATE_ACTIVE);
     ISO9660_FREE_MEMORY(file);
     early_debug_tcb();
 }
@@ -365,9 +370,13 @@ void RTOSKRNL_LOOP(VOID) {
     U32 i = 0;
     U32 *tck = PIT_GET_TICKS_PTR();
     while(1) {
-        // if(*tck % 100 == 0) {
-            // VBE_DRAW_LINE(0, i++, 400, i++, VBE_GREEN);
-            // VBE_UPDATE_VRAM();
-        // }
+        if(*tck % 100 == 0) {
+            U8 buf [20];
+            ITOA(*tck, buf, 10);
+            VBE_DRAW_STRING(0, rki_row, "Ticks: ", VBE_GREEN, VBE_BLACK);
+            VBE_DRAW_STRING(100, rki_row, buf, VBE_GREEN, VBE_BLACK);
+            INC_rki_row(rki_row);
+            VBE_UPDATE_VRAM();
+        }
     }
 }

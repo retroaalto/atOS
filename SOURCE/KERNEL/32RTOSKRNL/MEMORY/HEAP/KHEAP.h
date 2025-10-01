@@ -24,6 +24,7 @@ REMARKS
 #ifndef KHEAP_H
 #define KHEAP_H
 #include <STD/TYPEDEF.h>
+#include <MEMORY/MEMORY.h>
 
 /// @brief Allocates memory from the kernel heap.
 /// @param size Size in bytes to allocate.
@@ -53,7 +54,9 @@ BOOLEAN KREALLOC(VOIDPTR *addr, U32 oldSize, U32 newSize);
 #endif
 
 #define KHEAP_MIN_SIZE_PAGES 20 // Minimum heap size in pages (20 pages = 80KB) 
-
+#define KHEAP_MAX_SIZE (MEM_RTOSKRNL_HEAP_END - MEM_RTOSKRNL_HEAP_START) // Maximum heap size in bytes
+#define KHEAP_MAX_SIZE_PAGES (KHEAP_MAX_SIZE / PAGE_SIZE)
+#define KHEAP_DEFAULT_SIZE_PAGES (KHEAP_MAX_SIZE_PAGES / 2)
 /// @brief Initializes the kernel heap.
 /// @param pageNum Number of pages to allocate for the heap, must be >= KHEAP_MIN_SIZE_PAGES.
 /// @return TRUE if initialization succeeded, FALSE otherwise.

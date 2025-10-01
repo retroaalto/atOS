@@ -15,7 +15,7 @@ TODO:
     Syscalls
     Speaker driver
 
-    bitmap atmp
+    BYTEMAP atmp
     shell atosh
     shell lang batsh
 */
@@ -41,10 +41,8 @@ void rtos_kernel(U0) {
     //   corrupts or zeroes the E820 entries, so we re-init it here
     panic_if(!REINIT_E820(), PANIC_TEXT("Failed to re-initialize E820!"), PANIC_INITIALIZATION_FAILED);
     panic_if(!PAGING_INIT(), PANIC_TEXT("Failed to initialize paging!"), PANIC_INITIALIZATION_FAILED);
-    
 
 
-    
     panic_if(!PS2_KEYBOARD_INIT(), PANIC_TEXT("Failed to initialize PS2 keyboard"), PANIC_INITIALIZATION_FAILED);
     init_multitasking();
     
@@ -55,8 +53,8 @@ void rtos_kernel(U0) {
     
     LOAD_AND_RUN_KERNEL_SHELL();
     RTOSKRNL_LOOP();
-    system_halt(); // should never reach here
     HLT; // just in case
+    NOP;
 }
 
 __attribute__((noreturn, section(".text")))
