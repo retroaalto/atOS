@@ -148,6 +148,7 @@ kernel:
 	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/RTOSKRNL/ERROR/ERROR.c -o $(OUTPUT_KERNEL_DIR)/ERROR.o	
 	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/RTOSKRNL/RTOSKRNL_INTERNAL.c -o $(OUTPUT_KERNEL_DIR)/RTOSKRNL_INTERNAL.o
 	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/RTOSKRNL/PROC/PROC.c -o $(OUTPUT_KERNEL_DIR)/PROC.o
+	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/RTOSKRNL/BITMAP/BITMAP.c -o $(OUTPUT_KERNEL_DIR)/BITMAP.o
 
 
 	$(CComp) -m32 -nostdlib -ffreestanding \
@@ -183,6 +184,7 @@ kernel:
 		$(OUTPUT_KERNEL_DIR)/UHEAP.o \
 		$(OUTPUT_KERNEL_DIR)/PROC.o \
 		$(OUTPUT_KERNEL_DIR)/FPU.o \
+		$(OUTPUT_KERNEL_DIR)/BITMAP.o \
 
 
 	@echo "32RTOSKRNL.BIN compiled successfully."
@@ -229,7 +231,7 @@ run:
 	qemu-system-i386 -vga std \
 	-boot d \
 	-cdrom $(OUTPUT_ISO_DIR)/$(ISO_NAME) \
-	-m 512 \
+	-m 1024 \
 	-drive file=hdd.img,format=raw,if=ide,index=0,media=disk \
 
 runlh:

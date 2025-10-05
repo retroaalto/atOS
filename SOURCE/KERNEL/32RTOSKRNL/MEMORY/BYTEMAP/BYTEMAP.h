@@ -10,10 +10,10 @@ typedef enum PageState {
     PS_ALLOC       = 1,
     PS_RESERVED    = 2,  // firmware/MMIO or not for allocator
     PS_LOCKED      = 3,  // temporary pin
-    PS_KFREE       = 4,
-    PS_KALLOC      = 5,
-    PS_KRESERVED   = 6,
-    PS_KLOCKED     = 7
+    PS_FUSER        = 4,  // Free process page
+    PS_LUSER = 5,  // Locked user process page
+    PS_AUSER = 6,  // Allocated user process page
+    PS_RUSER = 7   // Reserved user process page
 } PageState;
 
 // Maximum BYTEMAP size to handle up to 4GB of RAM with 4KB pages

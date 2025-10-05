@@ -47,7 +47,7 @@ void panic(const U8 *msg, U32 errnum);
 void panic_if(BOOL condition, const U8 *msg, U32 errnum);
 void panic_debug(const U8 *msg, U32 errnum);
 void panic_debug_if(BOOL condition, const U8 *msg, U32 errnum);
-void assert(BOOL condition, const U8 *msg); // Use PANIC_TEXT for msg
+void assert(BOOL condition);
 void system_halt(VOID);
 void system_halt_if(BOOL condition);
 void system_reboot(VOID);
@@ -59,6 +59,9 @@ void DUMP_REGS(regs *r);
 void DUMP_ERRCODE(U32 errcode);
 void DUMP_INTNO(U32 int_no);
 void DUMP_MEMORY(U32 addr, U32 length);
+
+// Kernel internal functions
+void set_rki_row(U32 rki_row);
 
 void LOAD_AND_RUN_KERNEL_SHELL(VOID);
 

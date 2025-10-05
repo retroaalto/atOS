@@ -10,7 +10,7 @@ TODO:
         Multitasking
         Inter-Process Communication
 
-    Shell ATOSH
+    atOShell
     HDD driver
     Syscalls
     Speaker driver
@@ -45,9 +45,6 @@ void rtos_kernel(U0) {
 
     panic_if(!PS2_KEYBOARD_INIT(), PANIC_TEXT("Failed to initialize PS2 keyboard"), PANIC_INITIALIZATION_FAILED);
     init_multitasking();
-    
-    VBE_DRAW_STRING(10, 10, "atOS-RT v0.1", VBE_WHITE, VBE_BLACK);
-    VBE_UPDATE_VRAM();
 
     STI;
     

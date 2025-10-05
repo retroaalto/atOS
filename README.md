@@ -61,7 +61,7 @@ QEMU is the recommended environment, others aren't guaranteed to work.
 
 | Resource | Recommended | Minimum |
 | -------- | ----------- | ------- |
-| RAM      | 256 MB      | 64 MB   |
+| RAM      | 1024 MB     | 550 MB   |
 | CPU      | 1 Core      | 1 Core  |
 | HDD      | 256 MB      | 128 MB  |
 
@@ -84,7 +84,7 @@ qemu-system-i386 \
   -vga std \
   -cdrom atOS.iso \
   -drive file=hdd.img,format=raw,if=ide,index=0,media=disk \
-  -m 512
+  -m 1024 \
 ```
 
 ---

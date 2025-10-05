@@ -52,6 +52,15 @@ U8* STRNCONCAT(U8 *dest, U32 dest_pos, U8 *src, U32 max_len) {
 
     return dest;
 }
+U32 FIRST_INDEX_OF(CONST U8* str, U8 c) {
+    U32 index = 0;
+    while (*str) {
+        if (*str == c) return index;
+        str++;
+        index++;
+    }
+    return (U32)-1; // not found
+}
 BOOLEAN STRCMP(CONST U8* str1, CONST U8* str2) {
     while (*str1 && (*str1 == *str2)) {
         str1++;

@@ -24,7 +24,6 @@ REMARKS
 #include "../PIC/PIC.h"
 
 #ifdef __RTOS__
-#include "../../CPU/PIT/PIT.h"
 #include <CPU/SYSCALL/SYSCALL.h> // For SYSCALL_VECTOR
 #include <RTOSKRNL/RTOSKRNL_INTERNAL.h>
 #include <DRIVERS/VIDEO/VBE.h>
@@ -75,10 +74,6 @@ void irq_common_handler(I32 vector, U32 errcode) {
     if (vector < PIC_REMAP_OFFSET || vector >= PIC_REMAP_OFFSET + 16) {
         // Not an IRQ, should not happen here
         panic(PANIC_TEXT("Non-IRQ received in irq_common_handler!"), vector);
-        return;
-    }
-    if(vector == PIT_VECTOR) {
-        pic_send_eoi(0);
         return;
     }
     #endif // __RTOS__
@@ -187,7 +182,7 @@ void isr_dispatch_c(int vector, U32 errcode, regs *regs_ptr) {
     case 14: // Page Fault
         page_fault_handler(vector, errcode);
         break;
-    case 45: // Undefined Opcode Fault
+    case 16: // FPU Fault
         fpu87_fault_handler(vector, errcode, regs_ptr);
         break;
     default:
@@ -252,7 +247,7 @@ VOID SETUP_ISR_HANDLERS(VOID) {
     #ifdef __RTOS__
     ISR_REGISTER_HANDLER(0, de_fault_handler);
     ISR_REGISTER_HANDLER(6, undefined_opcode_handler);
-    ISR_REGISTER_HANDLER(45, fpu87_fault_handler);
+    ISR_REGISTER_HANDLER(16, fpu87_fault_handler);
     ISR_REGISTER_HANDLER(14, page_fault_handler);
     ISR_REGISTER_HANDLER(8, double_fault_handler);
     ISR_REGISTER_HANDLER(2, nmi_handler);

@@ -10,3 +10,4 @@
 ISO_DIR/
 build/
 *.bin
+dissasembled_output.txt

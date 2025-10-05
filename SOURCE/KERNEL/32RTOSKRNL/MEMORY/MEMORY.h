@@ -26,16 +26,11 @@
 // RTOS Kernel HEAP
 // Leave 1 page (4 KiB) guard between heap end and stack base
 #define MEM_RTOSKRNL_HEAP_AREA_BASE   0x00550000
-#define MEM_RTOSKRNL_HEAP_AREA_SPLIT  0x00AA0000   // midpoint, adjust as needed
 #define MEM_RTOSKRNL_HEAP_AREA_END    0x00F33000   // just before guard page
 
 // Derived
 #define MEM_KERNEL_HEAP_BASE   MEM_RTOSKRNL_HEAP_AREA_BASE
-#define MEM_KERNEL_HEAP_END    MEM_RTOSKRNL_HEAP_AREA_SPLIT
-
-// Kernel Pageframe area (for page allocations)
-#define MEM_KERNEL_PF_BASE     MEM_RTOSKRNL_HEAP_AREA_SPLIT
-#define MEM_KERNEL_PF_END      MEM_RTOSKRNL_HEAP_AREA_END
+#define MEM_KERNEL_HEAP_END    MEM_RTOSKRNL_HEAP_AREA_END
 
 // Stack 0 (kernel stack)
 // Leave 1 page guard below and 1 page guard above
@@ -54,15 +49,17 @@
 
 // Reserved MMIO / firmware
 #define MEM_RESERVED_BASE          0x01344000
-#define MEM_RESERVED_END           0x02344000  // 16 MiB
+#define MEM_RESERVED_END           0x10000000  // 16 MiB
 
 // BIOS Reserved
 #define MEM_BIOS_BASE              0x000E0000
 #define MEM_BIOS_END               0x00100000
 
 // User Space
-#define MEM_USER_SPACE_BASE        0x02344000
-#define MEM_USER_SPACE_END_MIN     0x03D09000
+
+//0x02400000
+#define MEM_USER_SPACE_BASE        0x10000000
+#define MEM_USER_SPACE_END_MIN     0x20000000
 
 #define MAX_ALLOWED_MEMORY         0x1FEFE0000
 

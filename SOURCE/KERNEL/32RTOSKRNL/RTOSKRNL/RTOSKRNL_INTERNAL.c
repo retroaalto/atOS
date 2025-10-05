@@ -22,6 +22,10 @@ and some not-so-important functions are here.
 #define DEC_rki_row(rki_row) (rki_row -= VBE_CHAR_HEIGHT + 2)
 static U32 rki_row __attribute__((section(".data"))) = 0;
 
+void set_rki_row(U32 row) {
+    rki_row = row;
+}
+
 static inline U32 ASM_READ_ESP(void) {
     U32 esp;
     ASM_VOLATILE("mov %%esp, %0" : "=r"(esp));
@@ -120,7 +124,7 @@ void DUMP_REGS(regs *r) {
 void DUMP_ERRCODE(U32 errcode) {
     U8 buf[20];
     VBE_DRAW_STRING(0, rki_row, "Error code: ", PANIC_COLOUR);
-    ITOA(errcode, buf, 16);
+    ITOA_U(errcode, buf, 16);
     VBE_DRAW_STRING(100, rki_row, buf, PANIC_COLOUR);
     INC_rki_row(rki_row);
     VBE_UPDATE_VRAM();
@@ -129,7 +133,7 @@ void DUMP_ERRCODE(U32 errcode) {
 void DUMP_INTNO(U32 int_no) {
     U8 buf[20];
     VBE_DRAW_STRING(0, rki_row, "Interrupt number: ", PANIC_COLOUR);
-    ITOA(int_no, buf, 16);
+    ITOA_U(int_no, buf, 16);
     VBE_DRAW_STRING(200, rki_row, buf, PANIC_COLOUR);
     INC_rki_row(rki_row);
     VBE_UPDATE_VRAM();
@@ -137,21 +141,25 @@ void DUMP_INTNO(U32 int_no) {
 
 void DUMP_MEMORY(U32 addr, U32 length) {
     U8 buf[20];
-    VBE_DRAW_STRING(0, rki_row, "Memory dump:", PANIC_COLOUR);
-    INC_rki_row(rki_row);
     U8 *ptr = (U8*)addr;
     for(U32 i = 0; i < length; i++) {
+        // Start new line every 16 bytes
         if(i % 16 == 0) {
-            if(i != 0) INC_rki_row(rki_row);
+            if(i != 0) INC_rki_row(rki_row);  // move down only at new line
             ITOA((U32)(ptr + i), buf, 16);
             VBE_DRAW_STRING(0, rki_row, buf, PANIC_COLOUR);
         }
+
+        // Print the byte
         ITOA(ptr[i], buf, 16);
         VBE_DRAW_STRING(100 + (i % 16) * 30, rki_row, buf, PANIC_COLOUR);
-        INC_rki_row(rki_row);
     }
+
+    // After dumping, move to next line
+    INC_rki_row(rki_row);
     VBE_UPDATE_VRAM();
 }
+
 
 
 void panic_reg(regs *r, const U8 *msg, U32 errmsg) {
@@ -192,6 +200,7 @@ void panic_reg(regs *r, const U8 *msg, U32 errmsg) {
 }
 void PANIC_RAW(const U8 *msg, U32 errmsg, VBE_COLOUR fg, VBE_COLOUR bg) {
     CLI;
+    rki_row = 0;
     VBE_CLEAR_SCREEN(bg);
     U8 buf[16];
     ITOA(errmsg, buf, 16);
@@ -232,6 +241,11 @@ void PANIC_RAW(const U8 *msg, U32 errmsg, VBE_COLOUR fg, VBE_COLOUR bg) {
     INC_rki_row(rki_row);
     
     DUMP_MEMORY(eip, 64);
+
+    VBE_DRAW_STRING(0, rki_row, "Memory dump at error code.", fg, bg);
+    INC_rki_row(rki_row);
+    DUMP_MEMORY(errmsg, 256);
+
     VBE_UPDATE_VRAM();
     ASM_VOLATILE("cli; hlt");
 }
@@ -295,11 +309,15 @@ void system_shutdown_if(BOOL condition) {
 }
 
 // assert function
-void assert(BOOL condition, const U8 *msg) {
+void assert(BOOL condition) {
     if (!condition) {
-        panic(msg, PANIC_UNKNOWN_ERROR);
+        panic(PANIC_TEXT("Assertion failed"), PANIC_UNKNOWN_ERROR);
     }
 }
+
+
+
+
 
 
 
@@ -310,73 +328,68 @@ void assert(BOOL condition, const U8 *msg) {
 
 #define SHELL_PATH "PROGRAMS/TEST1.BIN"
 
-BOOLEAN LOAD_KERNEL_SHELL(VOIDPTR *file_data_out, U32 *bin_size_out) {
+VOIDPTR LOAD_KERNEL_SHELL(U32 *bin_size_out, IsoDirectoryRecord **fileptr_out) {
     U8 filename[] = SHELL_PATH; // ISO9660 format
-    IsoDirectoryRecord *fileptr = ISO9660_FILERECORD_TO_MEMORY((CHAR*)filename);
-    if(!fileptr) {
+    *fileptr_out = ISO9660_FILERECORD_TO_MEMORY((CHAR*)filename);
+    if(!*fileptr_out) {
         panic("PANIC: Failed to read kernel shell from disk!", PANIC_KERNEL_SHELL_GENERAL_FAILURE);
-        return FALSE;
+        return NULL;
     }
+    if(bin_size_out) 
+        *bin_size_out = (*fileptr_out)->extentLengthLE;
 
-    *bin_size_out = fileptr->extentLengthLE;
-    *file_data_out = ISO9660_READ_FILEDATA_TO_MEMORY(fileptr);
 
-    if(!*file_data_out) {
-        ISO9660_FREE_MEMORY(fileptr);
+    VOIDPTR file_data_out = ISO9660_READ_FILEDATA_TO_MEMORY(*fileptr_out);
+
+    if(!file_data_out) {
+        ISO9660_FREE_MEMORY(*fileptr_out);
         panic("PANIC: Failed to read kernel shell data from disk!", PANIC_KERNEL_SHELL_GENERAL_FAILURE);
-        return FALSE;
+        return NULL;
     }
-
-    ISO9660_FREE_MEMORY(fileptr);
-    return TRUE;
+    return file_data_out;
 }
 
 
 
 void LOAD_AND_RUN_KERNEL_SHELL(VOID) {
+    VBE_FLUSH_SCREEN();
     VOIDPTR file = NULLPTR;
-    U32 bin_size = 0;
+    static U32 bin_size = 0;
+    IsoDirectoryRecord *fileptr = NULLPTR;
 
-    if(!LOAD_KERNEL_SHELL(&file, &bin_size)) {
+    if(!(file = LOAD_KERNEL_SHELL(&bin_size, &fileptr))) {
         panic("PANIC: Failed to load kernel shell!", PANIC_KERNEL_SHELL_GENERAL_FAILURE);
         return;
     }
 
-    for (int j = 0; j < 10; j++) {
-        VOIDPTR page = KREQUEST_PAGE();
-        panic_if(!page, PANIC_TEXT("Unable to request page after shell init!"), PANIC_OUT_OF_MEMORY);
-        KFREE_PAGE(page);
-    }
-
-    #ifdef DEBUG_PRINT_SHELL_CONTENTS_AND_HALT
-    VBE_DRAW_STRING(0, rki_row, file, PANIC_COLOUR);
-    VBE_UPDATE_VRAM();
-    HLT;
-    #endif
-    VBE_FLUSH_SCREEN();
-    RUN_BINARY(file, bin_size, USER_HEAP_SIZE, USER_STACK_SIZE, TCB_STATE_ACTIVE);
+    panic_if(!RUN_BINARY("atOShell", file, bin_size, USER_HEAP_SIZE, USER_STACK_SIZE, TCB_STATE_ACTIVE), "PANIC: Failed to run kernel shell!", PANIC_KERNEL_SHELL_GENERAL_FAILURE);
     ISO9660_FREE_MEMORY(file);
-    early_debug_tcb();
+    ISO9660_FREE_MEMORY(fileptr);
 }
 
 
 
 
 void RTOSKRNL_LOOP(VOID) {
-    VBE_DRAW_STRING(0, rki_row, "Entering RTOSKRNL main loop.", PANIC_COLOUR);
-    INC_rki_row(rki_row);
-    VBE_UPDATE_VRAM();
-
-    U32 i = 0;
+    VBE_FLUSH_SCREEN();
+    U32 x = 0;
+    U32 y = 5;
     U32 *tck = PIT_GET_TICKS_PTR();
     while(1) {
-        if(*tck % 100 == 0) {
-            U8 buf [20];
-            ITOA(*tck, buf, 10);
-            VBE_DRAW_STRING(0, rki_row, "Ticks: ", VBE_GREEN, VBE_BLACK);
-            VBE_DRAW_STRING(100, rki_row, buf, VBE_GREEN, VBE_BLACK);
-            INC_rki_row(rki_row);
+        if(*tck % PIT_TICKS_HZ == 0) {
+            x = (x + 1) % SCREEN_WIDTH;
+            if(x == 0) {
+                y = (y + 20) % SCREEN_HEIGHT;
+                if(y == 0) {
+                    VBE_CLEAR_SCREEN(VBE_BLACK);
+                }
+            }
+
+            VBE_DRAW_LINE(x, y, x+100, y, VBE_GREEN);
+            VBE_DRAW_STRING(10, 20, "green lines from Kernel", VBE_BLACK, VBE_GREEN);
             VBE_UPDATE_VRAM();
+            // early_debug_tcb(get_last_pid());
         }
+
     }
 }

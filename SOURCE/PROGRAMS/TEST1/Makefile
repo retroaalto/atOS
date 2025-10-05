@@ -1,16 +1,17 @@
 CUR_DIR       := $(shell pwd)
 ProgramName   ?= TEST1
 Sources       ?= $(CUR_DIR)/TEST1.c \
-                 $(CUR_DIR)/../../STD/STRING.c \
-                 $(CUR_DIR)/../../STD/MATH.c \
 				 $(CUR_DIR)/../../KERNEL/32RTOSKRNL/DRIVERS/VIDEO/VBE.c \
 				 $(CUR_DIR)/../../KERNEL/32RTOSKRNL/DRIVERS/VIDEO/VESA.c
+
+#                  $(CUR_DIR)/../../STD/STRING.c \
+#                  $(CUR_DIR)/../../STD/MATH.c \
 
 SOURCE_KERNEL_DIR ?= $(CUR_DIR)/../../KERNEL
 SOURCE_DIR    ?= $(CUR_DIR)/SOURCE
 OUTPUT_DIR    ?= $(CUR_DIR)/../../../OUTPUT/PROGRAMS
 CComp         ?= gcc
-CompArgs      ?= -DPROCBIN_VADDR=0x08048000 -D__USER__ -D__PROCESS__ -D__UP__ -Wno-comment -Wno-comments -m32 -ffreestanding -fno-pic -fno-pie -nostdlib -O0 -Wall -Wextra -fno-stack-protector -fno-builtin -fno-inline
+CompArgs      ?= -DPROCBIN_VADDR=0x10000000 -D__USER__ -D__PROCESS__ -D__UP__ -Wno-comment -Wno-comments -m32 -ffreestanding -fno-pic -fno-pie -nostdlib -O0 -Wall -Wextra -fno-stack-protector -fno-builtin -fno-inline
 Includes      ?= \
 	-I$(CUR_DIR)/ \
 	-I$(CUR_DIR)/../../ \

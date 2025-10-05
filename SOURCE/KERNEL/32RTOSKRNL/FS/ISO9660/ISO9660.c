@@ -7,10 +7,13 @@
 #include <DRIVERS/VIDEO/VBE.h>
 
 #ifdef __RTOS__
+// In kernel usage, we use KHEAP for memory management
 #define MAlloc(sz) KMALLOC(sz)
 #define Free(ptr) KFREE(ptr)
 #else
-#error "ISO9660.c can only be compiled in RTOS mode!"
+// In process usage, we use UHEAP
+#error "ISO9660.c can only be compiled in RTOS mode as of now!"
+
 #endif
 
 static PrimaryVolumeDescriptor *pvd = NULLPTR;
@@ -239,8 +242,8 @@ IsoDirectoryRecord *ISO9660_FILERECORD_TO_MEMORY(CHAR *path) {
     }
 
 
-    IsoDirectoryRecord root;
-    IsoDirectoryRecord out;
+    IsoDirectoryRecord root; // root record
+    IsoDirectoryRecord out; // output record
     ISO9660_EXTRACT_ROOT_FROM_PVD(_pvd, &root);
 
     if (!ISO9660_READ_DIRECTORY_RECORD(normPath, &root, &out)) {
@@ -248,16 +251,16 @@ IsoDirectoryRecord *ISO9660_FILERECORD_TO_MEMORY(CHAR *path) {
         if (!pvd) Free(_pvd);
         return NULLPTR;
     }
-
+ 
     Free(normPath);
-
+    
     IsoDirectoryRecord *retval = MAlloc(sizeof(IsoDirectoryRecord));
     if (!retval) {
         if (!pvd) Free(_pvd);
         return NULLPTR;
     }
 
-    *retval = out;
+    MEMCPY(retval, &out, sizeof(IsoDirectoryRecord));
     return retval;
 }
 
@@ -278,7 +281,6 @@ VOIDPTR ISO9660_READ_FILEDATA_TO_MEMORY(IsoDirectoryRecord *fileptr) {
         Free(buffer);
         return NULLPTR;
     }
-
     return (VOIDPTR)buffer;
 }
 

@@ -79,6 +79,7 @@ typedef U16*         PU16;
 typedef U32*         PU32;
 
 typedef U32          SIZE_T;
+typedef U32          size_t;
 typedef U32          PTR;
 typedef U32          ADDR;
 
