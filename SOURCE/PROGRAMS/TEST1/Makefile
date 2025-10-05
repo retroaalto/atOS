@@ -2,7 +2,8 @@ CUR_DIR       := $(shell pwd)
 ProgramName   ?= TEST1
 Sources       ?= $(CUR_DIR)/TEST1.c \
 				 $(CUR_DIR)/../../KERNEL/32RTOSKRNL/DRIVERS/VIDEO/VBE.c \
-				 $(CUR_DIR)/../../KERNEL/32RTOSKRNL/DRIVERS/VIDEO/VESA.c
+				 $(CUR_DIR)/../../KERNEL/32RTOSKRNL/DRIVERS/VIDEO/VESA.c \
+                 $(CUR_DIR)/TEST1_2.c \
 
 #                  $(CUR_DIR)/../../STD/STRING.c \
 #                  $(CUR_DIR)/../../STD/MATH.c \
