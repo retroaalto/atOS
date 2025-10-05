@@ -326,7 +326,7 @@ void assert(BOOL condition) {
 // #define SHELL_PATH "INNER/INNER2/INSIDE_1.TXT"
 // #define DEBUG_PRINT_SHELL_CONTENTS_AND_HALT
 
-#define SHELL_PATH "PROGRAMS/TEST1.BIN"
+#define SHELL_PATH "PROGRAMS/atOShell/atOShell.BIN"
 
 VOIDPTR LOAD_KERNEL_SHELL(U32 *bin_size_out, IsoDirectoryRecord **fileptr_out) {
     U8 filename[] = SHELL_PATH; // ISO9660 format
@@ -377,7 +377,8 @@ void RTOSKRNL_LOOP(VOID) {
     U32 *tck = PIT_GET_TICKS_PTR();
     while(1) {
         if(*tck % PIT_TICKS_HZ == 0) {
-            x = (x + 1) % SCREEN_WIDTH;
+            early_debug_tcb(get_last_pid());
+            x = (x + 2) % SCREEN_WIDTH;
             if(x == 0) {
                 y = (y + 20) % SCREEN_HEIGHT;
                 if(y == 0) {
@@ -386,9 +387,12 @@ void RTOSKRNL_LOOP(VOID) {
             }
 
             VBE_DRAW_LINE(x, y, x+100, y, VBE_GREEN);
-            VBE_DRAW_STRING(10, 20, "green lines from Kernel", VBE_BLACK, VBE_GREEN);
+            VBE_DRAW_LINE(x, y+1, x+100, y+1, VBE_GREEN);
+            VBE_DRAW_LINE(x, y+2, x+100, y+2, VBE_GREEN);
+            VBE_DRAW_LINE(x, y+3, x+100, y+3, VBE_GREEN);
+            VBE_DRAW_LINE(x, y+4, x+100, y+4, VBE_GREEN);
+            VBE_DRAW_STRING(250, 20, "green line is drawn by Kernel", VBE_WHITE, VBE_BLUE);
             VBE_UPDATE_VRAM();
-            // early_debug_tcb(get_last_pid());
         }
 
     }

@@ -195,10 +195,13 @@ kernel:
 programs:
 	@echo "Building user programs..."
 	@mkdir -p $(INPUT_ISO_DIR_PROGRAMS)
-	@while read prog_dir prog_name; do \
-		echo "Building $$prog_name from $$prog_dir..."; \
-		$(MAKE) -C $$prog_dir || exit 1; \
-	done < $(PROGRAM_LIST_FILE)
+	@( \
+		cat $(PROGRAM_LIST_FILE) | while read prog_dir prog_name; do \
+			echo "Building $$prog_name from $$prog_dir..."; \
+			cmake -S $$prog_dir -B $$prog_dir/build -G "Unix Makefiles" || exit 1; \
+			cmake --build $$prog_dir/build || exit 1; \
+		done \
+	)
 	@echo "All user programs built successfully."
 
 # ISO build
@@ -217,7 +220,7 @@ iso: bootloader kernel programs
 	cp -f $(OUTPUT_KERNEL_DIR)/KERNEL.BIN $(INPUT_ISO_DIR)/KERNEL.BIN
 	cp -f $(OUTPUT_KERNEL_DIR)/32RTOSKRNL.BIN $(INPUT_ISO_DIR_SYSTEM)/32RTOSKRNL.BIN
 	cp -f $(OUTPUT_KERNEL_DIR)/KRNL.BIN $(INPUT_ISO_DIR)/KRNL.BIN
-	cp -f $(OUTPUT_USER_PROGRAMS_DIR)/*.BIN $(INPUT_ISO_DIR_PROGRAMS)/
+	cp -r $(OUTPUT_USER_PROGRAMS_DIR)/ $(INPUT_ISO_DIR)/
 
 	@echo "Building ISO..."
 	mkdir -p $(OUTPUT_ISO_DIR)

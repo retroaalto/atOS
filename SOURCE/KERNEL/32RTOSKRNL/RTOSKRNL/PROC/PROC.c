@@ -177,7 +177,7 @@ void copy_pde_range(U32 *dest_pd, U32 *src_pd, U32 start_vaddr, U32 end_vaddr) {
 void copy_kernel_pdes_with_offset(U32 *new_pd, U32 *kernel_pd) {
     for(U32 i = 0; i < PAGE_ENTRIES; i++) {
         // Skip user space PDEs
-        // if(i >= USER_PDE && i <= USER_PDE_END) continue;
+        if(i >= USER_PDE && i <= USER_PDE_END) continue;
         if(kernel_pd[i] & PAGE_PRESENT) {
             new_pd[i] = kernel_pd[i];
         }
@@ -500,8 +500,13 @@ BOOLEAN RUN_BINARY(U8 *proc_name, VOIDPTR file, U32 bin_size, U32 heap_size, U32
 
 
     TCB *new_proc = KMALLOC(sizeof(TCB));
+    
     panic_if(!new_proc, "Unable to allocate memory for TCB!", PANIC_OUT_OF_MEMORY);
-    MEMZERO(new_proc, sizeof(TCB));
+    MEMZERO(new_proc, sizeof(TCB));    
+    if(new_proc->info.pid > 2) {
+        // early_debug_tcb(new_proc->info.pid);
+        HLT;
+    }
 
     // Setup memory + trap frame
     panic_if(!setup_user_process(new_proc, (U8 *)file, bin_size, heap_size, stack_size, initial_state),
@@ -513,7 +518,6 @@ BOOLEAN RUN_BINARY(U8 *proc_name, VOIDPTR file, U32 bin_size, U32 heap_size, U32
 
     add_tcb_to_scheduler(new_proc);
     PIC_Unmask(0); // enable IRQ0 (PIT)
-
     STI;
     return TRUE;
 }
