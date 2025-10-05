@@ -6,7 +6,7 @@ ENTRY(_start)
 SECTIONS
 {
     /* Kernel load address in memory */
-    . = 0x0000;
+    . = 0x10000000;
 
     /* Code section */
     .text : {

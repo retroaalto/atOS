@@ -73,8 +73,9 @@ U8 *strncpy(U8 *dest, const U8 *src, U32 n) {
     return dest;
 }
 
+#define CDROM_SECTOR_SIZE 2048
 U32 CALC_SECTOR(U32 extent_length) {
-    return (extent_length + 511) >> 9;
+    return (extent_length + CDROM_SECTOR_SIZE - 1) / CDROM_SECTOR_SIZE;
 }
 
 U0 *strchr(const U8 *str, U8 c) {
@@ -281,6 +282,7 @@ U0 kernel_after_gdt(U0) {
         rowinc;
         HLT;
     }
+
     void (*entry)(void) = (void(*)(void))MEM_RTOSKRNL_BASE;
     __asm__ volatile("jmp *%0" :: "r"(entry) : "memory");
 

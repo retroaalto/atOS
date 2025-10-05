@@ -4,10 +4,10 @@
 #include <CPU/ISR/ISR.h>
 #include <STD/BINARY.h>
 
-static PS2KB_CMD_QUEUE cmd_queue;
-static PS2_INFO ps2_info = {0};
-static KEYPRESS last_key = {0}; // Store the last key pressed to avoid repeats
-static MODIFIERS modifiers = {0};
+static PS2KB_CMD_QUEUE cmd_queue __attribute__((section(".data"))) = {0};
+static PS2_INFO ps2_info __attribute__((section(".data"))) = {0};
+static KEYPRESS last_key __attribute__((section(".data"))) = {0}; // Store the last key pressed to avoid repeats
+static MODIFIERS modifiers __attribute__((section(".data"))) = {0};
 
 PS2_INFO *GET_PS2_INFO(VOID) {
     return &ps2_info;

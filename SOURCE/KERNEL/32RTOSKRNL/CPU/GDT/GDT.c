@@ -31,9 +31,13 @@ REMARKS
 #define WRITABLE_RNG0_KRNL 0x92
 #define GRANULARITY 0xCF
 
+#if defined(__RTOS__)
+static GDTENTRY g_GDT[GDT_ENTRY_COUNT]__attribute__((section(".data"))) = { 0 };
+static GDTDESCRIPTOR g_GDTDescriptor __attribute__((section(".data"))) = { 0 };
+#else // __RTOS__
 static GDTENTRY g_GDT[GDT_ENTRY_COUNT] = { 0 };
 static GDTDESCRIPTOR g_GDTDescriptor = { 0 };
-
+#endif // __RTOS__
 GDTDESCRIPTOR *GDT_GET_PTR(void) {
     return (U0 *)&g_GDTDescriptor;
 }

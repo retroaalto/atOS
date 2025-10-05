@@ -10,8 +10,11 @@ U0 *STRNCPY(U8* dest, CONST U8* src, U32 maxlen);
 U0 *STRCAT(U8* dest, CONST U8* src);
 U0 *STRNCAT(U8* dest, CONST U8* src, U32 maxlen);
 U8* STRNCONCAT(U8 *dest, U32 dest_pos, U8 *src, U32 max_len);
+
+// these return TRUE if equal
 BOOLEAN STRCMP(CONST U8* str1, CONST U8* str2);
 BOOLEAN STRNCMP(CONST U8* str1, CONST U8* str2, U32 n);
+
 U0 *STRCHR(CONST U8* str, U8 c);
 U32 ATOI(CONST U8* str);
 U32 ATOI_HEX(CONST U8* str);
@@ -22,5 +25,5 @@ U8 TOUPPER(U8 c);
 U8 TOLOWER(U8 c);
 U0 STR_TOUPPER(U8* str);
 U0 STR_TOLOWER(U8* str);
-
+U32 FIRST_INDEX_OF(CONST U8* str, U8 c);
 #endif // STRING_H

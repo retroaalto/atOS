@@ -12,6 +12,15 @@
 
 typedef U32 (*SYSCALL_HANDLER)(U32, U32, U32, U32, U32);
 
+/*
+TODO: To add
+GET_ERROR_CODE
+VBE FUNCTIONS
+Process Management
+Inter-Process Communication
+File Operations
+Memory Management
+*/
 typedef enum {
     SYSCALL_EXIT = 0,
     SYSCALL_PUTS,

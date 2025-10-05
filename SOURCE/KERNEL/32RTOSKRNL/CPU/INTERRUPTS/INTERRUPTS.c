@@ -8,6 +8,7 @@ typedef void (*isr_t)(void);
 #define ISR_NOERRORCODE(n) \
 __attribute__((naked)) void isr##n(void) { \
     asm volatile( \
+        "cli\n\t" \
         "pusha\n\t" \
         "movl %%esp, %%eax\n\t"   /* eax = current esp */ \
         "addl $28, %%eax\n\t"     /* adjust to point to EAX (first pusha register) */ \
@@ -17,6 +18,7 @@ __attribute__((naked)) void isr##n(void) { \
         "call isr_dispatch_c\n\t" \
         "addl $12, %%esp\n\t"     /* pop args */ \
         "popa\n\t" \
+        "sti\n\t" \
         "iret\n\t" ::: "eax", "memory"); \
 }
 
@@ -24,6 +26,7 @@ __attribute__((naked)) void isr##n(void) { \
 #define ISR_ERRORCODE(n) \
 __attribute__((naked)) void isr##n(void) { \
     asm volatile( \
+        "cli\n\t" \
         "pusha\n\t" \
         "movl 32(%%esp), %%edx\n\t" /* edx = CPU error code BEFORE pushing more */ \
         "movl %%esp, %%eax\n\t" \
@@ -34,6 +37,7 @@ __attribute__((naked)) void isr##n(void) { \
         "call isr_dispatch_c\n\t" \
         "addl $12, %%esp\n\t" \
         "popa\n\t" \
+        "sti\n\t" \
         "iret\n\t" ::: "eax","edx","memory"); \
 }
 
@@ -41,6 +45,7 @@ __attribute__((naked)) void isr##n(void) { \
 #define IRQ_WRAPPER(vec) \
 __attribute__((naked)) void irq##vec(void) { \
     asm volatile( \
+        "cli\n\t" \
         "pusha\n\t" \
         "movl %%esp, %%eax\n\t" \
         "addl $28, %%eax\n\t"     /* adjust to start of pusha */ \
@@ -50,6 +55,7 @@ __attribute__((naked)) void irq##vec(void) { \
         "call irq_dispatch_c\n\t" \
         "addl $12, %%esp\n\t" \
         "popa\n\t" \
+        "sti\n\t" \
         "iret\n\t" ::: "eax","memory"); \
 }
 
@@ -57,56 +63,61 @@ __attribute__((naked)) void irq##vec(void) { \
 // Generate stubs
 // ----------------------------------------------------
 // Exceptions (some with error code)
-ISR_NOERRORCODE(0)
-ISR_NOERRORCODE(1)
-ISR_NOERRORCODE(2)
-ISR_NOERRORCODE(3)
-ISR_NOERRORCODE(4)
-ISR_NOERRORCODE(5)
-ISR_NOERRORCODE(6)
-ISR_NOERRORCODE(7)
-ISR_ERRORCODE(8)
-ISR_NOERRORCODE(9)
-ISR_ERRORCODE(10)
-ISR_ERRORCODE(11)
-ISR_ERRORCODE(12)
-ISR_ERRORCODE(13)
-ISR_ERRORCODE(14)
-ISR_NOERRORCODE(15)
-ISR_NOERRORCODE(16)
-ISR_ERRORCODE(17)
-ISR_NOERRORCODE(18)
-ISR_NOERRORCODE(19)
-ISR_NOERRORCODE(20)
-ISR_NOERRORCODE(21)
-ISR_NOERRORCODE(22)
-ISR_NOERRORCODE(23)
-ISR_NOERRORCODE(24)
-ISR_NOERRORCODE(25)
-ISR_NOERRORCODE(26)
-ISR_NOERRORCODE(27)
-ISR_NOERRORCODE(28)
-ISR_NOERRORCODE(29)
-ISR_NOERRORCODE(30)
-ISR_NOERRORCODE(31)
+
+#ifdef __RTOS__
+// #define ISR_NOERRORCODE ISR_ERRORCODE
+#endif // __RTOS__
+
+ISR_NOERRORCODE(0) // Divide by zero
+ISR_NOERRORCODE(1) // Debug
+ISR_NOERRORCODE(2) // Non-maskable interrupt
+ISR_NOERRORCODE(3) // Breakpoint
+ISR_NOERRORCODE(4) // Overflow
+ISR_NOERRORCODE(5) // Bounds check
+ISR_NOERRORCODE(6) // Invalid opcode
+ISR_NOERRORCODE(7) // Device not available
+ISR_ERRORCODE(8) // Double fault
+ISR_NOERRORCODE(9) // Coprocessor segment overrun
+ISR_ERRORCODE(10) // Invalid TSS
+ISR_ERRORCODE(11) // Segment not present
+ISR_ERRORCODE(12) // Stack segment fault
+ISR_ERRORCODE(13) // General protection fault
+ISR_ERRORCODE(14) // Page fault
+ISR_NOERRORCODE(15) // Reserved
+ISR_NOERRORCODE(16) // x87 FPU Floating Point Error
+ISR_ERRORCODE(17) // Alignment check
+ISR_NOERRORCODE(18) // Machine check
+ISR_NOERRORCODE(19) // SIMD Floating Point Exception
+ISR_NOERRORCODE(20) // Virtualization Exception
+ISR_NOERRORCODE(21) // Control Protection Exception
+ISR_NOERRORCODE(22) // Reserved
+ISR_NOERRORCODE(23) // Reserved
+ISR_NOERRORCODE(24) // Reserved
+ISR_NOERRORCODE(25) // Reserved
+ISR_NOERRORCODE(26) // Reserved
+ISR_NOERRORCODE(27) // Reserved
+ISR_NOERRORCODE(28) // Reserved
+ISR_NOERRORCODE(29) // Reserved
+ISR_NOERRORCODE(30) // Reserved
+ISR_NOERRORCODE(31) // Reserved
 
 // IRQs (32–47)
-IRQ_WRAPPER(32)
-IRQ_WRAPPER(33)
-IRQ_WRAPPER(34)
-IRQ_WRAPPER(35)
-IRQ_WRAPPER(36)
-IRQ_WRAPPER(37)
-IRQ_WRAPPER(38)
-IRQ_WRAPPER(39)
-IRQ_WRAPPER(40)
-IRQ_WRAPPER(41)
-IRQ_WRAPPER(42)
-IRQ_WRAPPER(43)
-IRQ_WRAPPER(44)
-IRQ_WRAPPER(45)
-IRQ_WRAPPER(46)
-IRQ_WRAPPER(47)
+IRQ_WRAPPER(32) // IRQ0 - Timer
+IRQ_WRAPPER(33) // IRQ1 - Keyboard 
+IRQ_WRAPPER(34) // IRQ2 - Cascade
+IRQ_WRAPPER(35) // IRQ3 - COM2
+IRQ_WRAPPER(36) // IRQ4 - COM1
+IRQ_WRAPPER(37) // IRQ5 - LPT2
+IRQ_WRAPPER(38) // IRQ6 - Floppy
+IRQ_WRAPPER(39) // IRQ7 - LPT1
+IRQ_WRAPPER(40) // IRQ8 - RTC
+IRQ_WRAPPER(41) // IRQ9 - ACPI
+IRQ_WRAPPER(42) // IRQ10 - Reserved
+IRQ_WRAPPER(43) // IRQ11 - Reserved
+IRQ_WRAPPER(44) // IRQ12 - Reserved
+IRQ_WRAPPER(45) // IRQ13 - Reserved
+IRQ_WRAPPER(46) // IRQ14 - Reserved
+IRQ_WRAPPER(47) // IRQ15 - Reserved
 
 // All remaining vectors
 ISR_NOERRORCODE(48)

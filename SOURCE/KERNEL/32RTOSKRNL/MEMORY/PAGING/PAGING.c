@@ -1,226 +1,210 @@
-// paging_setup.c
-#include <STD/MEM.h>
-#include <STD/STRING.h>
-#include <STD/ASM.h>
-#include <MEMORY/MEMORY.h>   // provides MEM_USER_SPACE_BASE, etc.
-#include <PAGING/PAGEFRAME.h> // REQUEST_PAGE(), etc., used later
+/*
+READ ME @ PAGING.H
+*/
 #include <PAGING/PAGING.h>
-#include <RTOSKRNL/RTOSKRNL_INTERNAL.h> // panic()
-#include <VIDEO/VBE.h>       // VBE_DRAW_STRING(), etc., used in panic
-#include <STD/BINARY.h>
+#include <STD/MEM.h>
+#include <STD/ASM.h>
+#include <MEMORY/PAGEFRAME/PAGEFRAME.h>
+#include <MEMORY/MEMORY.h>
+#include <PAGING/PAGING.h>
+#include <STD/STRING.h>
+#include <VIDEO/VBE.h>
+#include <ERROR/ERROR.h>
+#include <PROC/PROC.h>
+#include <E820/E820.h>
+#include <RTOSKRNL_INTERNAL.h>
 
-#define PAGE_DIRECTORY_SIZE 1024
-#define PAGE_TABLE_SIZE     1024
-#define PAGE_ALIGN __attribute__((aligned(4096)))
-#define FOUR_MB (0x400000u)
-#define PAGE_SIZE (0x1000u)
 
-/* number of PDEs required to identity-map [0 .. MEM_USER_SPACE_BASE) */
-enum { KERNEL_PDE_COUNT = ((MEM_USER_SPACE_BASE + FOUR_MB - 1) / FOUR_MB) };
+static ADDR *page_directory __attribute__((section(".data"))) = NULL;
 
-/* safety: ensure we don't exceed 1024 PDEs */
-#if KERNEL_PDE_COUNT > PAGE_DIRECTORY_SIZE
-#  error "MEM_USER_SPACE_BASE requires more PDEs than available"
-#endif
+ADDR *get_page_directory(VOID) {
+    return page_directory;
+}
 
-/* aligned page directory + static tables used during INIT_PAGING */
-static PAGE_ALIGN U32 page_directory[PAGE_DIRECTORY_SIZE];
-static PAGE_ALIGN U32 page_tables[KERNEL_PDE_COUNT][PAGE_TABLE_SIZE];
 
-/* Convenience flags */
-#define PTE_PRESENT 0x1u
-#define PTE_WRITE   0x2u
-#define PTE_USER    0x4u
-
-/* Identity-map all addresses from 0..(MEM_USER_SPACE_BASE-1) */
-void INIT_PAGING(void) {
-    /* wipe structures */
-    MEMZERO(page_directory, sizeof(page_directory));
-    MEMZERO(page_tables, sizeof(page_tables));
-
-    /* For each PDE we need, point it to a static page table and fill entries */
-    for (unsigned pde = 0; pde < KERNEL_PDE_COUNT; ++pde) {
-        /* install page table base into PDE (present | rw) - no USER bit for kernel */
-        page_directory[pde] = ((U32)page_tables[pde]) | PTE_PRESENT | PTE_WRITE;
-
-        /* fill page table: identity map vaddr -> paddr for this 4MiB chunk */
-        U32 base_v = pde * FOUR_MB;
-        for (unsigned pti = 0; pti < PAGE_TABLE_SIZE; ++pti) {
-            U32 vaddr = base_v + (pti * PAGE_SIZE);
-            if (vaddr >= MEM_USER_SPACE_BASE) {
-                page_tables[pde][pti] = 0;
-            } else {
-                /* identity map: virtual == physical; kernel pages are present+rw */
-                page_tables[pde][pti] = (vaddr & 0xFFFFF000u) | PTE_PRESENT | PTE_WRITE;
-            }
-        }
+void identity_map_range(U32 *pd, U32 start, U32 end, U32 flags) {
+    // inclusive start, exclusive end; page-align
+    U32 s = start & ~0xFFF;
+    U32 e = (end + 0xFFF) & ~0xFFF;
+    for (U32 addr = s; addr < e; addr += PAGE_SIZE) {
+        map_page(pd, addr, addr, flags);
     }
+}
 
-
-    // After mapping kernel + heap + stack
-    VBE_MODEINFO *mode = GET_VBE_MODE();
-    U32 fb_base = (U32)mode->PhysBasePtr;
-    U32 fb_end  = fb_base + FRAMEBUFFER_SIZE;
-
-    for (U32 addr = ALIGN_DOWN(fb_base, PAGE_SIZE); addr < fb_end; addr += PAGE_SIZE) {
-        U32 dir_index   = (addr >> 22) & 0x3FF;
-        U32 table_index = (addr >> 12) & 0x3FF;
-
-        U32 *table;
-        if (!(page_directory[dir_index] & PTE_PRESENT)) {
-            table = page_tables[dir_index];      // static table pool
-            MEMZERO(table, PAGE_SIZE);
-            page_directory[dir_index] = ((U32)table) | PTE_PRESENT | PTE_WRITE;
-        } else {
-            table = (U32*)(page_directory[dir_index] & 0xFFFFF000);
-        }
-
-        table[table_index] = (addr & 0xFFFFF000) | PTE_PRESENT | PTE_WRITE;
+void identity_map_range_with_offset(U32 *pd, U32 start, U32 end, U32 offset, U32 flags) {
+    // inclusive start, exclusive end; page-align
+    U32 s = start & ~0xFFF;
+    U32 e = (end + 0xFFF) & ~0xFFF;
+    for (U32 addr = s; addr < e; addr += PAGE_SIZE) {
+        map_page(pd, addr + offset, addr, flags);
     }
+}
 
+// Load CR3 with page directory physical address
+VOID load_page_directory(ADDR phys_addr) {
+    ASM_VOLATILE("mov %0, %%cr3" : : "r"(phys_addr) : "memory");
+}
 
-
-    /* Load CR3 with physical address of page_directory.
-       Because these arrays are in the kernel image (identity), the pointer is a
-       valid physical address at this moment. */
-    asm volatile("mov %0, %%cr3" :: "r"((U32)page_directory) : "memory");
-    /* Enable paging: set PG bit in CR0 */
+// Enable paging by setting CR0.PG
+VOID enable_paging(VOID) {
     U32 cr0;
-    asm volatile("mov %%cr0, %0" : "=r"(cr0));
-    cr0 |= 0x80000000u; /* PG */
-
-    asm volatile("mov %0, %%cr0" :: "r"(cr0) : "memory");
-
-
-    __asm__ __volatile__ (
-        "mov %0, %%eax\n"
-        : : "r"(mode->PhysBasePtr) : "memory"
-    );
-
+    ASM_VOLATILE("mov %%cr0, %0" : "=r"(cr0));
+    cr0 |= 0x80000000; // Set PG
+    ASM_VOLATILE("mov %0, %%cr0" : : "r"(cr0) : "memory");
 }
 
+BOOLEAN PAGING_INIT(void) {
+    if (page_directory) return TRUE;
 
+    page_directory = (ADDR *)KREQUEST_PAGE();
+    panic_if(!page_directory, PANIC_TEXT("Failed to allocate page directory"), PANIC_OUT_OF_MEMORY);
+    MEMZERO(page_directory, PAGE_SIZE);
 
+    // Sanity checks on layout
+    panic_if((MEM_RTOSKRNL_BASE & 0xFFF) || (MEM_RTOSKRNL_END & 0xFFF),
+         PANIC_TEXT("Kernel range not page-aligned"), PANIC_INVALID_ARGUMENT);
 
+    panic_if((MEM_KERNEL_HEAP_BASE & 0xFFF) || (MEM_KERNEL_HEAP_END & 0xFFF),
+            PANIC_TEXT("Heap range not page-aligned"), PANIC_INVALID_ARGUMENT);
 
+    panic_if((STACK_0_BASE & 0xFFF) || (STACK_0_END & 0xFFF),
+            PANIC_TEXT("Stack range not page-aligned"), PANIC_INVALID_ARGUMENT);
 
+    panic_if(MEM_RTOSKRNL_END > MEM_KERNEL_HEAP_BASE,
+            PANIC_TEXT("Kernel overlaps heap"), PANIC_INVALID_STATE);
 
+    panic_if(MEM_KERNEL_HEAP_END + PAGE_SIZE != STACK_0_BASE,
+            PANIC_TEXT("Missing guard page below stack"), PANIC_INVALID_STATE);
 
-/* ------------------------------------------------------------------------- */
-/* Helpers for per-process page directories (callable after kernel heap init) */
-/* ------------------------------------------------------------------------- */
+    panic_if(STACK_0_END + PAGE_SIZE != MEM_FRAMEBUFFER_BASE,
+            PANIC_TEXT("Missing guard page above stack"), PANIC_INVALID_STATE);
 
-/* Create a fresh page directory for a user process:
-   - allocate it from KMALLOC (kernel heap), zero it and copy kernel PDEs
-   - kernel PDEs copied without PAGE_USER flag so user-mode can't access kernel */
-U32 *create_process_pagedir(void) {
-    U32 *pd = (U32 *)KMALLOC(PAGE_SIZE);
-    if (!pd) return NULL;
-    MEMZERO(pd, PAGE_SIZE);
+    // Guard page must exist between heap and stack base
+    panic_if(STACK_0_BASE < MEM_KERNEL_HEAP_END + PAGE_SIZE,
+            PANIC_TEXT("No space for stack guard page"), PANIC_INVALID_STATE);
 
-    /* copy kernel PDEs so kernel address range is mapped in the process PD */
-    for (unsigned i = 0; i < KERNEL_PDE_COUNT; ++i) {
-        pd[i] = page_directory[i]; /* these have no PAGE_USER bit */
+    // Also ensure we can subtract one page safely
+    panic_if(STACK_0_BASE < PAGE_SIZE,
+            PANIC_TEXT("Stack base too low for guard page"), PANIC_INVALID_STATE);
+
+    // Identity-map all memory reported by E820
+    E820Info *e820_entries = GET_E820_INFO();
+    panic_if(!e820_entries || e820_entries->RawEntryCount == 0,
+             PANIC_TEXT("No E820 entries found"), PANIC_INVALID_STATE);
+    for (U32 i = 0; i < e820_entries->RawEntryCount; i++) {
+        E820_ENTRY *e = &e820_entries->RawEntries[i];
+        if (e->Type == TYPE_E820_RAM) { // usable RAM
+            identity_map_range(page_directory, e->BaseAddressLow, e->BaseAddressLow + e->LengthLow, PAGE_PRW);
+        }
     }
-    return pd;
+
+    // NOTE: If you map new ranges, add to PROC.c identity_map_range calls too!
+    identity_map_range(page_directory, MEM_LOW_RESERVED_BASE, MEM_LOW_RESERVED_END, PAGE_PRW);
+    identity_map_range(page_directory, MEM_E820_BASE,          MEM_E820_END,          PAGE_PRW);
+    identity_map_range(page_directory, MEM_VESA_BASE,          MEM_VESA_END,          PAGE_PRW);
+    VBE_MODEINFO *vmi = GET_VBE_MODE();
+    if(vmi && vmi->PhysBasePtr && vmi->XResolution && vmi->YResolution && vmi->BitsPerPixel) {
+        U32 fb_start = vmi->PhysBasePtr;
+        U32 fb_size = vmi->YResolution * vmi->BytesPerScanLine;
+        U32 fb_end = fb_start + fb_size;
+        identity_map_range(page_directory, fb_start, fb_end, PAGE_PRW);
+    }
+    identity_map_range(page_directory, MEM_RTOSKRNL_BASE,      MEM_RTOSKRNL_END,      PAGE_PRW);
+    identity_map_range(page_directory, MEM_KERNEL_HEAP_BASE,   MEM_KERNEL_HEAP_END,   PAGE_PRW);
+    identity_map_range(page_directory, STACK_0_BASE,           STACK_0_END,           PAGE_PRW);
+    identity_map_range(page_directory, MEM_FRAMEBUFFER_BASE,   MEM_FRAMEBUFFER_END,   PAGE_PRW);
+
+    identity_map_range(page_directory, MEM_USER_SPACE_BASE, MEM_USER_SPACE_END_MIN, PAGE_PRW); // VGA memory
+
+    load_page_directory((ADDR)page_directory);
+    enable_paging();
+    return TRUE;
 }
 
-/* Map a single user virtual page into a process pagedir (pagedir must be kernel-allocated)
-   flags: combination of PTE_WRITE (writable) — PTE_USER implied for user pages */
-void MAP_USER_PAGE_IN_PAGEDIR(U32 *pagedir, VOIDPTR vaddr, VOIDPTR paddr, U32 flags) {
-    unsigned dir_index = (((U32)vaddr) >> 22) & 0x3FF;
-    unsigned table_index = (((U32)vaddr) >> 12) & 0x3FF;
-    U32 *ptable;
 
-    if (!(pagedir[dir_index] & PTE_PRESENT)) {
-        /* allocate page table from kernel heap (identity-mapped) */
-        ptable = (U32 *)KMALLOC(PAGE_SIZE);
-        if (!ptable) panic("Out of memory allocating user page table", 0);
-        MEMZERO(ptable, PAGE_SIZE);
 
-        /* store table address into PDE with USER bit (so user-mode can traverse) */
-        pagedir[dir_index] = ((U32)ptable & 0xFFFFF000u) | PTE_PRESENT | PTE_WRITE | PTE_USER;
+// Maps one 4KB virtual page to a physical page in a page directory.
+// Assumes pd is the *virtual address* of the page directory.
+// Flags should include PAGE_PRESENT | PAGE_RW | PAGE_USER as needed.
+void map_page(U32 *pd, U32 virt, U32 phys, U32 flags) {
+    // Calculate indices
+    U32 pd_index = (virt >> 22) & 0x3FF;
+    U32 pt_index = (virt >> 12) & 0x3FF;
+
+    // Get or create the page table for this directory entry
+    U32 pt_phys;
+
+    if (pd[pd_index] & PAGE_PRESENT) {
+        // Page table already exists
+        pt_phys = pd[pd_index] & ~0xFFF;
     } else {
-        ptable = (U32 *)(pagedir[dir_index] & 0xFFFFF000u);
+        // Allocate a new page for the page table
+        pt_phys = (U32)KREQUEST_PAGE();
+        panic_if(!pt_phys, PANIC_TEXT("Failed to allocate page table"), PANIC_OUT_OF_MEMORY);
+
+        // Zero out the new page table (using virtual address mapping)
+        U32 *pt_virt = (U32 *)phys_to_virt_pd(pt_phys);
+        MEMZERO(pt_virt, PAGE_SIZE);
+
+        // Add to page directory
+        pd[pd_index] = (pt_phys & ~0xFFF) | (PAGE_PRESENT | PAGE_READ_WRITE);
     }
 
-    /* install PTE: physical page + flags + present + user */
-    ptable[table_index] = (((U32)paddr) & 0xFFFFF000u) | (flags & 0xFFFu) | PTE_PRESENT | PTE_USER;
+    // Map physical page to virtual address
+    U32 *pt = (U32 *)phys_to_virt_pd(pd[pd_index] & ~0xFFF);
+    pt[pt_index] = (phys & ~0xFFF) | (flags & 0xFFF);
 
-    /* invalidate TLB entry for that virtual address */
-    asm volatile("invlpg (%0)" :: "r"(vaddr) : "memory");
+    // Invalidate TLB for that page
+    ASM_VOLATILE("invlpg (%0)" : : "r"(virt) : "memory");
 }
 
 
 
 
+BOOLEAN unmap_page(U32 *pd, U32 virt) {
+    // TODO: free page table if empty
+    U32 pd_index = (virt >> 22) & 0x3FF;
+    U32 pt_index = (virt >> 12) & 0x3FF;
+
+    if (!(pd[pd_index] & PAGE_PRESENT)) {
+        return FALSE; // Page table not present
+    }
+
+    U32 pt_phys = pd[pd_index] & ~0xFFF;
+    U32 *pt = (U32 *)phys_to_virt_pd(pt_phys);
+
+    if (!(pt[pt_index] & PAGE_PRESENT)) {
+        return FALSE; // Page not mapped
+    }
+
+    pt[pt_index] = 0; // Unmap the page
+
+    ASM_VOLATILE("invlpg (%0)" : : "r"(virt) : "memory");
+    return TRUE;
+}
 
 
+void map_process_page(U32 *pd, U32 virt, U32 phys, U32 flags) {
+    U32 pd_index = (virt >> 22) & 0x3FF;
+    U32 pt_index = (virt >> 12) & 0x3FF;
 
-
-/* Map a virtual page for user memory */
-void MAP_USER_PAGE(VOIDPTR vaddr, VOIDPTR paddr, U32 flags) {
-    U32 dir_index = ((U32)vaddr >> 22) & 0x3FF;
-    U32 table_index = ((U32)vaddr >> 12) & 0x3FF;
-
-    U32 *table;
-    if (!(page_directory[dir_index] & PTE_PRESENT)) {
-        // Allocate page table in kernel heap
-        table = (U32*)KMALLOC(PAGE_SIZE);
-        MEMSET(table, 0, PAGE_SIZE);
-        page_directory[dir_index] = ((U32)table) | PTE_PRESENT | PTE_WRITE | PTE_USER;
+    U32 pt_phys;
+    if (pd[pd_index] & PAGE_PRESENT) {
+        pt_phys = pd[pd_index] & ~0xFFF;
     } else {
-        table = (U32*)(page_directory[dir_index] & 0xFFFFF000);
+        pt_phys = (U32)KREQUEST_PAGE();
+        panic_if(!pt_phys, PANIC_TEXT("Failed to allocate page table"), PANIC_OUT_OF_MEMORY);
+
+        void *pt_virt = proc_phys_to_virt(pt_phys);
+        MEMZERO(pt_virt, PAGE_SIZE);
+
+        /* Ensure PD entry includes present, rw and user bits as appropriate */
+        pd[pd_index] = (pt_phys & ~0xFFF) | PAGE_PRW;
     }
 
-    table[table_index] = ((U32)paddr) | (flags & 0xFFF) | PTE_PRESENT | PTE_USER;
+    U32 *pt = (U32 *)proc_phys_to_virt(pt_phys);
+    /* Ensure PTE includes present bit and any requested flags (user/rw) */
+    pt[pt_index] = (phys & ~0xFFF) | (flags & 0xFFF) | PAGE_PRESENT;
 
-    // Invalidate TLB for this page
-    asm volatile("invlpg (%0)" :: "r"(vaddr) : "memory");
-}
-
-void map_user_stack() {
-    U32 stack_pages = pages_from_bytes(USER_STACK_SIZE);
-    for (U32 i = 0; i < stack_pages; i++) {
-        VOIDPTR phys = REQUEST_PAGE();
-        if (!phys) panic("PANIC: Out of memory allocating user stack!", PANIC_OUT_OF_MEMORY);
-        
-        // Map virtual page for stack
-        MAP_USER_PAGE((VOIDPTR)(USER_STACK_BASE + i * PAGE_SIZE), phys,
-                      PAGE_PRESENT | PAGE_WRITE | PAGE_USER);
-    }
-}
-
-void map_user_binary(U32 binary_size) {
-    U32 pages = pages_from_bytes(binary_size);
-    for (U32 i = 0; i < pages; i++) {
-        VOIDPTR phys = REQUEST_PAGE();
-        if (!phys) panic("PANIC: Out of memory allocating user binary!", PANIC_OUT_OF_MEMORY);
-        
-        // Map virtual page for binary
-        MAP_USER_PAGE((VOIDPTR)(USER_BINARY_BASE + i * PAGE_SIZE), phys,
-                      PAGE_PRESENT | PAGE_USER); // code usually read-only
-    }
-}
-
-void map_user_heap() {
-    static USER_HEAP_BLOCK *user_heap_start = (USER_HEAP_BLOCK *)0x00800000; // example base
-    user_heap_start->size = USER_HEAP_SIZE;
-    user_heap_start->free = TRUE;
-    user_heap_start->next = NULL;
-
-    U32 heap_pages = pages_from_bytes(USER_HEAP_SIZE);
-    for (U32 i = 0; i < heap_pages; i++) {
-        VOIDPTR phys = REQUEST_PAGE();
-        if (!phys) panic("PANIC: Out of memory allocating user heap!", PANIC_OUT_OF_MEMORY);
-        
-        MAP_USER_PAGE((VOIDPTR)((U32)user_heap_start + i * PAGE_SIZE), phys,
-                      PAGE_PRESENT | PAGE_WRITE | PAGE_USER);
-    }
-}
-
-void setup_user_process(U32 binary_size) {
-    map_user_stack();
-    map_user_binary(binary_size);
-    map_user_heap();
+    ASM_VOLATILE("invlpg (%0)" : : "r"(virt) : "memory");
 }

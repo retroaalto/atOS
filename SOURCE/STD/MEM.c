@@ -7,15 +7,31 @@ U0 *MEMCPY(U0* dest, CONST U0* src, U32 size) {
     return dest;
 }
 U0 *MEMSET(U0* dest, U8 value, U32 size) {
-    for(U32 i = 0; i < size; i++) {
-        ((U8*)dest)[i] = value;
+    U32 *p32 = (U32*)dest;
+    U32 v32 = value | (value << 8) | (value << 16) | (value << 24);
+
+    while (size >= 4) {
+        *p32++ = v32;
+        size -= 4;
     }
+
+    U8 *p8 = (U8*)p32;
+    while (size--) {
+        *p8++ = value;
+    }
+
     return dest;
 }
+
 U0 *MEMZERO(U0* dest, U32 size) {
-    MEMSET(dest, 0, size);
+    // Optimized version using rep stosb
+    asm volatile("rep stosb"
+                 : "+D"(dest), "+c"(size)
+                 : "a"(0)
+                 : "memory");
     return dest;
 }
+
 U0 *MEMCMP(CONST U0* ptr1, CONST U0* ptr2, U32 size) {
     for(U32 i = 0; i < size; i++) {
         if(((U8*)ptr1)[i] != ((U8*)ptr2)[i]) {

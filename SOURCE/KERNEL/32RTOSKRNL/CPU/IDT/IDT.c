@@ -6,10 +6,13 @@
 
 #define IDT_COUNT 256
 
-
+#if defined(__RTOS__)
+static IDTENTRY idt[IDT_COUNT] __attribute__((section(".data")))= { 0 };
+static IDTDESCRIPTOR idt_desc __attribute__((section(".data")))= { 0 };
+#else // __RTOS__
 static IDTENTRY idt[IDT_COUNT] = { 0 };
 static IDTDESCRIPTOR idt_desc = { 0 };
-
+#endif // __RTOS__
 IDTDESCRIPTOR *IDT_GET_PTR(void) {
     return &idt_desc;
 }

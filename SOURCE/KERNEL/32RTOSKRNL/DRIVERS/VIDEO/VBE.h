@@ -163,6 +163,7 @@ Blue min-max: 0-31
 
 // VBE_COLOUR macros
 typedef U16 VBE_PIXEL_COLOUR;
+typedef U16 VBE_COLOUR; // For compatibility with older code
 
 typedef struct {
     U32 X;

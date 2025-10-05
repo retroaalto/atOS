@@ -100,12 +100,11 @@ BOOLEAN VBE_FLUSH_SCREEN(U0) {
 U0 VBE_UPDATE_VRAM(U0) {
     VBE_MODEINFO* mode = GET_VBE_MODE();
     if (!mode) return;
-
+    
     // Copy only the required framebuffer bytes
     U32 copy_size = mode->BytesPerScanLineLinear * mode->YResolution;
     if (copy_size > FRAMEBUFFER_SIZE) copy_size = FRAMEBUFFER_SIZE;
     ___memcpy((void*)mode->PhysBasePtr, (void*)FRAMEBUFFER_ADDRESS, copy_size);
-    // __memcpy_safe_chunks((void*)mode->PhysBasePtr, (void*)FRAMEBUFFER_ADDRESS, copy_size);
 }
 
 U0 VBE_STOP_DRAWING(U0) {
@@ -178,12 +177,11 @@ BOOLEAN VBE_DRAW_ELLIPSE(U32 x0, U32 y0, U32 a, U32 b, VBE_PIXEL_COLOUR fill_col
     I32 dx = 0;
     I32 dy = 2*a2*y;
     I32 d1 = b2 - a2*b + a2/4;
-
     while(dx < dy) {
         for(I32 px = -x; px <= x; px++) {
             VBE_DRAW_PIXEL(CREATE_VBE_PIXEL_INFO(x0 + px, y0 + y, fill_colours));
             VBE_DRAW_PIXEL(CREATE_VBE_PIXEL_INFO(x0 + px, y0 - y, fill_colours));
-        }
+        }        
         x++;
         dx += 2*b2;
         if(d1 < 0) {
@@ -211,7 +209,6 @@ BOOLEAN VBE_DRAW_ELLIPSE(U32 x0, U32 y0, U32 a, U32 b, VBE_PIXEL_COLOUR fill_col
             d2 += a2 - dy + dx;
         }
     }
-
     return TRUE;
 }
 BOOLEAN VBE_DRAW_LINE(U32 x0_in, U32 y0_in, U32 x1_in, U32 y1_in, VBE_PIXEL_COLOUR colour) {
