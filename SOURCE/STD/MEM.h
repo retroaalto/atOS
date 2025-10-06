@@ -34,4 +34,7 @@ U0 *MEMZERO(U0* dest, U32 size);
 U0 *MEMCMP(CONST U0* ptr1, CONST U0* ptr2, U32 size);
 U0 *MEMMOVE(U0* dest, CONST U0* src, U32 size);
 
+// Convert a pointer from process address space to physical address space and vice versa
+U0 *PROC_TO_PHYS(U0* ptr);
+U0 *PHYS_TO_PROC(U0* ptr);
 #endif // MEM_H

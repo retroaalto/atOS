@@ -149,10 +149,6 @@ void page_fault_handler(I32 num, U32 errcode) {
 void isr_dispatch_c(int vector, U32 errcode, regs *regs_ptr) {
     #ifdef __RTOS__
     if (vector == SYSCALL_VECTOR) {
-        // DUMP_REGS(regs_ptr);
-        // DUMP_ERRCODE(errcode);
-        // DUMP_INTNO(vector);
-        // DUMP_MEMORY((U32)regs_ptr, 64);
         // Syscall handling (must run regardless of g_Handlers)
         U32 syscall_num = regs_ptr->eax;
         U32 a1 = regs_ptr->ebx;
@@ -251,6 +247,6 @@ VOID SETUP_ISR_HANDLERS(VOID) {
     ISR_REGISTER_HANDLER(14, page_fault_handler);
     ISR_REGISTER_HANDLER(8, double_fault_handler);
     ISR_REGISTER_HANDLER(2, nmi_handler);
-    ISR_REGISTER_HANDLER(SYSCALL_VECTOR, isr_syscall);
+    // ISR_REGISTER_HANDLER(SYSCALL_VECTOR, syscall_dispatcher);
     #endif // __RTOS__
 }

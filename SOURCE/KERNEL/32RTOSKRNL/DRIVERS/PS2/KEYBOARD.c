@@ -789,3 +789,7 @@ U8 *KEYPRESS_TO_CHARS(KEYPRESS *kp) {
     }
     return str;
 }
+
+MODIFIERS *GET_KEYBOARD_MODIFIERS(VOID) {
+    return &modifiers;
+}

@@ -13,7 +13,10 @@ Basically, this is kernel-level user process management with context switching
 #include <MEMORY/MEMORY.h>
 
 #define USER_BINARY_VADDR MEM_USER_SPACE_BASE // same as elf loading addr
-#define USER_HEAP_SIZE (4 * 1024 * 1024) // 4 MB
+
+// 4 KB. NOTE: Just a padding between binary and stack. Actual HEAP size is defined on the fly
+#define USER_HEAP_SIZE (1024 * 4) 
+
 #define USER_STACK_SIZE (1 * 1024 * 1024) // 1 MB
 #define MAX_USER_BINARY_SIZE (16 * 1024 * 1024) // 16 MB max binary size
 #define MAX_USER_MEM_SIZE MEM_USER_SPACE_END_MIN
@@ -31,8 +34,11 @@ Basically, this is kernel-level user process management with context switching
 #define TCB_STATE_ACTIVE    1
 #define TCB_STATE_WAITING   2
 #define TCB_STATE_TERMINATED 3
-#define TCB_STATE_ZOMBIE    4
 #define TCB_STATE_SLEEPING  5
+#define TCB_STATE_IO_WAIT   6
+#define TCB_STATE_IMMORTAL  7 // Cannot be killed
+#define TCB_STATE_ZOMBIE    8 // Dead but not yet reaped
+#define TCB_KILL            0x40000000 // Mark for kill
 
 /*
 Trap frame is pushed automatically by the PIT interrupt handler and used for context switching.
@@ -79,7 +85,21 @@ typedef struct TaskInfo {
     U32 num_switches; // number of times scheduled
 } __attribute__((packed)) TaskInfo;
 
+#define PROC_MSG_QUEUE_SIZE 16
+#define PROC_MSG_SIZE 128
 
+typedef struct proc_message {
+    U32 sender_pid;
+    U32 receiver_pid;
+    BOOLEAN msg_provided; // TRUE if message is provided
+    U8 message[PROC_MSG_SIZE];
+    U8 length; // length of message
+
+    U32 signal; // signal number, 0 if none
+
+    U32 timestamp; // time sent
+    BOOLEAN read; // TRUE if message has been read
+} PROC_MESSAGE;
 
 typedef struct TCB {
     TaskInfo info;
@@ -102,6 +122,13 @@ typedef struct TCB {
     U32 stack_size;
     U32 stack_pages;
     struct TCB *next;
+
+    struct TCB *parent; // Parent process, NULL for master
+
+    PROC_MESSAGE msg_queue[PROC_MSG_QUEUE_SIZE]; // Simple fixed-size message queue
+    U32 msg_count; // Number of messages in the queue
+    U32 msg_queue_head; // Index of the head of the queue
+    U32 msg_queue_tail; // Index of the tail of the queue
 } __attribute__((packed)) TCB;
 
 U32 is_task_switch_needed(void);
@@ -121,10 +148,11 @@ TCB *get_current_tcb(void);
 /// @param heap_size Size of user heap in bytes
 /// @param stack_size Size of user stack in bytes
 /// @param initial_state Initial state of the new process (e.g., TCB_STATE_ACTIVE)
+/// @param parent_pid PID of the parent process, or -1 for no parent
 /// @return TRUE on success, FALSE on failure
 /// @note The binary must be a flat binary. 
 /// @note IMPORTANT: Only for kernel
-BOOLEAN RUN_BINARY(U8 *proc_name, VOIDPTR file, U32 bin_size, U32 heap_size, U32 stack_size, U32 initial_state);
+BOOLEAN RUN_BINARY(U8 *proc_name, VOIDPTR file, U32 bin_size, U32 heap_size, U32 stack_size, U32 initial_state, U32 parent_pid);
 /// @brief Terminate a process by its PID
 /// @param pid Process ID to terminate
 /// @note IMPORTANT: Only for kernel
@@ -135,5 +163,11 @@ void KILL_PROCESS(U32 pid);
 void early_debug_tcb(U32 pid);
 
 TrapFrame* pit_handler_task_control(TrapFrame* tf);
+
+/// @brief Handle task state transitions.
+void PROC_HANDLE_TASK_TRANSITIONS(void);
+
+TCB *get_tcb_by_pid(U32 pid);
+TCB *get_tcb_by_name(U8 *name);
 
 #endif // RTOS_PROC_H

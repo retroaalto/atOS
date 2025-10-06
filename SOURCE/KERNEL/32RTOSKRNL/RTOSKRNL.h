@@ -12,7 +12,6 @@
 
 #include <DRIVERS/VIDEO/VBE.h>
 #include <DRIVERS/VIDEO/VESA.h>
-#include <DRIVERS/VIDEO/VOUTPUT.h>
 #include <DRIVERS/PS2/KEYBOARD.h>
 #include <CPU/PIT/PIT.h>
 

@@ -6,14 +6,23 @@ set(CUR_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(ProgramName TEST1) # Change me
 set(SOURCE_KERNEL_DIR ${CUR_DIR}/../../KERNEL)
 set(OUTPUT_DIR ${CUR_DIR}/../../../OUTPUT/PROGRAMS/${ProgramName})
+set(STD_DIR ${CUR_DIR}/../../STD)
 
 # === Sources ===
+file(GLOB STD_SOURCES
+    CONFIGURE_DEPENDS
+    "${STD_DIR}/*.c"
+)
 set(Sources
     # Change me
     ${CUR_DIR}/TEST1.c
     ${CUR_DIR}/TEST1_2.c
-    ${SOURCE_KERNEL_DIR}/32RTOSKRNL/DRIVERS/VIDEO/VBE.c
-    ${SOURCE_KERNEL_DIR}/32RTOSKRNL/DRIVERS/VIDEO/VESA.c
+
+    # Any additional sources
+    # STD library by default
+    # Kernel sources can be added if needed and
+    # you know what you're doing
+    ${STD_SOURCES}
 )
 
 # === Include directories ===

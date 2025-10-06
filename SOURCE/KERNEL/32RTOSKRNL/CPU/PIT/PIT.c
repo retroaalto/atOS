@@ -96,7 +96,7 @@ __attribute__((naked)) void isr_pit(void) {
         // eip, cs, eflags are pushed by CPU automatically
         // We push the rest manually
 
-        "cli\n\t" // disable interrupts
+        // "cli\n\t" // disable interrupts
         
         // Pushes all registers from previous task
         "pushl %%gs\n\t"
@@ -202,7 +202,7 @@ __attribute__((naked)) void isr_pit(void) {
     "end_switch:\n\t"
         
         // Return to the new task
-        "sti\n\t"
+        // "sti\n\t"
         "iret\n\t" // return to the new task, which pops eip, cs, eflags
         : : : "memory"
     );

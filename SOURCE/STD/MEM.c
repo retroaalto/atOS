@@ -52,3 +52,10 @@ U0 *MEMMOVE(U0* dest, CONST U0* src, U32 size) {
     }
     return dest;
 }
+
+U0 *PROC_TO_PHYS(U0* ptr) {
+    return NULLPTR;
+}
+U0 *PHYS_TO_PROC(U0* ptr) {
+    return NULLPTR;
+}

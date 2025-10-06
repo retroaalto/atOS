@@ -3,7 +3,6 @@ Internal RTOSKRNL functions. Some important functions like panic() are here,
 and some not-so-important functions are here.
 */
 #include <RTOSKRNL/RTOSKRNL_INTERNAL.h>
-#include <DRIVERS/VIDEO/VOUTPUT.h>
 #include <STD/ASM.h>
 #include <MEMORY/PAGEFRAME/PAGEFRAME.h>
 #include <MEMORY/PAGING/PAGING.h>
@@ -16,6 +15,7 @@ and some not-so-important functions are here.
 #include <ACPI/ACPI.h>
 #include <CPU/ISR/ISR.h> // for regs struct
 #include <PROC/PROC.h>
+#include <VIDEO/VBE.h>
 
 
 #define INC_rki_row(rki_row) (rki_row += VBE_CHAR_HEIGHT + 2)
@@ -327,6 +327,7 @@ void assert(BOOL condition) {
 // #define DEBUG_PRINT_SHELL_CONTENTS_AND_HALT
 
 #define SHELL_PATH "PROGRAMS/atOShell/atOShell.BIN"
+// #define SHELL_PATH "PROGRAMS/TEST1/TEST1.BIN"
 
 VOIDPTR LOAD_KERNEL_SHELL(U32 *bin_size_out, IsoDirectoryRecord **fileptr_out) {
     U8 filename[] = SHELL_PATH; // ISO9660 format
@@ -362,38 +363,19 @@ void LOAD_AND_RUN_KERNEL_SHELL(VOID) {
         return;
     }
 
-    panic_if(!RUN_BINARY("atOShell", file, bin_size, USER_HEAP_SIZE, USER_STACK_SIZE, TCB_STATE_ACTIVE), "PANIC: Failed to run kernel shell!", PANIC_KERNEL_SHELL_GENERAL_FAILURE);
+    panic_if(
+        !RUN_BINARY("atOShell", file, bin_size, USER_HEAP_SIZE, USER_STACK_SIZE, TCB_STATE_IMMORTAL, 0), 
+        "PANIC: Failed to run kernel shell!", 
+        PANIC_KERNEL_SHELL_GENERAL_FAILURE
+    );
     ISO9660_FREE_MEMORY(file);
     ISO9660_FREE_MEMORY(fileptr);
 }
 
 
-
-
 void RTOSKRNL_LOOP(VOID) {
-    VBE_FLUSH_SCREEN();
-    U32 x = 0;
-    U32 y = 5;
-    U32 *tck = PIT_GET_TICKS_PTR();
     while(1) {
-        if(*tck % PIT_TICKS_HZ == 0) {
-            early_debug_tcb(get_last_pid());
-            x = (x + 2) % SCREEN_WIDTH;
-            if(x == 0) {
-                y = (y + 20) % SCREEN_HEIGHT;
-                if(y == 0) {
-                    VBE_CLEAR_SCREEN(VBE_BLACK);
-                }
-            }
-
-            VBE_DRAW_LINE(x, y, x+100, y, VBE_GREEN);
-            VBE_DRAW_LINE(x, y+1, x+100, y+1, VBE_GREEN);
-            VBE_DRAW_LINE(x, y+2, x+100, y+2, VBE_GREEN);
-            VBE_DRAW_LINE(x, y+3, x+100, y+3, VBE_GREEN);
-            VBE_DRAW_LINE(x, y+4, x+100, y+4, VBE_GREEN);
-            VBE_DRAW_STRING(250, 20, "green line is drawn by Kernel", VBE_WHITE, VBE_BLUE);
-            VBE_UPDATE_VRAM();
-        }
-
+        PROC_HANDLE_TASK_TRANSITIONS();
+        // early_debug_tcb(1);
     }
 }

@@ -1,6 +1,6 @@
 // README: Please see top of MEMORY/PAGING/PAGING.c for paging overview
 #include <RTOSKRNL/RTOSKRNL_INTERNAL.h>
-#include <DRIVERS/VIDEO/VOUTPUT.h>
+#include <DRIVERS/VIDEO/VBE.h>
 #include <STD/ASM.h>
 #include <MEMORY/PAGEFRAME/PAGEFRAME.h>
 #include <MEMORY/PAGING/PAGING.h>
@@ -83,7 +83,7 @@ U32 get_next_pid(void) {
 
 static void init_master_tcb(void) {
     master_tcb.info.pid   = 0;
-    master_tcb.info.state = TCB_STATE_ACTIVE;   // running
+    master_tcb.info.state = TCB_STATE_IMMORTAL;
     master_tcb.info.cpu_time = 0;
     master_tcb.info.num_switches = 0;
     STRNCPY((char *)master_tcb.info.name, "32RTOSKRNL", TASK_NAME_MAX_LEN - 1);
@@ -463,6 +463,32 @@ U32 *setup_user_process(TCB *proc, U8 *binary_data, U32 bin_size, U32 heap_size,
     return proc->pagedir_phys;
 }
 
+TCB *get_tcb_by_pid(U32 pid) {
+    if (pid == 0) return &master_tcb;
+    TCB *master = &master_tcb;
+    TCB *curr = master->next;
+    while(curr != master) {
+        if(curr->info.pid == pid) {
+            return curr;
+        }
+        curr = curr->next;
+    }
+    return NULL;
+}
+
+TCB *get_tcb_by_name(U8 *name) {
+    if (!name) return NULL;
+    TCB *master = &master_tcb;
+    TCB *curr = master->next;
+    while(curr != master) {
+        if(STRNCMP((char *)curr->info.name, (char *)name, TASK_NAME_MAX_LEN) == 0) {
+            return curr;
+        }
+        curr = curr->next;
+    }
+    return NULL;
+}
+
 
 void add_tcb_to_scheduler(TCB *new_tcb) {
     panic_if(!new_tcb, PANIC_TEXT("Cannot add null TCB to scheduler!"), PANIC_INVALID_ARGUMENT);
@@ -489,7 +515,7 @@ void add_tcb_to_scheduler(TCB *new_tcb) {
     new_tcb->next = master;
 }
 
-BOOLEAN RUN_BINARY(U8 *proc_name, VOIDPTR file, U32 bin_size, U32 heap_size, U32 stack_size, U32 initial_state) {
+BOOLEAN RUN_BINARY(U8 *proc_name, VOIDPTR file, U32 bin_size, U32 heap_size, U32 stack_size, U32 initial_state, U32 parent_pid) {
     CLI;
     PIC_Mask(0);
 
@@ -498,15 +524,13 @@ BOOLEAN RUN_BINARY(U8 *proc_name, VOIDPTR file, U32 bin_size, U32 heap_size, U32
         return FALSE;
     }
 
-
     TCB *new_proc = KMALLOC(sizeof(TCB));
     
     panic_if(!new_proc, "Unable to allocate memory for TCB!", PANIC_OUT_OF_MEMORY);
     MEMZERO(new_proc, sizeof(TCB));    
-    if(new_proc->info.pid > 2) {
-        // early_debug_tcb(new_proc->info.pid);
-        HLT;
-    }
+    
+    if(parent_pid != U32_MAX)
+        new_proc->parent = get_tcb_by_pid(parent_pid);
 
     // Setup memory + trap frame
     panic_if(!setup_user_process(new_proc, (U8 *)file, bin_size, heap_size, stack_size, initial_state),
@@ -523,7 +547,7 @@ BOOLEAN RUN_BINARY(U8 *proc_name, VOIDPTR file, U32 bin_size, U32 heap_size, U32
 }
 
 void remove_tcb_from_scheduler(TCB *tcb) {
-    if (!tcb || tcb == &master_tcb) return;
+    if (!tcb || tcb->info.state == TCB_STATE_IMMORTAL) return;
 
     TCB *prev = &master_tcb;
     TCB *curr = master_tcb.next;
@@ -578,13 +602,13 @@ TCB *find_next_active_task(void) {
     TCB *next = start->next;
 
     while(next != start) {
-        if (next->info.state == TCB_STATE_ACTIVE) {
+        if (next->info.state == TCB_STATE_ACTIVE || next->info.state == TCB_STATE_IMMORTAL) {
             return next;
         }
         next = next->next;
     }
 
-    if (start->info.state == TCB_STATE_ACTIVE) {
+    if (start->info.state == TCB_STATE_ACTIVE || start->info.state == TCB_STATE_IMMORTAL) {
         return start; // only current is active
     }
 
@@ -700,4 +724,46 @@ void early_debug_tcb(U32 pid) {
 
         VBE_UPDATE_VRAM();
     } while((t = t->next) != get_master_tcb());
+}
+
+void PROC_HANDLE_TASK_TRANSITIONS(void) {
+    if (!initialized) return;
+    TCB *t = get_master_tcb();
+    do {
+        /*
+        Here we handle process states, e.g., if a process is waiting, sleeping, etc.
+
+        */
+    } while ((t = t->next) != get_master_tcb()); // Loop until we return to master task
+}
+
+
+// PROC_COMMANDS from tasks to kernel
+void empty_msg_queue(U32 pid) {
+    TCB *tcb = get_tcb_by_pid(pid);
+    if (!tcb) return;
+    
+    // Clear message queue
+    tcb->msg_queue_head = 0;
+    tcb->msg_queue_tail = 0;
+}
+
+void send_msg(PROC_MESSAGE *msg) {
+    if (!msg) return;
+    TCB *tcb = get_tcb_by_pid(msg->receiver_pid);
+    if (!tcb) return;
+
+    U32 next_tail = (tcb->msg_queue_tail + 1) % PROC_MSG_QUEUE_SIZE;
+    if (next_tail == tcb->msg_queue_head) {
+        // Queue is full, drop message
+        return;
+    }
+
+    tcb->msg_queue[tcb->msg_queue_tail] = *msg;
+    tcb->msg_queue_tail = next_tail;
+}
+
+// e.g., terminate self, sleep, wait, etc.
+void handle_kernel_messages(void) {
+    
 }

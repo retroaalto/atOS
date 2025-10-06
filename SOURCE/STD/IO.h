@@ -1,5 +1,5 @@
 /*+++
-    Source/STD/STDIO.h - Standard Input/Output Definitions
+    Source/STD/IO.h - Input/Output Definitions
 
     Part of atOS
 
@@ -20,12 +20,25 @@ REMARKS
     This file should NOT be included in kernel or low-level drivers, 
         as it may introduce unwanted dependencies and conflicts, and
         may increase binary size.
-    For kernel or low-level drivers, use low-level I/O driver functions instead.
+
+Function table:
+    - puts
+    - putc
 ---*/
-#ifndef STDIO_H
-#define STDIO_H
+#ifndef IO_H
+#define IO_H
 
-#include "./TYPEDEF.h" // TYPE DEFINITIONS
-#include "../KERNEL/32RTOSKRNL/DRIVERS/VIDEO/VBE.h" // VIDEO DRIVER, MEMORY AND CONSTANTS
+#include <STD/TYPEDEF.h>
+#include <DRIVERS/PS2/KEYBOARD.h> // For definitions
 
-#endif // STDIO_H
+void putc(U8 c);
+void puts(const U8 *str);
+
+void reset_keyboard(void);
+void get_last_keypress(KEYPRESS *kp);
+// KEYPRESS MUST be freed with free_keypress after use
+KEYPRESS *get_current_keypress(void);
+void free_keypress(KEYPRESS *kp);
+U8 KEYPRESS_TO_CHARS(KEYPRESS *kp);
+void get_modifiers(MODIFIERS *mod);
+#endif // IO_H
