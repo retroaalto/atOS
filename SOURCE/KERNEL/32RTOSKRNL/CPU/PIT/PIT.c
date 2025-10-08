@@ -200,7 +200,7 @@ __attribute__((naked)) void isr_pit(void) {
         "popl %%fs\n\t"
         "popl %%gs\n\t"
     "end_switch:\n\t"
-        
+        // "call update_current_framebuffer\n\t"
         // Return to the new task
         // "sti\n\t"
         "iret\n\t" // return to the new task, which pops eip, cs, eflags

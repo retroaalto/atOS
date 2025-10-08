@@ -13,8 +13,6 @@
 #include <ERROR/ERROR.h>
 
 #include <MEMORY/HEAP/KHEAP.h>
-#include <MEMORY/HEAP/UHEAP.h>
-
 
 #define BYTE_TO_PAGE(x) ((x) / PAGE_SIZE)
 static BYTEMAP pageFrameBytemap __attribute__((section(".data"))) = {0, 0};
@@ -112,11 +110,11 @@ BOOLEAN CREATE_PAGEFRAME_BYTEMAP() {
     set_range(STACK_0_BASE, STACK_0_END, PS_FREE, PS_RESERVED); // stack frames
     set_range(STACK_0_GUARD_ABOVE_BASE, STACK_0_GUARD_ABOVE_END, PS_FREE, PS_RESERVED); // unmapped guard
 
-    // set_range(
-    //     MEM_USER_SPACE_BASE, 
-    //     MEM_USER_SPACE_END_MIN, 
-    //     PS_FREE, PS_RESERVED
-    // ); // user space reserved
+    set_range(
+        MEM_USER_SPACE_BASE, 
+        MEM_USER_SPACE_END_MIN, 
+        PS_FREE, PS_FUSER
+    ); // user space reserved
 
     // Above 4GB is reserved (not handled), this also protects against overflow
     // of 32-bit virtual addresses in requests

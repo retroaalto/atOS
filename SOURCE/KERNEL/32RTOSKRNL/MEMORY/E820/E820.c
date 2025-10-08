@@ -3,6 +3,7 @@
 #include <STD/MEM.h>
 #include <RTOSKRNL_INTERNAL.h>
 #include <STD/STRING.h>
+#include <STD/ASM.h>
 
 #define EXPECTED_MAX_SIZE 32
 #define MIN_USER_SPACE_SIZE (MEM_USER_SPACE_END_MIN - MEM_USER_SPACE_BASE)
@@ -42,13 +43,27 @@ BOOLEAN E820_INIT(void) {
     U32 entries = 0;
 
     // Copy the E820 entries from the entry table to our local array
+
+    // U8 buf[20];
     for (U32 i = 0; i < EXPECTED_MAX_SIZE; i++) {
         if (entry_table[i].BaseAddressLow == 0 && entry_table[i].LengthLow == 0
             && entry_table[i].BaseAddressHigh == 0 && entry_table[i].LengthHigh == 0) {
             break;
         }
-        e820_entries[entries++] = entry_table[i];
+        // ITOA_U(i, buf, 10);
+        // VBE_DRAW_STRING(0, i * (VBE_CHAR_HEIGHT + 2), buf, VBE_WHITE, VBE_BLACK);
+        // ITOA_U(entry_table[i].BaseAddressLow, buf, 16);
+        // VBE_DRAW_STRING(50, i * (VBE_CHAR_HEIGHT + 2), buf, VBE_WHITE, VBE_BLACK);
+        // ITOA_U(entry_table[i].LengthLow, buf, 16);
+        // VBE_DRAW_STRING(150, i * (VBE_CHAR_HEIGHT + 2), buf, VBE_WHITE, VBE_BLACK);
+        // ITOA_U(entry_table[i].Type, buf, 10);
+        // VBE_DRAW_STRING(250, i * (VBE_CHAR_HEIGHT + 2), buf, VBE_WHITE, VBE_BLACK);
+        if (entries < EXPECTED_MAX_SIZE) {
+            e820_entries[entries++] = entry_table[i];
+        }
     }
+    // VBE_UPDATE_VRAM();
+    // HLT;
     e820_entry_count = entries;
 
     g_E820Info.RawEntryCount = 0;

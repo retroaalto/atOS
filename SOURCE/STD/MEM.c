@@ -1,4 +1,5 @@
 #include <STD/MEM.h>
+#include <CPU/SYSCALL/SYSCALL.h>
 
 U0 *MEMCPY(U0* dest, CONST U0* src, U32 size) {
     for(U32 i = 0; i < size; i++) {
@@ -31,14 +32,22 @@ U0 *MEMZERO(U0* dest, U32 size) {
                  : "memory");
     return dest;
 }
+U0 *MEMCPY_OPT(U0* dest, CONST U0* src, U32 size) {
+    // Optimized version using rep movsb
+    asm volatile("rep movsb"
+                 : "+D"(dest), "+S"(src), "+c"(size)
+                 :
+                 : "memory");
+    return dest;
+}
 
-U0 *MEMCMP(CONST U0* ptr1, CONST U0* ptr2, U32 size) {
+BOOLEAN MEMCMP(CONST U0* ptr1, CONST U0* ptr2, U32 size) {
     for(U32 i = 0; i < size; i++) {
         if(((U8*)ptr1)[i] != ((U8*)ptr2)[i]) {
-            return (U0*)1;
+            return TRUE;
         }
     }
-    return (U0*)0;
+    return FALSE;
 }
 U0 *MEMMOVE(U0* dest, CONST U0* src, U32 size) {
     if (dest < src || dest >= src + size) {
@@ -53,9 +62,15 @@ U0 *MEMMOVE(U0* dest, CONST U0* src, U32 size) {
     return dest;
 }
 
-U0 *PROC_TO_PHYS(U0* ptr) {
-    return NULLPTR;
+U0 *MAlloc(U32 size) {
+    return (U0 *)SYSCALL(SYSCALL_KMALLOC, size, 0, 0, 0, 0);
 }
-U0 *PHYS_TO_PROC(U0* ptr) {
-    return NULLPTR;
+U0 *CAlloc(U32 num, U32 size) {
+    return (U0 *)SYSCALL(SYSCALL_KMALLOC, num * size, 0, 0, 0, 0);
+}
+U0 *ReAlloc(U0* ptr, U32 oldSize, U32 newSize) {
+    return (U0 *)SYSCALL(SYSCALL_KREALLOC, ptr, oldSize, newSize, 0, 0);
+}
+VOID Free(U0* ptr) {
+    SYSCALL(SYSCALL_KFREE, ptr, 0, 0, 0, 0);
 }

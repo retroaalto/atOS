@@ -68,7 +68,13 @@ Video memory data is written into this location, and updated to the vbe framebuf
 #define FRAMEBUFFER_END MEM_FRAMEBUFFER_END
 #define FRAMEBUFFER_SIZE (FRAMEBUFFER_END - FRAMEBUFFER_ADDRESS + 1)
 
+#ifdef __RTOS__
+void flush_focused_framebuffer();
+void update_current_framebuffer();
 
+void debug_vram_start();
+void debug_vram_dump();
+#endif
 // 5:6:5 color format
 /*
 Usage as follows:
@@ -237,6 +243,7 @@ typedef struct {
 
 #define GET_VBE_MODE() ((VBE_MODEINFO*)(VBE_MODE_LOAD_ADDRESS_PHYS))
 
+#if defined(__RTOS__) || defined(KERNEL_ENTRY)
 /*+++
 BOOL vbe_check(U0)
 
@@ -705,5 +712,5 @@ REMARKS
     This draws a filled triangle in the framebuffer.
 ---*/
 BOOLEAN VBE_DRAW_TRIANGLE_FILLED(U32 x1, U32 y1, U32 x2, U32 y2, U32 x3, U32 y3, VBE_PIXEL_COLOUR colours);
-
+#endif // __RTOS__ || KERNEL_ENTRY
 #endif

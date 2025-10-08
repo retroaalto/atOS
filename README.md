@@ -172,4 +172,8 @@ Additional documentation is located in the `DOCS/` folder, as well as inline wit
 This project is licensed under the **MIT License**.
 See the [LICENSE](LICENSE) file for details.
 
+## Credits
+
+- [CREDITS](CREDITS) file for a full list of credits and acknowledgments.
+ 
 ---

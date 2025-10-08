@@ -8,6 +8,21 @@
 #ifndef TYPEDEF_H
 #define TYPEDEF_H
 
+#define ATTRIB_DATA __attribute__((section(".data")))
+#define ATTRIB_BSS  __attribute__((section(".bss")))
+#define ATTRIB_CODE __attribute__((section(".text")))
+#define ATTRIB_PACKED __attribute__((packed))
+#define ATTRIB_ALIGNED(x) __attribute__((aligned(x)))
+#define ATTRIB_NOINLINE __attribute__((noinline))
+#define ATTRIB_UNUSED __attribute__((unused))
+#define ATTRIB_USED __attribute__((used))
+#define ATTRIB_WEAK __attribute__((weak))
+#define ATTRIB_DEPRECATED __attribute__((deprecated))
+#define ATTRIB_COLD __attribute__((cold))
+#define ATTRIB_HOT __attribute__((hot))
+#define ATTRIB_NAKED __attribute__((naked))
+#define ATTRIB_NORETURN __attribute__((noreturn))
+
 // Keywords
 #define STATIC       static
 #define EXTERN       extern
@@ -42,6 +57,7 @@ typedef I16           S16;
 typedef I32           S32;
 
 // Floating-point definitions
+// Warning: Floats are not supported as of now
 typedef float         F32;
 
 // 64-bit integer definition... not nice...

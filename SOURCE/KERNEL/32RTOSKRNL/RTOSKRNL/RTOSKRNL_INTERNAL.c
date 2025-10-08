@@ -16,6 +16,7 @@ and some not-so-important functions are here.
 #include <CPU/ISR/ISR.h> // for regs struct
 #include <PROC/PROC.h>
 #include <VIDEO/VBE.h>
+#include <DRIVERS/PS2/KEYBOARD.h>
 
 
 #define INC_rki_row(rki_row) (rki_row += VBE_CHAR_HEIGHT + 2)
@@ -364,7 +365,8 @@ void LOAD_AND_RUN_KERNEL_SHELL(VOID) {
     }
 
     panic_if(
-        !RUN_BINARY("atOShell", file, bin_size, USER_HEAP_SIZE, USER_STACK_SIZE, TCB_STATE_IMMORTAL, 0), 
+        !RUN_BINARY("atOShell", file, bin_size, USER_HEAP_SIZE, USER_STACK_SIZE, 
+            TCB_STATE_IMMORTAL | TCB_STATE_INFO_CHILD_PROC_HANDLER , 0), 
         "PANIC: Failed to run kernel shell!", 
         PANIC_KERNEL_SHELL_GENERAL_FAILURE
     );
@@ -374,8 +376,20 @@ void LOAD_AND_RUN_KERNEL_SHELL(VOID) {
 
 
 void RTOSKRNL_LOOP(VOID) {
+    VBE_DRAW_ELLIPSE(1000, 0, 200,200, VBE_AQUA);
+    U32 i = 0;
+    U32 j = 0;
+    U32 pass = 0;
     while(1) {
-        PROC_HANDLE_TASK_TRANSITIONS();
-        // early_debug_tcb(1);
+        // VBE_DRAW_LINE(0, i, j, i, pass++ % 2 == 0 ? VBE_RED : VBE_GREEN);
+        // i++;
+        // if(i >= 1024) i = 0;
+        // j++;
+        // if(j >= 768) j = 0;
+        // if(pass >= 100) {
+        //     pass = 0;
+        //     pass = (pass % 2 == 0) ? 1 : -1;
+        // }
+        handle_kernel_messages();
     }
 }

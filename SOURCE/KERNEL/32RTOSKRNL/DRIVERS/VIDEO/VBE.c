@@ -1,7 +1,130 @@
 #include "./VBE.h"
 #include "../../../../STD/MATH.h"
-
 #include "./FONT8x8.h"
+
+VOIDPTR __memcpy_safe_chunks(VOIDPTR dest, const VOIDPTR src, U32 n) {
+    U8 *d = dest;
+    const U8 *s = src;
+
+    // Align to 4-byte boundary
+    while (((U32)d & 3) && n) {
+        *d++ = *s++;
+        n--;
+    }
+
+    // Copy 32-bit words
+    U32 *dw = (U32 *)d;
+    const U32 *sw = (const U32 *)s;
+
+    while (n >= 16) {
+        // Unrolled loop – copy 4×32 bits per iteration
+        dw[0] = sw[0];
+        dw[1] = sw[1];
+        dw[2] = sw[2];
+        dw[3] = sw[3];
+        dw += 4;
+        sw += 4;
+        n -= 16;
+    }
+
+    while (n >= 4) {
+        *dw++ = *sw++;
+        n -= 4;
+    }
+
+    // Copy any leftover bytes
+    d = (U8 *)dw;
+    s = (const U8 *)sw;
+    while (n--) {
+        *d++ = *s++;
+    }
+
+    return dest;
+}
+
+
+#ifdef __RTOS__
+#include <PROGRAMS/SHELL/VOUTPUT.h>
+#include <PROC/PROC.h>
+#include <STD/ASM.h>
+static VOIDPTR focused_task_framebuffer ATTRIB_DATA = FRAMEBUFFER_ADDRESS;
+
+static inline int paging_is_enabled(void) {
+    U32 cr0;
+    __asm__ volatile ("mov %%cr0, %0" : "=r"(cr0));
+    return (cr0 & (1u << 31)) != 0;
+}
+
+static inline void *__memcpy_fast(void *dest, const void *src, U32 n) {
+    if (!paging_is_enabled()) {
+        // If paging is not enabled, fall back to the safe chunked copy
+        return __memcpy_safe_chunks(dest, src, n);
+    }
+    __asm__ volatile (
+        "rep movsb"
+        : "+D"(dest), "+S"(src), "+c"(n)
+        :
+        : "memory"
+    );
+    return dest;
+}
+
+
+void flush_focused_framebuffer() {
+    static U32 was1pid = 0;
+    TCB *focused = get_focused_task();
+    if (!focused) {
+        focused_task_framebuffer = NULL;
+        return;
+    }
+    
+    if(!focused->framebuffer_mapped) {
+        focused_task_framebuffer = NULL;
+        return;
+    }
+
+    focused_task_framebuffer = focused->framebuffer_phys;
+    if(was1pid && focused->info.pid != 1) {
+        HLT;
+    }
+    if(focused->info.pid == 1) {
+        was1pid = 1;
+        focused_task_framebuffer = focused->framebuffer_virt;
+    }
+    VBE_MODEINFO* mode = GET_VBE_MODE();
+    if (!mode) return;
+    
+    // Copy only the required framebuffer bytes
+    U32 copy_size = mode->BytesPerScanLineLinear * mode->YResolution;
+    if (copy_size > FRAMEBUFFER_SIZE) copy_size = FRAMEBUFFER_SIZE;
+    __memcpy_fast((void*)mode->PhysBasePtr, (void*)focused_task_framebuffer, copy_size);
+}
+void update_current_framebuffer() {
+    TCB *current = get_current_tcb();
+    if (!current) {
+        focused_task_framebuffer = NULL;
+        return;
+    }
+    if(!current->framebuffer_mapped) {
+        focused_task_framebuffer = NULL;
+        return;
+    }
+    focused_task_framebuffer = current->framebuffer_phys;
+}
+void debug_vram_start() {
+    focused_task_framebuffer = FRAMEBUFFER_ADDRESS;
+}
+void debug_vram_dump() {
+    VBE_MODEINFO* mode = GET_VBE_MODE();
+    if (!mode) return;
+    
+    // Copy only the required framebuffer bytes
+    U32 copy_size = mode->BytesPerScanLineLinear * mode->YResolution;
+    if (copy_size > FRAMEBUFFER_SIZE) copy_size = FRAMEBUFFER_SIZE;
+    __memcpy_fast(mode->PhysBasePtr, FRAMEBUFFER_ADDRESS, copy_size);
+}
+
+#endif
 
 BOOLEAN VBE_DRAW_CHARACTER(U32 x, U32 y, U8 c, VBE_PIXEL_COLOUR fg, VBE_PIXEL_COLOUR bg) {
     VBE_MODEINFO* mode = GET_VBE_MODE();
@@ -28,33 +151,6 @@ U0 ___memcpy(void* dest, const void* src, U32 n) {
         d[i] = s[i];
     }
 }
-
-U0 __memcpy_safe_chunks(void* dest, const void* src, U32 n) {
-    U8* d = (U8*)dest;
-    const U8* s = (const U8*)src;
-
-    // Copy leading bytes until dest is 4-byte aligned
-    while (((U32)d & 3) && n) {
-        *d++ = *s++;
-        n--;
-    }
-
-    // Copy 4 bytes at a time
-    U32* d32 = (U32*)d;
-    const U32* s32 = (const U32*)s;
-    while (n >= 4) {
-        *d32++ = *s32++;
-        n -= 4;
-    }
-
-    // Copy remaining bytes
-    d = (U8*)d32;
-    s = (const U8*)s32;
-    while (n--) {
-        *d++ = *s++;
-    }
-}
-
 
 BOOL vbe_check(U0) {
     VBE_MODEINFO* mode = (VBE_MODEINFO*)(VBE_MODE_LOAD_ADDRESS_PHYS);
@@ -104,7 +200,15 @@ U0 VBE_UPDATE_VRAM(U0) {
     // Copy only the required framebuffer bytes
     U32 copy_size = mode->BytesPerScanLineLinear * mode->YResolution;
     if (copy_size > FRAMEBUFFER_SIZE) copy_size = FRAMEBUFFER_SIZE;
-    ___memcpy((void*)mode->PhysBasePtr, (void*)FRAMEBUFFER_ADDRESS, copy_size);
+    #ifdef __RTOS__
+    TCB *focused = get_focused_task();
+    if (!focused || !focused_task_framebuffer) 
+        flush_focused_framebuffer();
+    // else
+        // __memcpy_fast((void*)mode->PhysBasePtr, (void*)focused_task_framebuffer, copy_size);
+    #else
+    __memcpy_safe_chunks((void*)mode->PhysBasePtr, (void*)FRAMEBUFFER_ADDRESS, copy_size);
+    #endif
 }
 
 U0 VBE_STOP_DRAWING(U0) {
@@ -113,7 +217,12 @@ U0 VBE_STOP_DRAWING(U0) {
 
 BOOLEAN VBE_DRAW_FRAMEBUFFER(U32 pos, VBE_PIXEL_COLOUR colour) {
     VBE_MODEINFO* mode = (VBE_MODEINFO*)(VBE_MODE_LOAD_ADDRESS_PHYS);
+    #ifdef __RTOS__
+    U8* framebuffer = (U8*)focused_task_framebuffer;
+    if(!framebuffer) return FALSE;
+    #else
     U8* framebuffer = (U8*)(FRAMEBUFFER_ADDRESS);
+    #endif
     if(colour == VBE_SEE_THROUGH) return TRUE;
 
     if (!framebuffer || !mode) return FALSE;

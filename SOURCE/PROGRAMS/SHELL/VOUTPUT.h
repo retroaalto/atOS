@@ -16,12 +16,26 @@ typedef struct {
     BOOLEAN AUTO_WRAP;
     BOOLEAN CURSOR_VISIBLE;
     BOOLEAN CURSOR_BLINK; 
-    BOOLEAN FLUSH_ON_CHANGE; // If TRUE, the screen is updated immediately after drawing
+
+    // Screen size in characters
+    U32 ROWS;
+    U32 COLUMNS;
+    
+    // Screen width and height in pixels
+    U32 SWIDTH;
+    U32 SHEIGHT; 
+
+    U32 X_POS; // Left-most pixel of the shell area
+    U32 Y_POS; // Top-most pixel of the shell area
+
+    // Text buffer for the screen
+    // Each character is represented by a single byte
+    U8 *text_buffer;
 } OutputInfo;
 
 typedef OutputInfo* OutputHandle;
 
-OutputHandle *GetOutputHandle(void);
+OutputHandle GetOutputHandle(void);
 
 #undef  SCREEN_WIDTH
 #undef  SCREEN_HEIGHT
@@ -35,9 +49,6 @@ OutputHandle *GetOutputHandle(void);
 #define AMOUNT_OF_COLS (SCREEN_WIDTH / (CHAR_WIDTH + CHAR_SPACING))
 #define AMOUNT_OF_ROWS (SCREEN_HEIGHT / (CHAR_HEIGHT + CHAR_SPACING))
 #define CHARACTERS 256 // Extended ASCII characters
-
-#define FILLSHAPE 0x0000001
-typedef U32 DrawInfo;
 
 U0 INIT_SHELL_VOUTPUT(VOID);
 // Increases the cursor column by one, moving to next row if at end
@@ -81,7 +92,5 @@ VOID FLUSH_SCREEN(U0);
 U32 COL_TO_PIX(U32 col);
 // Converts a text row number to pixel Y coordinate
 U32 ROW_TO_PIX(U32 row);
-
-BOOLEAN BEGIN_DRAWING(DrawInfo drawInfo);
 
 #endif // VOUTPUT_H

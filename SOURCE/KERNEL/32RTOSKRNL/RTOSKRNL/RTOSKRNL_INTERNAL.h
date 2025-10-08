@@ -2,7 +2,6 @@
 #define RTOSKRNL_INTERNAL_H
 #include <STD/TYPEDEF.h>
 #include <MEMORY/PAGEFRAME/PAGEFRAME.h> // for USER_HEAP_BLOCK
-#include <MEMORY/HEAP/UHEAP.h> // for USER_HEAP_BLOCK
 #include <CPU/ISR/ISR.h> // for regs struct
 
 // This shows ONLY filename and line number in panic messages
