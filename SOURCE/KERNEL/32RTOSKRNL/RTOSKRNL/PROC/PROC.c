@@ -421,11 +421,14 @@ U32 *setup_user_process(TCB *proc, U8 *binary_data, U32 bin_size, U32 heap_size,
     U32 bin_pages = pages_from_bytes(bin_size);
     U32 heap_pages = pages_from_bytes(heap_size);
     U32 stack_pages = pages_from_bytes(stack_size);
-    U32 framebuffer_pages = pages_from_bytes(FRAMEBUFFER_SIZE);
+    VBE_MODEINFO* mode = GET_VBE_MODE();
+    U32 framebuffer_sz = mode->BytesPerScanLineLinear * mode->YResolution;
+    U32 framebuffer_pages = pages_from_bytes(framebuffer_sz);
     if (bin_pages == 0 || heap_pages == 0 || stack_pages == 0 || framebuffer_pages == 0) {
         destroy_process_pagedir(proc->pagedir_phys);
         return NULL;
     }
+    framebuffer_pages++; // one page padding between stack
     proc->binary_size = bin_size;
     proc->binary_pages = bin_pages;
     proc->heap_size = heap_size;
@@ -486,9 +489,16 @@ U32 *setup_user_process(TCB *proc, U8 *binary_data, U32 bin_size, U32 heap_size,
         map_page(proc->pagedir_phys, vaddr, phys, PAGE_PRW);
     }
     #endif
-    proc->framebuffer_phys = (VOIDPTR)( (U32)pages + ( (bin_pages + heap_pages + stack_pages) * PAGE_SIZE) );
-    proc->framebuffer_virt = (VOIDPTR)USER_BINARY_VADDR + ( (bin_pages + heap_pages + stack_pages) * PAGE_SIZE);
+
+    // +1 is to adjust for padding between stack and framebuffer
+    proc->framebuffer_phys = (VOIDPTR)( (U32)pages + ( (bin_pages + heap_pages + stack_pages + 1) * PAGE_SIZE) );
+    proc->framebuffer_virt = (VOIDPTR)USER_BINARY_VADDR + ( (bin_pages + heap_pages + stack_pages + 1) * PAGE_SIZE);
     proc->framebuffer_mapped = FALSE; // Flagged as not mapped yet. User process must request to draw to framebuffer
+
+    // copy parent's framebuffer into virt
+    if(proc->parent != NULL) {
+        MEMCPY_OPT(proc->framebuffer_phys, proc->parent->framebuffer_phys, framebuffer_sz);
+    }
 
     // Initialize trap frame
     init_task_context(proc, (void (*)(void))USER_BINARY_VADDR, stack_size, initial_state);
@@ -521,7 +531,6 @@ TCB *get_tcb_by_name(U8 *name) {
     }
     return NULL;
 }
-
 
 void add_tcb_to_scheduler(TCB *new_tcb) {
     panic_if(!new_tcb, PANIC_TEXT("Cannot add null TCB to scheduler!"), PANIC_INVALID_ARGUMENT);
@@ -629,7 +638,7 @@ void KILL_PROCESS(U32 pid) {
 }
 
 volatile static U32 tcks __attribute__((section(".data"))) = 0;
-
+volatile static U32 last_screen_buf_update ATTRIB_DATA = 0;
 TCB *find_next_active_task(void) {
     if (!initialized) return NULL;
 
@@ -664,14 +673,12 @@ TCB *find_next_active_task(void) {
 TrapFrame* pit_handler_task_control(TrapFrame *cur) {
     // todo: tick counter here
     tcks++;
+    if(EVERY_HZ(tcks, 24)) {
+        flush_focused_framebuffer(); 
+    }
     if (!initialized) {
         return cur;
-    }
-    update_current_framebuffer();
-    if(tcks % 3 == 0) {
-        flush_focused_framebuffer();
-    }
-    
+    }    
 
     if (current_tcb) {
         current_tcb->tf = cur;
@@ -679,15 +686,16 @@ TrapFrame* pit_handler_task_control(TrapFrame *cur) {
     }
     
     TCB *next = find_next_active_task();
-
+    
     if (!next) {
-        panic(PANIC_TEXT("No active tasks to switch to!"), PANIC_CONTEXT_SWITCH_FAILED);
+        // panic(PANIC_TEXT("No active tasks to switch to!"), PANIC_CONTEXT_SWITCH_FAILED);
         next = current_tcb; 
     }
     
     current_tcb = next;
     update_current_framebuffer();
     current_tcb->info.num_switches++;
+
 
     set_next_task_esp_val((U32)current_tcb->tf);
     set_next_task_cr3_val((U32)current_tcb->pagedir_phys);
@@ -696,6 +704,8 @@ TrapFrame* pit_handler_task_control(TrapFrame *cur) {
     last_tcb = current_tcb;
     return current_tcb->tf;
 }
+
+
 
 void INC_rki_row(U32 *rki_row) {
     *rki_row += VBE_CHAR_HEIGHT + 2;
@@ -784,12 +794,17 @@ void early_debug_tcb(U32 pid) {
 }
 
 
+
+
+
+
+
 U32 get_ticks(void) {
     return tcks;
 }
 
 U32 get_uptime_sec(void) {
-    return tcks / 100;
+    return tcks / TICKS_PER_SECOND;
 }
 
 TCB *get_focused_task(void) {
@@ -799,9 +814,6 @@ void free_message(PROC_MESSAGE *msg) {
     if (!msg) return;
     if(msg->data_provided && msg->data) {
         KFREE(msg->data);
-    }
-    if(msg->msg_provided && msg->msg) {
-        KFREE(msg->msg);
     }
     KFREE(msg);
 }
@@ -814,6 +826,7 @@ void empty_msg_queue(U32 pid) {
     tcb->msg_queue_head = 0;
     tcb->msg_queue_tail = 0;
 }
+
 void add_message(TCB *t, PROC_MESSAGE *msg) {
     if (!t || !msg) return;
     U32 next_tail = (t->msg_queue_tail + 1) % PROC_MSG_QUEUE_SIZE;
@@ -825,7 +838,6 @@ void add_message(TCB *t, PROC_MESSAGE *msg) {
     MEMCPY(&t->msg_queue[t->msg_queue_tail], msg, sizeof(PROC_MESSAGE));
     t->msg_queue_tail = next_tail;
     t->msg_count++;
-    free_message(msg);
 }
 
 
@@ -834,6 +846,7 @@ void send_msg(PROC_MESSAGE *msg) {
     TCB *receiver = get_tcb_by_pid(msg->receiver_pid);
 
     if (!receiver) return;
+
     // Add message to queue
     add_message(receiver, msg);
 }
@@ -873,11 +886,11 @@ void handle_kernel_messages(void) {
                     resp->type = PROC_FRAMEBUFFER_GRANTED;
                     resp->signal = 0    ;
                     resp->data_provided = FALSE;
-                    resp->msg_provided = FALSE;
                     resp->timestamp = get_uptime_sec();
                     resp->read = FALSE;
                     resp->data = NULL;
                     send_msg(resp);
+                    free_message(resp);
                 }
                 break;
             case PROC_RELEASE_FRAMEBUFFER:
@@ -900,11 +913,11 @@ void handle_kernel_messages(void) {
                     resp->type = PROC_KEYBOARD_EVENTS_GRANTED;
                     resp->signal = 0;
                     resp->data_provided = FALSE;
-                    resp->msg_provided = FALSE;
                     resp->timestamp = get_uptime_sec();
                     resp->read = FALSE;
                     resp->data = NULL;
                     send_msg(resp);
+                    free_message(resp);
                 }
                 break;
             case PROC_RELEASE_KEYBOARD_EVENTS:
@@ -927,26 +940,17 @@ void handle_kernel_messages(void) {
                     resp->type = PROC_MOUSE_EVENTS_GRANTED;
                     resp->signal = 0;
                     resp->data_provided = FALSE;
-                    resp->msg_provided = FALSE;
                     resp->timestamp = get_uptime_sec();
                     resp->read = FALSE;
                     resp->data = NULL;
                     send_msg(resp);
+                    free_message(resp);
                 }
                 break;
             case PROC_RELEASE_MOUSE_EVENTS:
                 t = get_tcb_by_pid(msg->sender_pid);
                 if(t) {
                     FLAG_UNSET(t->info.event_types, PROC_EVENT_INFORM_ON_MOUSE_EVENTS);
-                }
-                break;
-            case PROC_MSG_PANIC:
-                // A task has requested a kernel panic
-                if(msg->data_provided && msg->data) {
-                    U8 *panic_msg = (U8 *)msg->data;
-                    panic(panic_msg, msg->signal);
-                } else {
-                    panic(PANIC_TEXT("User process requested kernel panic"), msg->signal);
                 }
                 break;
             case PROC_MSG_NONE:
@@ -966,29 +970,30 @@ void handle_kernel_messages(void) {
         PROC_EVENT_TYPE ev = t->info.event_types;
         if(IS_FLAG_SET(ev, PROC_EVENT_INFORM_ON_KB_EVENTS)) {
             KEYPRESS k = GET_CURRENT_KEY_PRESSED();
-            MODIFIERS *mods = GET_KEYBOARD_MODIFIERS();
-
-            PROC_MESSAGE *msg = KMALLOC(sizeof(PROC_MESSAGE));
-            msg->sender_pid = 0; // from kernel
-            msg->receiver_pid = t->info.pid;
-            msg->type = PROC_MSG_KEYBOARD;
-
-            msg->data_provided = TRUE;
-            msg->data = KMALLOC(sizeof(KEYPRESS) + sizeof(MODIFIERS));
-            if(!msg->data) {
-                KFREE(msg);
-                continue;
-            }
-            MEMZERO(msg->data, sizeof(KEYPRESS) + sizeof(MODIFIERS));
-            MEMCPY(msg->data, &k, sizeof(KEYPRESS));
-            MEMCPY((U8 *)msg->data + sizeof(KEYPRESS), mods, sizeof(MODIFIERS));
-
-            msg->msg_provided = FALSE;
-
-            msg->timestamp = get_uptime_sec();
-            msg->read = FALSE;
-
-            send_msg(msg);
+            if(!k.keycode == KEY_UNKNOWN) {
+                MODIFIERS *mods = GET_KEYBOARD_MODIFIERS();
+    
+                PROC_MESSAGE *msg = KMALLOC(sizeof(PROC_MESSAGE));
+                msg->sender_pid = 0; // from kernel
+                msg->receiver_pid = t->info.pid;
+                msg->type = PROC_MSG_KEYBOARD;
+    
+                msg->data_provided = TRUE;
+                msg->data = KMALLOC(sizeof(KEYPRESS) + sizeof(MODIFIERS));
+                if(!msg->data) {
+                    KFREE(msg);
+                    continue;
+                }
+                MEMZERO(msg->data, sizeof(KEYPRESS) + sizeof(MODIFIERS));
+                MEMCPY(msg->data, &k, sizeof(KEYPRESS));
+                MEMCPY((U8 *)msg->data + sizeof(KEYPRESS), mods, sizeof(MODIFIERS));
+    
+                msg->timestamp = get_uptime_sec();
+                msg->read = FALSE;
+    
+                send_msg(msg);
+                free_message(msg);
+            } 
         }
     } while((t = t->next) != get_master_tcb());
 }

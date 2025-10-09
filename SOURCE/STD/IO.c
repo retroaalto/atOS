@@ -39,9 +39,6 @@ void cls(void);
 //     Free(kp);
 // }
 U8 keypress_to_char(U32 kcode) {
-    U8 *chars = (U8 *)SYSCALL(SYSCALL_KEYPRESS_TO_CHARS, kcode, 0, 0, 0, 0);
-    if (!chars) return 0;
-    U8 c = chars[0];
-    Free(chars);
+    U8 c = (U8)SYSCALL(SYSCALL_KEYPRESS_TO_CHARS, kcode, 0, 0, 0, 0);
     return c;
 }

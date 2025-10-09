@@ -16,44 +16,46 @@ static SYSCALL_HANDLER syscall_table[SYSCALL_MAX] = {
 
 U32 SYS_VBE_UPDATE_VRAM(U32 unused1, U32 unused2, U32 unused3, U32 unused4, U32 unused5) {
     (void)unused1; (void)unused2; (void)unused3; (void)unused4; (void)unused5;
-    update_current_framebuffer();
+
     VBE_UPDATE_VRAM();
     return 0;
 }
 U32 SYS_VBE_DRAW_CHARACTER(U32 x, U32 y, U32 ch, U32 fg, U32 bg) {
-    update_current_framebuffer();
+
     return (U32)VBE_DRAW_CHARACTER(x, y, (U8)ch, (VBE_PIXEL_COLOUR)fg, (VBE_PIXEL_COLOUR)bg);
 }
 U32 SYS_VBE_DRAW_STRING(U32 x, U32 y, U32 str, U32 fg, U32 bg) {
     if (!str) return 0;
-    update_current_framebuffer();
+
     return (U32)VBE_DRAW_STRING(x, y, (U8*)str, (VBE_PIXEL_COLOUR)fg, (VBE_PIXEL_COLOUR)bg);
 }
 U32 SYS_VBE_CLEAR_SCREEN(U32 colour, U32 unused2, U32 unused3, U32 unused4, U32 unused5) {
     (void)unused2; (void)unused3; (void)unused4; (void)unused5;
-    update_current_framebuffer();
-    return (U32)VBE_CLEAR_SCREEN((VBE_PIXEL_COLOUR)colour);
+
+    U32 retval = (U32)VBE_CLEAR_SCREEN((VBE_PIXEL_COLOUR)colour);
+    return retval;
 }
 U32 SYS_VBE_DRAW_PIXEL(U32 x, U32 y, U32 colour, U32 unused4, U32 unused5) {
     (void)unused4; (void)unused5;
+
     return (U32)VBE_DRAW_PIXEL(CREATE_VBE_PIXEL_INFO(x, y, (VBE_PIXEL_COLOUR)colour));
 }
 U32 SYS_VBE_DRAW_FRAMEBUFFER(U32 pos, U32 colour, U32 unused3, U32 unused4, U32 unused5) {
     (void)unused3; (void)unused4; (void)unused5;
-    update_current_framebuffer();
+
     return (U32)VBE_DRAW_FRAMEBUFFER(pos, (VBE_PIXEL_COLOUR)colour);
 }
 U32 SYS_VBE_DRAW_ELLIPSE(U32 x, U32 y, U32 rx, U32 ry, U32 colour) {
-    update_current_framebuffer();
+
     return (U32)VBE_DRAW_ELLIPSE(x, y, rx, ry, (VBE_PIXEL_COLOUR)colour);
 }
 U32 SYS_VBE_DRAW_LINE(U32 x1, U32 y1, U32 x2, U32 y2, U32 colour) {
-    update_current_framebuffer();
+
     U32 retval = (U32)VBE_DRAW_LINE(x1, y1, x2, y2, (VBE_PIXEL_COLOUR)colour);
     return retval;
 }
 U32 SYS_VBE_DRAW_RECTANGLE(U32 x, U32 y, U32 width, U32 height, U32 colour) {
-    update_current_framebuffer();
+
     return (U32)VBE_DRAW_RECTANGLE(x, y, width, height, (VBE_PIXEL_COLOUR)colour);
 }
 
@@ -74,7 +76,8 @@ U32 SYS_GET_LAST_KEY_PRESSED(U32 unused1, U32 unused2, U32 unused3, U32 unused4,
 }
 U32 SYS_KEYPRESS_TO_CHARS(U32 kcode, U32 unused2, U32 unused3, U32 unused4, U32 unused5) {
     (void)unused2; (void)unused3; (void)unused4; (void)unused5;
-    U8 *chars = (U8 *)KEYPRESS_TO_CHARS(kcode);
+    U8 chars = KEYPRESS_TO_CHARS(kcode);
+
     return (U32)chars;
 }
 U32 SYS_GET_KEYBOARD_MODIFIERS(U32 unused1, U32 unused2, U32 unused3, U32 unused4, U32 unused5) {
@@ -92,17 +95,13 @@ U32 SYS_MESSAGE_AMOUNT(U32 pid, U32 msg_ptr, U32 length, U32 signal, U32 unused5
     (void)unused5;
     TCB *t = get_current_tcb();
     if (!t) return 0;
-    if (t->info.pid != pid) return 0; // can only get your own message amount
-    U32 *res = KMALLOC(sizeof(U32));
-    if(!res) return 0;
-    MEMCPY(res, &t->msg_count, sizeof(U32));
+    U32 res = t->msg_count;
     return (U32)res;
 }
-U32 SYS_GET_MESSAGE(U32 pid, U32 msg_ptr, U32 length, U32 signal, U32 unused5) {
+U32 SYS_GET_MESSAGE(U32 unused1, U32 unusef2, U32 unused3, U32 unused4, U32 unused5) {
     (void)unused5;
     TCB *t = get_current_tcb();
     if (!t) return 0;
-    if (t->info.pid != pid) return 0; // can only get your own messages
     if (t->msg_count == 0) return 0; // no messages
     PROC_MESSAGE *msg = &t->msg_queue[t->msg_queue_head];
     PROC_MESSAGE *msg_copy = KMALLOC(sizeof(PROC_MESSAGE));
@@ -117,7 +116,7 @@ U32 SYS_SEND_MESSAGE(U32 msg_ptr, U32 unused2, U32 unused3, U32 unused4, U32 unu
     (void)unused2; (void)unused3; (void)unused4; (void)unused5;
     if (!msg_ptr) return (U32)-1;
 
-    // Allocated in kheap, we have access to it
+    // Allocated in kheap, we have access to it. 
     PROC_MESSAGE *msg = (PROC_MESSAGE *)msg_ptr;
     send_msg(msg);
     return 0;
@@ -197,7 +196,6 @@ U32 SYS_KCALLOC(U32 num, U32 size, U32 unused3, U32 unused4, U32 unused5) {
 
 U32 syscall_dispatcher(U32 num, U32 a1, U32 a2, U32 a3, U32 a4, U32 a5) {
     if (num >= SYSCALL_MAX) return (U32)-1;
-
     SYSCALL_HANDLER h = syscall_table[num];
     if (!h) return (U32)-1;
 

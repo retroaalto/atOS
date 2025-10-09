@@ -11,10 +11,7 @@ static TCB *parent ATTRIB_DATA = NULL;
 static BOOLEAN parent_fetched ATTRIB_DATA = FALSE;
 
 U32 MESSAGE_AMOUNT() {
-    U32 res = 0;
-    U32 *ptr = (U32 *)SYSCALL(SYSCALL_MESSAGE_AMOUNT, 0, 0, 0, 0, 0);
-    MEMCPY(&res, ptr, sizeof(U32));
-    Free(ptr);
+    U32 res  = (U32 *)SYSCALL(SYSCALL_MESSAGE_AMOUNT, 0, 0, 0, 0, 0);
     return (U32)res;
 }
 
@@ -23,13 +20,12 @@ VOID SEND_MESSAGE(PROC_MESSAGE *msg) {
     PROC_MESSAGE *msg_copy = MAlloc(sizeof(PROC_MESSAGE));
     if (!msg_copy) return;
     MEMCPY(msg_copy, msg, sizeof(PROC_MESSAGE));
-    SYSCALL(SYSCALL_SEND_MESSAGE, (U32)msg_copy, 0, 0, 0, 0);
+    SYSCALL1(SYSCALL_SEND_MESSAGE, (U32)msg_copy);
     Free(msg);
-    // Message memory is freed by receiver
 }
     
 PROC_MESSAGE *GET_MESSAGE() {
-    return (PROC_MESSAGE *)SYSCALL(SYSCALL_GET_MESSAGE, 0, 0, 0, 0, 0);
+    return (PROC_MESSAGE *)SYSCALL0(SYSCALL_GET_MESSAGE);
 }
 
 VOID FREE_MESSAGE(PROC_MESSAGE *msg) {
@@ -37,9 +33,6 @@ VOID FREE_MESSAGE(PROC_MESSAGE *msg) {
     if (msg->data_provided && msg->data) {
         Free(msg->data);
     } 
-    if(msg->msg_provided) {
-        MEMZERO(msg->msg, PROC_MSG_SIZE);
-    }
     msg->read = TRUE;
     Free(msg);
 }

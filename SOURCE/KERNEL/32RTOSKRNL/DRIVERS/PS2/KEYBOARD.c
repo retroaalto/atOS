@@ -699,10 +699,8 @@ KEYPRESS GET_CURRENT_KEY_PRESSED(VOID) {
     last_key = keypress;
     return keypress;
 }
-
 U8 KEYPRESS_TO_CHARS(U32 kcode) {
     static U8 str = 0;
-
     switch(kcode) {
         case KEY_A: str = modifiers.shift || modifiers.capslock ? 'A' : 'a'; break;
         case KEY_B: str = modifiers.shift || modifiers.capslock ? 'B' : 'b'; break;
@@ -731,16 +729,36 @@ U8 KEYPRESS_TO_CHARS(U32 kcode) {
         case KEY_Y: str = modifiers.shift || modifiers.capslock ? 'Y' : 'y'; break;
         case KEY_Z: str = modifiers.shift || modifiers.capslock ? 'Z' : 'z'; break;
 
-        case KEY_1: str = '1'; break;
-        case KEY_2: str = '2'; break;
-        case KEY_3: str = '3'; break;
-        case KEY_4: str = '4'; break;
-        case KEY_5: str = '5'; break;
-        case KEY_6: str = '6'; break;
-        case KEY_7: str = '7'; break;
-        case KEY_8: str = '8'; break;
-        case KEY_9: str = '9'; break;
-        case KEY_0: str = '0'; break;
+        case KEY_1: 
+        case KEYPAD_1:
+            str = '1'; break;
+        case KEY_2: 
+        case KEYPAD_2:
+            str = '2'; break;
+        case KEY_3: 
+        case KEYPAD_3:
+            str = '3'; break;
+        case KEY_4: 
+        case KEYPAD_4:
+            str = '4'; break;
+        case KEY_5: 
+        case KEYPAD_5:
+            str = '5'; break;
+        case KEY_6: 
+        case KEYPAD_6:
+            str = '6'; break;
+        case KEY_7: 
+        case KEYPAD_7:
+            str = '7'; break;
+        case KEY_8: 
+        case KEYPAD_8:
+            str = '8'; break;
+        case KEY_9: 
+        case KEYPAD_9:
+            str = '9'; break;
+        case KEY_0: 
+        case KEYPAD_0:
+            str = '0'; break;
         case KEY_SPACE: str  = ' '; break;
         case KEY_ENTER: str = '\n'; break;
         case KEY_TAB: str = '\t'; break;
@@ -780,6 +798,8 @@ U8 KEYPRESS_TO_CHARS(U32 kcode) {
             str = '\0'; // Non-printable key
             break;
     }
+
+
     return str;
 }
 

@@ -129,13 +129,11 @@ U32 PUTC(U8 c) {
         for (U32 i = 0; i < spaces; i++) COLUMN_INC();
         return 1;
     }
-
     // Update text buffer
     text_buffer[cursor.Row][cursor.Column] = c;
 
     U32 x = COL_TO_PIX(cursor.Column);
     U32 y = ROW_TO_PIX(cursor.Row);
-
     const U8 *glyph = &WIN1KXHR__8x16[c * CHAR_HEIGHT];
 
     // Draw the character

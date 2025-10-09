@@ -51,6 +51,12 @@ enum {
     ret; \
 })
 
+#define SYSCALL0(num) SYSCALL(num, NULL, NULL, NULL, NULL, NULL)
+#define SYSCALL1(num, a1) SYSCALL(num, a1, NULL, NULL, NULL, NULL)
+#define SYSCALL2(num, a1, a2) SYSCALL(num, a1, a2, NULL, NULL, NULL)
+#define SYSCALL3(num, a1, a2, a3) SYSCALL(num, a1, a2, a3, NULL, NULL)
+#define SYSCALL4(num, a1, a2, a3, a4) SYSCALL(num, a1, a2, a3, a4, NULL)
+#define SYSCALL5(num, a1, a2, a3, a4, a5) SYSCALL(num, a1, a2, a3, a4, a5)
 
 
 

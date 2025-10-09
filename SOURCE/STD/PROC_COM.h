@@ -33,14 +33,14 @@ TCB *GET_TCB_BY_PID(U32 pid); // Get TCB of process by PID, NULL if not found. F
 TCB *GET_PARENT_TCB(void); // Get your parent's TCB, NULL if no
 void FREE_TCB(TCB *tcb); // Free a TCB received via GET_TCB_BY_PID
 
-#define CREATE_PROC_MSG(receiver, msg_type, data_ptr, msg_ptr, signal_val) \
+#define KERNEL_PID 0
+#define CREATE_PROC_MSG(receiver, msg_type, data_ptr, signal_val) \
     (PROC_MESSAGE){ \
         .sender_pid = PROC_GETPID(), \
         .receiver_pid = receiver, \
         .type = msg_type, \
         .data_provided = (data_ptr != NULL), \
         .data = data_ptr, \
-        .msg_provided = (msg_ptr != NULL), \
         .signal = signal_val, \
         .timestamp = 0, /* to be filled by kernel */ \
         .read = FALSE, \
@@ -57,6 +57,7 @@ VOID SEND_MESSAGE(PROC_MESSAGE *msg);
 U32 MESSAGE_AMOUNT();
 
 // Get the next message from your message queue, or NULL if none
+// Removed from message queue after calling
 PROC_MESSAGE *GET_MESSAGE();
 
 // Free a message received via GET_MESSAGE

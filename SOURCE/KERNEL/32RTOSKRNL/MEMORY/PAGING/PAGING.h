@@ -56,7 +56,8 @@ See README.md
 BOOLEAN PAGING_INIT(VOID);
 ADDR *get_page_directory(VOID);
 void map_page(U32 *pd, U32 virt, U32 phys, U32 flags);
-void map_process_page(U32 *pd, U32 virt, U32 phys, U32 flags);
+BOOLEAN unmap_page(U32 *pd, U32 virt);
+// void map_process_page(U32 *pd, U32 virt, U32 phys, U32 flags);
 
 void identity_map_range_with_offset(U32 *pd, U32 start, U32 end, U32 offset, U32 flags);
 void identity_map_range(U32 *pd, U32 start, U32 end, U32 flags);

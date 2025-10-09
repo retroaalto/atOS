@@ -13,7 +13,7 @@ Basically, this is kernel-level user process management with context switching
 #include <MEMORY/MEMORY.h>
 #include <STD/ASM.h>
 
-#define USER_BINARY_VADDR MEM_USER_SPACE_BASE // same as elf loading addr
+#define USER_BINARY_VADDR MEM_USER_SPACE_BASE
 #define MAX_PROC_AMOUNT 30 // max amount of processes including master
 // 4 KB. NOTE: Just a padding between binary and stack. Actual HEAP size is defined on the fly
 #define USER_HEAP_SIZE (1024 * 4) 
@@ -81,7 +81,7 @@ typedef enum {
     PROC_EVENT_INFORM_ON_MOUSE_EVENTS = 0x0002, // Tells kernel to inform this process when mouse events occur
 } PROC_EVENT_TYPE;
 
-#define TASK_NAME_MAX_LEN 32
+#define TASK_NAME_MAX_LEN 64
 typedef struct TaskInfo {
     U32 pid;
     U8 name[TASK_NAME_MAX_LEN]; // Required for ps command
@@ -169,11 +169,6 @@ typedef enum {
     // Data, signal and message are ignored
     PROC_RELEASE_MOUSE_EVENTS = 0x00000201,
 
-    // Panic message, sent by user process to kernel
-    // Message contains a null-terminated string with the panic message
-    // Signal contains the panic code
-    // Data is ignored
-    PROC_MSG_PANIC,
     PROC_MSG_CUSTOM, // user-defined message for process communication
 } PROC_MESSAGE_TYPE;
 
@@ -187,9 +182,6 @@ typedef struct proc_message {
     // Needs to be freed by receiver if data_provided is TRUE
     // Use KFREE to free
     VOIDPTR data; 
-
-    BOOLEAN msg_provided; // TRUE if message is provided
-    U8 msg[PROC_MSG_SIZE];
 
     U32 signal; // Provide signal value if needed
 
@@ -258,7 +250,6 @@ static inline U32 read_cr3(void) {
 static inline void write_cr3(U32 val) {
     ASM_VOLATILE("mov %0, %%cr3" :: "r"(val) : "memory");
 }
-
 
 void free_message(PROC_MESSAGE *msg);
 void send_msg(PROC_MESSAGE *msg);

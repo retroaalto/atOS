@@ -59,14 +59,14 @@ FUNCTIONS
 #define SCREEN_BPP 32
 
 /*
-Framebuffer is located at 0x00F00000u-0x011FFFFFu
+Framebuffer is located at 0x08562000-0x0B000000
 It has a size of ~3MB, which is enough for the resolution 1024*768*(32/8)
 
 Video memory data is written into this location, and updated to the vbe framebuffer.
 */
 #define FRAMEBUFFER_ADDRESS MEM_FRAMEBUFFER_BASE
 #define FRAMEBUFFER_END MEM_FRAMEBUFFER_END
-#define FRAMEBUFFER_SIZE (FRAMEBUFFER_END - FRAMEBUFFER_ADDRESS + 1)
+#define FRAMEBUFFER_SIZE 3145728
 
 #ifdef __RTOS__
 void flush_focused_framebuffer();

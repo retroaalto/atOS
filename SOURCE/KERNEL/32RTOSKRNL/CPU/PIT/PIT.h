@@ -8,6 +8,17 @@
 #define PIT_TICKS_HZ 100 // default 100 Hz
 #define PIT_TICK_MS (1000 / PIT_TICKS_HZ) // in milliseconds
 
+
+// Time conversion helpers
+#define TICKS_PER_SECOND    PIT_TICKS_HZ
+#define MS_TO_TICKS(ms)     ((ms) / PIT_TICK_MS)
+#define SECONDS_TO_TICKS(s) ((s) * PIT_TICKS_HZ)
+
+// Check if current tick aligns with an interval (e.g., 30 Hz screen updates)
+#define EVERY_TICKS(tcks, interval_ticks)  ((tcks % (interval_ticks)) == 0)
+#define EVERY_MS(tcks, ms)                 EVERY_TICKS(tcks, MS_TO_TICKS(ms))
+#define EVERY_HZ(tcks, hz)                 EVERY_TICKS(tcks, PIT_TICKS_HZ / (hz))
+
 U0 PIT_INIT(U0);
 U32 *PIT_GET_TICKS_PTR();
 U32 *PIT_GET_HZ_PTR();

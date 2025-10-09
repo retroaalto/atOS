@@ -7,22 +7,7 @@ void FLUSH_VRAM(VOID) {
 }
 
 BOOLEAN DRAW_8x8_CHARACTER(U32 x, U32 y, U8 ch, VBE_COLOUR fg, VBE_COLOUR bg) {
-    PU32 m_x = MAlloc(sizeof(U32));
-    PU32 m_y = MAlloc(sizeof(U32));
-    PU8 m_ch = MAlloc(sizeof(U8));
-    PU32 m_fg = MAlloc(sizeof(VBE_COLOUR));
-    PU32 m_bg = MAlloc(sizeof(VBE_COLOUR));
-    MEMCPY(m_x, &x, sizeof(U32));
-    MEMCPY(m_y, &y, sizeof(U32));
-    MEMCPY(m_ch, &ch, sizeof(U8));
-    MEMCPY(m_fg, &fg, sizeof(VBE_COLOUR));
-    MEMCPY(m_bg, &bg, sizeof(VBE_COLOUR));
-    SYSCALL(SYSCALL_VBE_DRAW_CHARACTER, (U32)m_x, (U32)m_y, (U32)m_ch, (U32)m_fg, (U32)m_bg);
-    Free(m_x);
-    Free(m_y);
-    Free(m_ch);
-    Free(m_fg);
-    Free(m_bg);
+    SYSCALL(SYSCALL_VBE_DRAW_CHARACTER, (U32)x, (U32)y, (U32)ch, (U32)fg, (U32)bg);
 }
 
 
@@ -46,80 +31,22 @@ BOOLEAN DRAW_8x8_STRING(U32 x, U32 y, U8 *str, VBE_COLOUR fg, VBE_COLOUR bg) {
     Free(m_bg);
 }
 void CLEAR_SCREEN_COLOUR(VBE_COLOUR colour) {
-    PU32 m_colour = MAlloc(sizeof(VBE_COLOUR));
-    MEMCPY(m_colour, &colour, sizeof(VBE_COLOUR));
-    SYSCALL(SYSCALL_VBE_CLEAR_SCREEN, (U32)m_colour, 0, 0, 0, 0);
-    Free(m_colour);
+    SYSCALL(SYSCALL_VBE_CLEAR_SCREEN, (U32)colour, 0, 0, 0, 0);
 }
 BOOLEAN DRAW_PIXEL(VBE_PIXEL_INFO info) {
-    VBE_PIXEL_INFO *m_info = MAlloc(sizeof(VBE_PIXEL_INFO));
-    if (!m_info) return;
-    MEMCPY(m_info, &info, sizeof(VBE_PIXEL_INFO));
-    SYSCALL(SYSCALL_VBE_DRAW_PIXEL, (U32)m_info, 0, 0, 0, 0);
-    Free(m_info);
+    SYSCALL(SYSCALL_VBE_DRAW_PIXEL, (U32)info.X, (U32)info.Y, (U32)info.Colour, 0, 0);
 }
 BOOLEAN DRAW_FRAMEBUFFER(U32 pos, VBE_COLOUR colour) {
-    PU32 m_pos = MAlloc(sizeof(U32));
-    PU32 m_colour = MAlloc(sizeof(VBE_COLOUR));
-    MEMCPY(m_pos, &pos, sizeof(U32));
-    MEMCPY(m_colour, &colour, sizeof(VBE_COLOUR));
-    SYSCALL(SYSCALL_VBE_DRAW_FRAMEBUFFER, (U32)m_pos, (U32)m_colour, 0, 0, 0);
-    Free(m_pos);
-    Free(m_colour);
+    SYSCALL(SYSCALL_VBE_DRAW_FRAMEBUFFER, (U32)pos, (U32)colour, 0, 0, 0);
 }
 BOOLEAN DRAW_ELLIPSE(U32 x, U32 y, U32 rx, U32 ry, VBE_COLOUR colour) {
-    PU32 m_x = MAlloc(sizeof(U32));
-    PU32 m_y = MAlloc(sizeof(U32));
-    PU32 m_rx = MAlloc(sizeof(U32));
-    PU32 m_ry = MAlloc(sizeof(U32));
-    PU32 m_colour = MAlloc(sizeof(VBE_COLOUR));
-    MEMCPY(m_x, &x, sizeof(U32));
-    MEMCPY(m_y, &y, sizeof(U32));
-    MEMCPY(m_rx, &rx, sizeof(U32));
-    MEMCPY(m_ry, &ry, sizeof(U32));
-    MEMCPY(m_colour, &colour, sizeof(VBE_COLOUR));
-    SYSCALL(SYSCALL_VBE_DRAW_ELLIPSE, (U32)m_x, (U32)m_y, (U32)m_rx, (U32)m_ry, (U32)m_colour);
-    Free(m_x);
-    Free(m_y);
-    Free(m_rx);
-    Free(m_ry);
-    Free(m_colour);
+    SYSCALL(SYSCALL_VBE_DRAW_ELLIPSE, (U32)x, (U32)y, (U32)rx, (U32)ry, (U32)colour);
 }
 BOOLEAN DRAW_LINE(U32 x1, U32 y1, U32 x2, U32 y2, VBE_COLOUR colour) {
-    PU32 m_x1 = MAlloc(sizeof(U32));
-    PU32 m_y1 = MAlloc(sizeof(U32));
-    PU32 m_x2 = MAlloc(sizeof(U32));
-    PU32 m_y2 = MAlloc(sizeof(U32));
-    PU32 m_colour = MAlloc(sizeof(VBE_COLOUR));
-    MEMSET(m_x1, x1, sizeof(U32));
-    MEMSET(m_y1, y1, sizeof(U32));
-    MEMSET(m_x2, x2, sizeof(U32));
-    MEMSET(m_y2, y2, sizeof(U32));
-    MEMSET(m_colour, colour, sizeof(VBE_COLOUR));
-    SYSCALL(SYSCALL_VBE_DRAW_LINE, (U32)m_x1, (U32)m_y1, (U32)m_x2, (U32)m_y2, (U32)m_colour);
-    Free(m_x1);
-    Free(m_y1);
-    Free(m_x2);
-    Free(m_y2);
-    Free(m_colour);
+    SYSCALL(SYSCALL_VBE_DRAW_LINE, (U32)x1, (U32)y1, (U32)x2, (U32)y2, (U32)colour);
 }
 BOOLEAN DRAW_RECTANGLE(U32 x, U32 y, U32 width, U32 height, VBE_COLOUR colour) {
-    PU32 m_x = MAlloc(sizeof(U32));
-    PU32 m_y = MAlloc(sizeof(U32));
-    PU32 m_width = MAlloc(sizeof(U32));
-    PU32 m_height = MAlloc(sizeof(U32));
-    PU32 m_colour = MAlloc(sizeof(VBE_COLOUR));
-    MEMCPY(m_x, &x, sizeof(U32));
-    MEMCPY(m_y, &y, sizeof(U32));
-    MEMCPY(m_width, &width, sizeof(U32));
-    MEMCPY(m_height, &height, sizeof(U32));
-    MEMCPY(m_colour, &colour, sizeof(VBE_COLOUR));
-    SYSCALL(SYSCALL_VBE_DRAW_RECTANGLE, (U32)m_x, (U32)m_y, (U32)m_width, (U32)m_height, (U32)m_colour);
-    Free(m_x);
-    Free(m_y);
-    Free(m_width);
-    Free(m_height);
-    Free(m_colour);
+    SYSCALL(SYSCALL_VBE_DRAW_RECTANGLE, (U32)x, (U32)y, (U32)width, (U32)height, (U32)colour);
 }
 BOOLEAN DRAW_FILLED_RECTANGLE(U32 x, U32 y, U32 width, U32 height, VBE_COLOUR colour) {
     for (U32 i = 0; i < height; i++) {
@@ -127,30 +54,9 @@ BOOLEAN DRAW_FILLED_RECTANGLE(U32 x, U32 y, U32 width, U32 height, VBE_COLOUR co
     }
 }
 BOOLEAN DRAW_TRIANGLE(U32 x1, U32 y1, U32 x2, U32 y2, U32 x3, U32 y3, VBE_COLOUR colour) {
-    PU32 m_x1 = MAlloc(sizeof(U32));
-    PU32 m_y1 = MAlloc(sizeof(U32));
-    PU32 m_x2 = MAlloc(sizeof(U32));
-    PU32 m_y2 = MAlloc(sizeof(U32));
-    PU32 m_x3 = MAlloc(sizeof(U32));
-    PU32 m_y3 = MAlloc(sizeof(U32));
-    PU32 m_colour = MAlloc(sizeof(VBE_COLOUR));
-    MEMCPY(m_x1, &x1, sizeof(U32));
-    MEMCPY(m_y1, &y1, sizeof(U32));
-    MEMCPY(m_x2, &x2, sizeof(U32));
-    MEMCPY(m_y2, &y2, sizeof(U32));
-    MEMCPY(m_x3, &x3, sizeof(U32));
-    MEMCPY(m_y3, &y3, sizeof(U32));
-    MEMCPY(m_colour, &colour, sizeof(VBE_COLOUR));
-    SYSCALL(SYSCALL_VBE_DRAW_LINE, (U32)m_x1, (U32)m_y1, (U32)m_x2, (U32)m_y2, (U32)m_colour);
-    SYSCALL(SYSCALL_VBE_DRAW_LINE, (U32)m_x2, (U32)m_y2, (U32)m_x3, (U32)m_y3, (U32)m_colour);
-    SYSCALL(SYSCALL_VBE_DRAW_LINE, (U32)m_x3, (U32)m_y3, (U32)m_x1, (U32)m_y1, (U32)m_colour);
-    Free(m_x1);
-    Free(m_y1);
-    Free(m_x2);
-    Free(m_y2);
-    Free(m_x3);
-    Free(m_y3);
-    Free(m_colour);
+    SYSCALL(SYSCALL_VBE_DRAW_LINE, (U32)x1, (U32)y1, (U32)x2, (U32)y2, (U32)colour);
+    SYSCALL(SYSCALL_VBE_DRAW_LINE, (U32)x2, (U32)y2, (U32)x3, (U32)y3, (U32)colour);
+    SYSCALL(SYSCALL_VBE_DRAW_LINE, (U32)x3, (U32)y3, (U32)x1, (U32)y1, (U32)colour);
 }
 BOOLEAN DRAW_FILLED_TRIANGLE(U32 x1, U32 y1, U32 x2, U32 y2, U32 x3, U32 y3, VBE_COLOUR colour) {
     U32 minx = x1;

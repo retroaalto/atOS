@@ -71,7 +71,6 @@ static inline void *__memcpy_fast(void *dest, const void *src, U32 n) {
 
 
 void flush_focused_framebuffer() {
-    static U32 was1pid = 0;
     TCB *focused = get_focused_task();
     if (!focused) {
         focused_task_framebuffer = NULL;
@@ -82,23 +81,15 @@ void flush_focused_framebuffer() {
         focused_task_framebuffer = NULL;
         return;
     }
-
-    focused_task_framebuffer = focused->framebuffer_phys;
-    if(was1pid && focused->info.pid != 1) {
-        HLT;
-    }
-    if(focused->info.pid == 1) {
-        was1pid = 1;
-        focused_task_framebuffer = focused->framebuffer_virt;
-    }
+    focused_task_framebuffer = (VOIDPTR)((U32)focused->framebuffer_virt);
     VBE_MODEINFO* mode = GET_VBE_MODE();
     if (!mode) return;
-    
+
     // Copy only the required framebuffer bytes
     U32 copy_size = mode->BytesPerScanLineLinear * mode->YResolution;
-    if (copy_size > FRAMEBUFFER_SIZE) copy_size = FRAMEBUFFER_SIZE;
     __memcpy_fast((void*)mode->PhysBasePtr, (void*)focused_task_framebuffer, copy_size);
 }
+
 void update_current_framebuffer() {
     TCB *current = get_current_tcb();
     if (!current) {
@@ -109,8 +100,9 @@ void update_current_framebuffer() {
         focused_task_framebuffer = NULL;
         return;
     }
-    focused_task_framebuffer = current->framebuffer_phys;
+    focused_task_framebuffer = current->framebuffer_virt;
 }
+
 void debug_vram_start() {
     focused_task_framebuffer = FRAMEBUFFER_ADDRESS;
 }
@@ -198,15 +190,11 @@ U0 VBE_UPDATE_VRAM(U0) {
     if (!mode) return;
     
     // Copy only the required framebuffer bytes
+    #ifdef __RTOS__
+    flush_focused_framebuffer();
+    #else
     U32 copy_size = mode->BytesPerScanLineLinear * mode->YResolution;
     if (copy_size > FRAMEBUFFER_SIZE) copy_size = FRAMEBUFFER_SIZE;
-    #ifdef __RTOS__
-    TCB *focused = get_focused_task();
-    if (!focused || !focused_task_framebuffer) 
-        flush_focused_framebuffer();
-    // else
-        // __memcpy_fast((void*)mode->PhysBasePtr, (void*)focused_task_framebuffer, copy_size);
-    #else
     __memcpy_safe_chunks((void*)mode->PhysBasePtr, (void*)FRAMEBUFFER_ADDRESS, copy_size);
     #endif
 }

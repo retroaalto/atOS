@@ -29,13 +29,22 @@ REMARKS
 /// @param size Number of bytes to copy.
 /// @return Pointer to destination memory area.
 U0 *MEMCPY(U0* dest, CONST U0* src, U32 size);
+
+
 U0 *MEMSET(U0* dest, U8 value, U32 size);
 U0 *MEMZERO(U0* dest, U32 size);
-U0 *MEMCPY_OPT(U0* dest, CONST U0* src, U32 size); // Optimized version using rep movsb
+
+// Optimized version
+U0 *MEMCPY_OPT(U0* dest, CONST U0* src, U32 size); 
+
 // Returns 0 if equal, non-zero if not equal
 BOOLEAN MEMCMP(CONST U0* ptr1, CONST U0* ptr2, U32 size);
+
 U0 *MEMMOVE(U0* dest, CONST U0* src, U32 size);
 
+
+
+// DEVNOTE: Every pointer allocated can be shared across processes!
 U0 *MAlloc(U32 size);
 U0 *CAlloc(U32 num, U32 size);
 U0 *ReAlloc(U0* ptr, U32 oldSize, U32 newSize);

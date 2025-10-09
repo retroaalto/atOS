@@ -162,7 +162,6 @@ void map_page(U32 *pd, U32 virt, U32 phys, U32 flags) {
 
 
 BOOLEAN unmap_page(U32 *pd, U32 virt) {
-    // TODO: free page table if empty
     U32 pd_index = (virt >> 22) & 0x3FF;
     U32 pt_index = (virt >> 12) & 0x3FF;
 
@@ -176,6 +175,8 @@ BOOLEAN unmap_page(U32 *pd, U32 virt) {
     if (!(pt[pt_index] & PAGE_PRESENT)) {
         return FALSE; // Page not mapped
     }
+
+    KFREE(pt_phys);
 
     pt[pt_index] = 0; // Unmap the page
 
