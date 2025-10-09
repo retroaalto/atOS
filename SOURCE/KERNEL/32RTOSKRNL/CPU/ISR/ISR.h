@@ -24,17 +24,19 @@ REMARKS
 #define IDT_COUNT 256
 
 typedef struct regs {
-    U32 eax;
-    U32 ecx;
-    U32 edx;
-    U32 ebx;
-    U32 esp;   /* original ESP pushed by pusha */
-    U32 ebp;
-    U32 esi;
     U32 edi;
+    U32 esi;
+    U32 ebp;
+    U32 esp;   /* original ESP pushed by pusha */
+    U32 ebx;
+    U32 edx;
+    U32 ecx;
+    U32 eax;
+
+    U32 eip;
+    U32 cs;
+    U32 eflags;
 } regs;
-
-
 
 
 // void tss_init(void);

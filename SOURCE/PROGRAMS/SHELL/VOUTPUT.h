@@ -1,4 +1,7 @@
 // When compiling, include VIDEODRIVER.c, VBE.c, and VESA.c
+// This is a shell-level text output driver using VBE graphics mode
+// integrated part of atOShell, not a separate library! Do not use
+// in other programs.
 #ifndef VOUTPUT_H
 #define VOUTPUT_H
 #include <DRIVERS/VIDEO/VBE.h>
@@ -13,27 +16,41 @@ typedef struct {
     BOOLEAN AUTO_WRAP;
     BOOLEAN CURSOR_VISIBLE;
     BOOLEAN CURSOR_BLINK; 
-    BOOLEAN FLUSH_ON_CHANGE; // If TRUE, the screen is updated immediately after drawing
-} OutputInfo;
 
-#define OUTPUT_INFO_INIT {0, 0, VBE_BLACK, VBE_WHITE, TRUE, TRUE, TRUE, TRUE, TRUE}
+    // Screen size in characters
+    U32 ROWS;
+    U32 COLUMNS;
+    
+    // Screen width and height in pixels
+    U32 SWIDTH;
+    U32 SHEIGHT; 
+
+    U32 X_POS; // Left-most pixel of the shell area
+    U32 Y_POS; // Top-most pixel of the shell area
+
+    // Text buffer for the screen
+    // Each character is represented by a single byte
+    U8 *text_buffer;
+} OutputInfo;
 
 typedef OutputInfo* OutputHandle;
 
-#undef SCREEN_WIDTH
-#undef SCREEN_HEIGHT
+OutputHandle GetOutputHandle(void);
+
+#undef  SCREEN_WIDTH
+#undef  SCREEN_HEIGHT
 #define SCREEN_WIDTH  1024
 #define SCREEN_HEIGHT 768
-#define CHAR_WIDTH    12
-#define CHAR_HEIGHT   24
+
+#define CHAR_WIDTH    8
+#define CHAR_HEIGHT   16
+
 #define CHAR_SPACING  2
 #define AMOUNT_OF_COLS (SCREEN_WIDTH / (CHAR_WIDTH + CHAR_SPACING))
 #define AMOUNT_OF_ROWS (SCREEN_HEIGHT / (CHAR_HEIGHT + CHAR_SPACING))
 #define CHARACTERS 256 // Extended ASCII characters
 
-#define FILLSHAPE 0x0000001
-typedef U32 DrawInfo;
-
+U0 INIT_SHELL_VOUTPUT(VOID);
 // Increases the cursor column by one, moving to next row if at end
 U0 COLUMN_INC(U0);
 // Decreases the cursor column by one, if not at the start
@@ -62,6 +79,11 @@ U0 SET_AUTO_WRAP(BOOLEAN enable);
 U32 PUTS(U8 *str);
 // Draws a single character at (x, y) in pixels
 U32 PUTC(U8 c);
+
+// Formatted print to the screen, similar to printf in C standard library
+// Supports %c, %s, %d, %u, %x, and %%
+U32 PRINTF(U8 *format, ...);
+
 // Clears the screen and resets cursor position
 VOID CLS(U0);
 // Immediately updates the screen with the current text buffer
@@ -70,7 +92,5 @@ VOID FLUSH_SCREEN(U0);
 U32 COL_TO_PIX(U32 col);
 // Converts a text row number to pixel Y coordinate
 U32 ROW_TO_PIX(U32 row);
-
-BOOLEAN BEGIN_DRAWING(DrawInfo drawInfo);
 
 #endif // VOUTPUT_H

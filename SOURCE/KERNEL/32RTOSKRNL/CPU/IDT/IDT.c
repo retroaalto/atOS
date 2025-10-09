@@ -1,3 +1,4 @@
+// interrupt descriptor table
 #include "IDT.h"
 #include "../ISR/ISR.h"
 #include "../../../../STD/ASM.h"

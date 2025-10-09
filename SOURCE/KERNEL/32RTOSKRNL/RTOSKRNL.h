@@ -12,7 +12,6 @@
 
 #include <DRIVERS/VIDEO/VBE.h>
 #include <DRIVERS/VIDEO/VESA.h>
-#include <DRIVERS/VIDEO/VOUTPUT.h>
 #include <DRIVERS/PS2/KEYBOARD.h>
 #include <CPU/PIT/PIT.h>
 
@@ -23,7 +22,6 @@
 #include <MEMORY/PAGING/PAGING.h>
 #include <MEMORY/PAGEFRAME/PAGEFRAME.h>
 #include <MEMORY/HEAP/KHEAP.h>
-#include <MEMORY/HEAP/UHEAP.h>
 
 #include <CPU/PIC/PIC.h>
 #include <CPU/GDT/GDT.h>

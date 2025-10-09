@@ -14,7 +14,7 @@ Intentionally built without modern security constraints to encourage deep low-le
 
 ## Preview
 
-![atOS Preview](DOCS/IMAGES/preview.png)
+![atOS Preview](DOCS/IMAGES/PREVIEW.png)
 ![atOS Kernel Panic](DOCS/IMAGES/PANIC.png)
 
 ---
@@ -36,19 +36,30 @@ Intentionally built without modern security constraints to encourage deep low-le
 
 ## Overview
 
-atOS is a **from-scratch 32-bit x86 operating system** crafted in C and Assembly.  
-The project is geared toward systems programmers, students, and OS enthusiasts who want to explore how operating systems work at the hardware/software boundary.  
+atOS is a **from-scratch 32-bit x86 operating system** crafted in C and Assembly.
+The project is geared toward systems programmers, students, and OS enthusiasts who want to explore how operating systems work at the hardware/software boundary.
 
 Unlike modern operating systems, atOS removes safety restrictions, giving developers complete control and transparency into memory, hardware, and execution.
+
+This makes atOS ideal for learning, experimentation, and low-level programming without the abstractions and protections of contemporary OSes.
+
+**TL;DR**: atOS is a simple, open-source 32-bit Ring0 operating system designed for educational purposes and low-level exploration.
 
 ---
 
 ## Features
 
-- 🖥️ **32-bit x86 Architecture** — runs on legacy and virtualized hardware.  
-- 🛠️ **Custom Language Support** — an integrated experimental language for writing OS-level applications.  
-- 🔓 **No Safety Barriers** — no protection layers or user/kernel enforcement, making it ideal for exploration and teaching.  
-- 📖 **Open Source** — licensed under MIT, free to use, modify, and extend.  
+- 🖥️ **32-bit x86 Architecture** — runs on legacy and virtualized hardware (Not tested).
+- 🛠️ **Custom Language Support** — an integrated experimental language for writing applications.
+- 🔓 **No Safety Barriers** — Ring0, no protection layers or user/kernel enforcement, making it ideal for exploration and teaching.
+- 📖 **Open Source** — licensed under MIT, free to use, modify, and extend.
+- 🐧 **Educational Focus** — designed as a learning tool for understanding OS concepts, not for production use.
+- 🧩 **Modular Design** — components like memory management, file systems, and drivers are separated for easier study and modification.
+- 🖥️ **Graphical Output** — basic VBE graphics support for simple GUIs and visual applications.
+- 🗄️ **File System Support** — ISO9660 for CD-ROM images, FAT32 for hard drives.
+- 🖱️ **Input Handling** — keyboard and mouse drivers for user interaction.
+- 🐢 **Multitasking** — cooperative multitasking with a simple scheduler.
+- 🐚 **Shell Environment** — a basic command-line shell for interacting with the OS
 
 ---
 
@@ -161,6 +172,8 @@ Additional documentation is located in the `DOCS/` folder, as well as inline wit
 This project is licensed under the **MIT License**.
 See the [LICENSE](LICENSE) file for details.
 
-```
+## Credits
 
+- [CREDITS](CREDITS) file for a full list of credits and acknowledgments.
+ 
 ---

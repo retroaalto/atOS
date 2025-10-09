@@ -9,11 +9,14 @@ set(OUTPUT_DIR ${CUR_DIR}/../../../OUTPUT/PROGRAMS/${ProgramName})
 set(STD_DIR ${CUR_DIR}/../../STD)
 
 # === Sources ===
+file(GLOB STD_SOURCES
+    CONFIGURE_DEPENDS
+    "${STD_DIR}/*.c"
+)
 set(Sources
     ${CUR_DIR}/SHELL.c
-    ${SOURCE_KERNEL_DIR}/32RTOSKRNL/DRIVERS/VIDEO/VBE.c
-    ${SOURCE_KERNEL_DIR}/32RTOSKRNL/DRIVERS/VIDEO/VESA.c
-	${STD_DIR}/STRING.c
+    ${CUR_DIR}/VOUTPUT.c
+    ${STD_SOURCES}
 )
 
 # === Include directories ===
@@ -34,6 +37,7 @@ set(CompArgs
     -D__USER__
     -D__PROCESS__
     -D__UP__
+    -D__SHELL__
     -Wno-comment
     -Wno-comments
     -m32

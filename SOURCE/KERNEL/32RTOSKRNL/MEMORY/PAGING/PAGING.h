@@ -26,33 +26,7 @@ REMARKS
     Do NOT use physical addresses in user programs, as they will not work
     once paging is enabled. User programs should use virtual addresses only.
 
-READ ME: Paging and Address Space Overview
-===============================================================================
-This is a simple 32-bit, single-level paging implementation with basic process isolation.
-It provides ring0 paging for atOS-RT.
-
-Kernel is linked to 0x100000 and identity-mapped there.
-
-"User programs" aka processes are linked to 0x10000000 and
-    but mapped to anywhere in physical memory
-
-They have their own page directory and tables, created on RUN_BINARY(), and have
-    a copy of kernel mappings in their page directory so they can call kernel functions.
-    User processes run in ring0.
-
-They have their own virtual heap and stack, created on RUN_BINARY(),
-    but can touch any physical memory mapped into kernel space.
-
-This is made in this way to allow user programs to be simple flat binaries,
-    without needing relocations or ELF parsing and having kernel-level control
-    over the computer.
-
-But this means that user programs need to use syscalls to access kernel functions
-    (like printing to screen, reading keyboard, running new processes, etc)
-    or just compile them as part of their binary. (keeping in mind that if the source
-    code uses any physical memory addresses, they need to be adjusted by the processes
-    physical address + virtual address accordingly)
-===============================================================================
+See README.md
 ---*/
 #ifndef PAGING_H
 #define PAGING_H
@@ -82,7 +56,8 @@ But this means that user programs need to use syscalls to access kernel function
 BOOLEAN PAGING_INIT(VOID);
 ADDR *get_page_directory(VOID);
 void map_page(U32 *pd, U32 virt, U32 phys, U32 flags);
-void map_process_page(U32 *pd, U32 virt, U32 phys, U32 flags);
+BOOLEAN unmap_page(U32 *pd, U32 virt);
+// void map_process_page(U32 *pd, U32 virt, U32 phys, U32 flags);
 
 void identity_map_range_with_offset(U32 *pd, U32 start, U32 end, U32 offset, U32 flags);
 void identity_map_range(U32 *pd, U32 start, U32 end, U32 flags);

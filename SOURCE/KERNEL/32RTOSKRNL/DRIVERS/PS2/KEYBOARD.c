@@ -260,7 +260,6 @@ BOOLEAN PS2_KEYBOARD_INIT(VOID) {
 KEYPRESS ParsePS2_CS1(U32 scancode1, U32 scancode2) {
     return (KEYPRESS){0};
 }
-U32 aaa = 200;
 KEYPRESS ParsePS2_CS2(U32 scancode1, U32 scancode2, U8 scancode1_bytes, U8 scancode2_bytes) {
     U8 byte1 = 0, byte2 = 0, byte3 = 0, byte4 = 0,
         byte5 = 0, byte6 = 0, byte7 = 0, byte8 = 0;
@@ -700,92 +699,110 @@ KEYPRESS GET_CURRENT_KEY_PRESSED(VOID) {
     last_key = keypress;
     return keypress;
 }
+U8 KEYPRESS_TO_CHARS(U32 kcode) {
+    static U8 str = 0;
+    switch(kcode) {
+        case KEY_A: str = modifiers.shift || modifiers.capslock ? 'A' : 'a'; break;
+        case KEY_B: str = modifiers.shift || modifiers.capslock ? 'B' : 'b'; break;
+        case KEY_C: str = modifiers.shift || modifiers.capslock ? 'C' : 'c'; break;
+        case KEY_D: str = modifiers.shift || modifiers.capslock ? 'D' : 'd'; break;
+        case KEY_E: str = modifiers.shift || modifiers.capslock ? 'E' : 'e'; break;
+        case KEY_F: str = modifiers.shift || modifiers.capslock ? 'F' : 'f'; break;
+        case KEY_G: str = modifiers.shift || modifiers.capslock ? 'G' : 'g'; break;
+        case KEY_H: str = modifiers.shift || modifiers.capslock ? 'H' : 'h'; break;
+        case KEY_I: str = modifiers.shift || modifiers.capslock ? 'I' : 'i'; break;
+        case KEY_J: str = modifiers.shift || modifiers.capslock ? 'J' : 'j'; break;
+        case KEY_K: str = modifiers.shift || modifiers.capslock ? 'K' : 'k'; break;
+        case KEY_L: str = modifiers.shift || modifiers.capslock ? 'L' : 'l'; break;
+        case KEY_M: str = modifiers.shift || modifiers.capslock ? 'M' : 'm'; break;
+        case KEY_N: str = modifiers.shift || modifiers.capslock ? 'N' : 'n'; break;
+        case KEY_O: str = modifiers.shift || modifiers.capslock ? 'O' : 'o'; break;
+        case KEY_P: str = modifiers.shift || modifiers.capslock ? 'P' : 'p'; break;
+        case KEY_Q: str = modifiers.shift || modifiers.capslock ? 'Q' : 'q'; break;
+        case KEY_R: str = modifiers.shift || modifiers.capslock ? 'R' : 'r'; break;
+        case KEY_S: str = modifiers.shift || modifiers.capslock ? 'S' : 's'; break;
+        case KEY_T: str = modifiers.shift || modifiers.capslock ? 'T' : 't'; break;
+        case KEY_U: str = modifiers.shift || modifiers.capslock ? 'U' : 'u'; break;
+        case KEY_V: str = modifiers.shift || modifiers.capslock ? 'V' : 'v'; break;
+        case KEY_W: str = modifiers.shift || modifiers.capslock ? 'W' : 'w'; break;
+        case KEY_X: str = modifiers.shift || modifiers.capslock ? 'X' : 'x'; break;
+        case KEY_Y: str = modifiers.shift || modifiers.capslock ? 'Y' : 'y'; break;
+        case KEY_Z: str = modifiers.shift || modifiers.capslock ? 'Z' : 'z'; break;
 
-U8 *KEYPRESS_TO_CHARS(KEYPRESS *kp) {
-    if(!kp) return NULL;
-    static U8 str[3] = {0};
-    str[0] = '\0';
-    str[1] = '\0';
-    str[2] = '\0';
-
-    if(!kp->pressed) return str; // Return empty string for key releases
-
-    switch(kp->keycode) {
-        case KEY_A: str[0] = modifiers.shift || modifiers.capslock ? 'A' : 'a'; break;
-        case KEY_B: str[0] = modifiers.shift || modifiers.capslock ? 'B' : 'b'; break;
-        case KEY_C: str[0] = modifiers.shift || modifiers.capslock ? 'C' : 'c'; break;
-        case KEY_D: str[0] = modifiers.shift || modifiers.capslock ? 'D' : 'd'; break;
-        case KEY_E: str[0] = modifiers.shift || modifiers.capslock ? 'E' : 'e'; break;
-        case KEY_F: str[0] = modifiers.shift || modifiers.capslock ? 'F' : 'f'; break;
-        case KEY_G: str[0] = modifiers.shift || modifiers.capslock ? 'G' : 'g'; break;
-        case KEY_H: str[0] = modifiers.shift || modifiers.capslock ? 'H' : 'h'; break;
-        case KEY_I: str[0] = modifiers.shift || modifiers.capslock ? 'I' : 'i'; break;
-        case KEY_J: str[0] = modifiers.shift || modifiers.capslock ? 'J' : 'j'; break;
-        case KEY_K: str[0] = modifiers.shift || modifiers.capslock ? 'K' : 'k'; break;
-        case KEY_L: str[0] = modifiers.shift || modifiers.capslock ? 'L' : 'l'; break;
-        case KEY_M: str[0] = modifiers.shift || modifiers.capslock ? 'M' : 'm'; break;
-        case KEY_N: str[0] = modifiers.shift || modifiers.capslock ? 'N' : 'n'; break;
-        case KEY_O: str[0] = modifiers.shift || modifiers.capslock ? 'O' : 'o'; break;
-        case KEY_P: str[0] = modifiers.shift || modifiers.capslock ? 'P' : 'p'; break;
-        case KEY_Q: str[0] = modifiers.shift || modifiers.capslock ? 'Q' : 'q'; break;
-        case KEY_R: str[0] = modifiers.shift || modifiers.capslock ? 'R' : 'r'; break;
-        case KEY_S: str[0] = modifiers.shift || modifiers.capslock ? 'S' : 's'; break;
-        case KEY_T: str[0] = modifiers.shift || modifiers.capslock ? 'T' : 't'; break;
-        case KEY_U: str[0] = modifiers.shift || modifiers.capslock ? 'U' : 'u'; break;
-        case KEY_V: str[0] = modifiers.shift || modifiers.capslock ? 'V' : 'v'; break;
-        case KEY_W: str[0] = modifiers.shift || modifiers.capslock ? 'W' : 'w'; break;
-        case KEY_X: str[0] = modifiers.shift || modifiers.capslock ? 'X' : 'x'; break;
-        case KEY_Y: str[0] = modifiers.shift || modifiers.capslock ? 'Y' : 'y'; break;
-        case KEY_Z: str[0] = modifiers.shift || modifiers.capslock ? 'Z' : 'z'; break;
-
-        case KEY_1: str[0] = '1'; break;
-        case KEY_2: str[0] = '2'; break;
-        case KEY_3: str[0] = '3'; break;
-        case KEY_4: str[0] = '4'; break;
-        case KEY_5: str[0] = '5'; break;
-        case KEY_6: str[0] = '6'; break;
-        case KEY_7: str[0] = '7'; break;
-        case KEY_8: str[0] = '8'; break;
-        case KEY_9: str[0] = '9'; break;
-        case KEY_0: str[0] = '0'; break;
-        case KEY_SPACE: str[0] = ' '; break;
-        case KEY_ENTER: str[0] = '\n'; break;
-        case KEY_TAB: str[0] = '\t'; break;
-        case KEY_GRAVE: str[0] = '`'; break;
-        case KEY_MINUS: str[0] = '-'; break;
-        case KEY_EQUALS: str[0] = '='; break;
-        case KEY_LBRACKET: str[0] = '['; break;
-        case KEY_RBRACKET: str[0] = ']'; break;
-        case KEY_BACKSLASH: str[0] = '\\'; break;
-        case KEY_SEMICOLON: str[0] = ';'; break;
-        case KEY_APOSTROPHE: str[0] = '\''; break;
-        case KEY_COMMA: str[0] = ','; break;
-        case KEY_DOT: str[0] = '.'; break;
-        case KEY_SLASH: str[0] = '/'; break;
-        case KEY_EXCLAMATION: str[0] = '!'; break;
-        case KEY_AT: str[0] = '@'; break;
-        case KEY_HASH: str[0] = '#'; break;
-        case KEY_DOLLAR: str[0] = '$'; break;
-        case KEY_PERCENT: str[0] = '%'; break;
-        case KEY_CARET: str[0] = '^'; break;
-        case KEY_AMPERSAND: str[0] = '&'; break;
-        case KEY_ASTERISK: str[0] = '*'; break;
-        case KEY_LEFT_PAREN: str[0] = '('; break;
-        case KEY_RIGHT_PAREN: str[0] = ')'; break;
-        case KEY_UNDERSCORE: str[0] = '_'; break;
-        case KEY_PLUS: str[0] = '+'; break;
-        case KEY_TILDE: str[0] = '~'; break;
-        case KEY_LEFT_CURLY: str[0] = '{'; break;
-        case KEY_RIGHT_CURLY: str[0] = '}'; break;
-        case KEY_PIPE: str[0] = '|'; break;
-        case KEY_COLON: str[0] = ':'; break;
-        case KEY_QUOTE: str[0] = '"'; break;
-        case KEY_LESS: str[0] = '<'; break;
-        case KEY_GREATER: str[0] = '>'; break;
-        case KEY_QUESTION: str[0] = '?'; break;
+        case KEY_1: 
+        case KEYPAD_1:
+            str = '1'; break;
+        case KEY_2: 
+        case KEYPAD_2:
+            str = '2'; break;
+        case KEY_3: 
+        case KEYPAD_3:
+            str = '3'; break;
+        case KEY_4: 
+        case KEYPAD_4:
+            str = '4'; break;
+        case KEY_5: 
+        case KEYPAD_5:
+            str = '5'; break;
+        case KEY_6: 
+        case KEYPAD_6:
+            str = '6'; break;
+        case KEY_7: 
+        case KEYPAD_7:
+            str = '7'; break;
+        case KEY_8: 
+        case KEYPAD_8:
+            str = '8'; break;
+        case KEY_9: 
+        case KEYPAD_9:
+            str = '9'; break;
+        case KEY_0: 
+        case KEYPAD_0:
+            str = '0'; break;
+        case KEY_SPACE: str  = ' '; break;
+        case KEY_ENTER: str = '\n'; break;
+        case KEY_TAB: str = '\t'; break;
+        case KEY_GRAVE: str = '`'; break;
+        case KEY_MINUS: str = '-'; break;
+        case KEY_EQUALS: str = '='; break;
+        case KEY_LBRACKET: str = '['; break;
+        case KEY_RBRACKET: str = ']'; break;
+        case KEY_BACKSLASH: str = '\\'; break;
+        case KEY_SEMICOLON: str = ';'; break;
+        case KEY_APOSTROPHE: str = '\''; break;
+        case KEY_COMMA: str = ','; break;
+        case KEY_DOT: str = '.'; break;
+        case KEY_SLASH: str = '/'; break;
+        case KEY_EXCLAMATION: str = '!'; break;
+        case KEY_AT: str = '@'; break;
+        case KEY_HASH: str = '#'; break;
+        case KEY_DOLLAR: str = '$'; break;
+        case KEY_PERCENT: str = '%'; break;
+        case KEY_CARET: str = '^'; break;
+        case KEY_AMPERSAND: str = '&'; break;
+        case KEY_ASTERISK: str = '*'; break;
+        case KEY_LEFT_PAREN: str = '('; break;
+        case KEY_RIGHT_PAREN: str = ')'; break;
+        case KEY_UNDERSCORE: str = '_'; break;
+        case KEY_PLUS: str = '+'; break;
+        case KEY_TILDE: str = '~'; break;
+        case KEY_LEFT_CURLY: str = '{'; break;
+        case KEY_RIGHT_CURLY: str = '}'; break;
+        case KEY_PIPE: str = '|'; break;
+        case KEY_COLON: str = ':'; break;
+        case KEY_QUOTE: str = '"'; break;
+        case KEY_LESS: str = '<'; break;
+        case KEY_GREATER: str = '>'; break;
+        case KEY_QUESTION: str = '?'; break;
         default:
-            str[0] = '\0'; // Non-printable key
+            str = '\0'; // Non-printable key
             break;
     }
+
+
     return str;
+}
+
+MODIFIERS *GET_KEYBOARD_MODIFIERS(VOID) {
+    return &modifiers;
 }
