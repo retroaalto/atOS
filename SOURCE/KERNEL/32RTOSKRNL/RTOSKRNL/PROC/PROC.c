@@ -965,11 +965,12 @@ void handle_kernel_messages(void) {
     // Handle messages sent by kernel to tasks
     TCB *t = get_current_tcb();
     if (!t) return;
+    KEYPRESS k = GET_CURRENT_KEY_PRESSED(); // saved for every process
+
     do {
         if(t->info.pid == 0) continue; // skip master
         PROC_EVENT_TYPE ev = t->info.event_types;
         if(IS_FLAG_SET(ev, PROC_EVENT_INFORM_ON_KB_EVENTS)) {
-            KEYPRESS k = GET_CURRENT_KEY_PRESSED();
             if(!k.keycode == KEY_UNKNOWN) {
                 MODIFIERS *mods = GET_KEYBOARD_MODIFIERS();
     

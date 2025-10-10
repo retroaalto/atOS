@@ -129,3 +129,15 @@ void FREE_TCB(TCB *tcb) {
     if (!tcb) return;
     Free(tcb);
 }
+
+U32 GET_PIT_TICKS() {
+    return SYSCALL0(SYSCALL_GET_PIT_TICK);
+}
+
+U32 GET_SYS_SECONDS() {
+    return SYSCALL0(SYSCALL_GET_SECONDS);
+}
+
+U32 CPU_SLEEP(U32 ms) {
+    return SYSCALL1(SYSCALL_PIT_SLEEP, ms);
+}

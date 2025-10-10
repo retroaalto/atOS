@@ -71,7 +71,7 @@ U32 ATAPI_CHECK() {
     // Check secondary master
     if (atapi_cdrom_exists(ATA_SECONDARY_BASE, ATA_MASTER)) return ATAPI_SECONDARY_MASTER;
 
-    return 0; // No ATAPI CD-ROM found
+    return ATAPI_FAILED; // No ATAPI CD-ROM found
 }
 
 #ifndef KERNEL_ENTRY

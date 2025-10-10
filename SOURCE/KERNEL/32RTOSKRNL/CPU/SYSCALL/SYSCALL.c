@@ -6,6 +6,7 @@
 #include <DRIVERS/PS2/KEYBOARD.h>
 #include <HEAP/KHEAP.h>
 #include <STD/MEM.h>
+#include <FS/ISO9660/ISO9660.h>
 #include <PROC/PROC.h>
 
 #define SYSCALL_ENTRY(id, fn) [id] = fn,
@@ -90,7 +91,12 @@ U32 SYS_GET_KEYBOARD_MODIFIERS(U32 unused1, U32 unused2, U32 unused3, U32 unused
     return (U32)mod;
 }
 
-
+U32 SYS_GET_PIT_TICK(U32 unused1, U32 unusef2, U32 unused3, U32 unused4, U32 unused5) {
+    return get_ticks();
+}
+U32 SYS_GET_SECONDS(U32 unused1, U32 unusef2, U32 unused3, U32 unused4, U32 unused5) {
+    return get_uptime_sec();
+}
 U32 SYS_MESSAGE_AMOUNT(U32 pid, U32 msg_ptr, U32 length, U32 signal, U32 unused5) {
     (void)unused5;
     TCB *t = get_current_tcb();
@@ -194,6 +200,33 @@ U32 SYS_KCALLOC(U32 num, U32 size, U32 unused3, U32 unused4, U32 unused5) {
     return (U32)KCALLOC(num, size);
 }
 
+U32 SYS_CDROM_READ(U32 lba, U32 sectors, U32 buf_ptr, U32 unused4, U32 unused5) {
+    (void)unused4; (void)unused5;
+    if (!buf_ptr || sectors == 0) return 0;
+    U8 *buf = (U8 *)buf_ptr;
+    U32 res = READ_CDROM(INITIALIZE_ATAPI(), lba, sectors, buf);
+    return res;
+}
+
+U32 SYS_ISO9660_READ_ENTRY(U32 path_ptr, U32 unused2, U32 unused3, U32 unused4, U32 unused5) {
+    (void)unused2; (void)unused3; (void)unused4; (void)unused5;
+    if (!path_ptr) return 0;
+    IsoDirectoryRecord *out = ISO9660_FILERECORD_TO_MEMORY(path_ptr);
+    return (U32)out;
+}
+U32 SYS_ISO9660_FILECONTENTS(U32 record_ptr, U32 unused2, U32 unused3, U32 unused4, U32 unused5) {
+    (void)unused2; (void)unused3; (void)unused4; (void)unused5;
+    if (!record_ptr) return 0;
+    IsoDirectoryRecord *fileptr = ISO9660_FILERECORD_TO_MEMORY((IsoDirectoryRecord *)record_ptr);
+    VOIDPTR data = ISO9660_READ_FILEDATA_TO_MEMORY(fileptr);
+    return (U32)data;
+}
+U32 SYS_ISO9660_FREE_MEMORY(U32 ptr, U32 unused2, U32 unused3, U32 unused4, U32 unused5) {
+    (void)unused2; (void)unused3; (void)unused4; (void)unused5;
+    ISO9660_FREE_MEMORY((VOIDPTR)ptr);
+    return 0;
+}
+
 U32 syscall_dispatcher(U32 num, U32 a1, U32 a2, U32 a3, U32 a4, U32 a5) {
     if (num >= SYSCALL_MAX) return (U32)-1;
     SYSCALL_HANDLER h = syscall_table[num];
@@ -203,7 +236,12 @@ U32 syscall_dispatcher(U32 num, U32 a1, U32 a2, U32 a3, U32 a4, U32 a5) {
 }
 
 
-
+U32 SYS_PIT_SLEEP(U32 ms, U32 unused2, U32 unused3, U32 unused4, U32 unused5) {
+    (void)unused2; (void)unused3; (void)unused4; (void)unused5;
+    if (ms == 0) return 1;
+    PIT_WAIT_MS(ms);
+    return 0;
+}
 __attribute__((naked)) void isr_syscall(void) {
     asm volatile(
         "pusha\n\t"                  // save all general-purpose regs

@@ -2,6 +2,7 @@
 #define SHELL_H
 #include <STD/TYPEDEF.h>
 #include <PROGRAMS/SHELL/VOUTPUT.h>
+#include <DRIVERS/PS2/KEYBOARD.h>
 
 typedef struct {
     
@@ -9,5 +10,7 @@ typedef struct {
 } SHELL_INSTANCE;
 
 VOID SHELL_START(U0);
+
+VOID HANDLE_KB(KEYPRESS *kp, MODIFIERS *mod);
 
 #endif // SHELL_H

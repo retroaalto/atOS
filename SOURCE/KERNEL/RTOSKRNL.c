@@ -33,6 +33,7 @@ void rtos_kernel(U0) {
     
     panic_if(!vbe_check(), PANIC_TEXT("Failed to initialize VBE"), PANIC_INITIALIZATION_FAILED);
     
+    panic_if(INITIALIZE_ATAPI() == ATAPI_FAILED, PANIC_TEXT("Failed to initialize ATAPI interface!"), PANIC_INITIALIZATION_FAILED);
     
     panic_if(!E820_INIT(), PANIC_TEXT("Failed to initialize E820 memory map!"), PANIC_INITIALIZATION_FAILED);
     panic_if(!PAGEFRAME_INIT(), PANIC_TEXT("Failed to initialize page frame! Possibly not enough memory."), PANIC_INITIALIZATION_FAILED);
@@ -45,7 +46,7 @@ void rtos_kernel(U0) {
 
     panic_if(!PS2_KEYBOARD_INIT(), PANIC_TEXT("Failed to initialize PS2 keyboard"), PANIC_INITIALIZATION_FAILED);
     init_multitasking();
-
+    
     STI;
     
     LOAD_AND_RUN_KERNEL_SHELL();

@@ -13,6 +13,7 @@
 #include <DRIVERS/VIDEO/VBE.h>
 #include <DRIVERS/VIDEO/VESA.h>
 #include <DRIVERS/PS2/KEYBOARD.h>
+#include <DRIVERS/DISK/ATA_ATAPI.h>
 #include <CPU/PIT/PIT.h>
 
 #include <RTOSKRNL/RTOSKRNL_INTERNAL.h>

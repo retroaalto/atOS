@@ -66,7 +66,7 @@ U0 *MAlloc(U32 size) {
     return (U0 *)SYSCALL(SYSCALL_KMALLOC, size, 0, 0, 0, 0);
 }
 U0 *CAlloc(U32 num, U32 size) {
-    return (U0 *)SYSCALL(SYSCALL_KMALLOC, num * size, 0, 0, 0, 0);
+    return (U0 *)SYSCALL(SYSCALL_KMALLOC, num, size, 0, 0, 0);
 }
 U0 *ReAlloc(U0* ptr, U32 oldSize, U32 newSize) {
     return (U0 *)SYSCALL(SYSCALL_KREALLOC, ptr, oldSize, newSize, 0, 0);
