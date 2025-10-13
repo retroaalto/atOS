@@ -1,7 +1,6 @@
 #ifndef PIT_H
 #define PIT_H
 #include "../../../STD/TYPEDEF.h"
-
 #define PIT_VECTOR 0x20 // IRQ0
 #define PIT_TICKS_HZ 100 // default 100 Hz
 #define PIT_TICK_MS (1000 / PIT_TICKS_HZ) // in milliseconds (10 ms for 100 Hz)
@@ -16,7 +15,7 @@
 #define EVERY_TICKS(tcks, interval_ticks)  ((tcks % (interval_ticks)) == 0)
 #define EVERY_MS(tcks, ms)                 EVERY_TICKS(tcks, MS_TO_TICKS(ms))
 #define EVERY_HZ(tcks, hz)                 EVERY_TICKS(tcks, PIT_TICKS_HZ / (hz))
-#define REFRESH_HZ 25 // Screen refresh
+#define REFRESH_HZ 48 // Screen refresh
 #ifdef __RTOS__
 #include <PROC/PROC.h> // for TrapFrame struct
 

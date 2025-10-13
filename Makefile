@@ -126,6 +126,7 @@ kernel:
 	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/DRIVERS/ATA_PIIX3/ATA_PIIX3.c -o $(OUTPUT_KERNEL_DIR)/ATA_PIIX3.o
 	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/DRIVERS/ATA_PIO/ATA_PIO.c -o $(OUTPUT_KERNEL_DIR)/ATA_PIO.o
 	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/DRIVERS/CMOS/CMOS.c -o $(OUTPUT_KERNEL_DIR)/CMOS.o
+	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/DRIVERS/BEEPER/BEEPER.c -o $(OUTPUT_KERNEL_DIR)/BEEPER.o
 	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/DRIVERS/PCI/PCI.c -o $(OUTPUT_KERNEL_DIR)/PCI.o
 	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/CPU/PIT/PIT.c -o $(OUTPUT_KERNEL_DIR)/PIT.o
 	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/CPU/GDT/GDT.c -o $(OUTPUT_KERNEL_DIR)/GDT.o
@@ -183,6 +184,7 @@ kernel:
 		$(OUTPUT_KERNEL_DIR)/FAT32.o \
 		$(OUTPUT_KERNEL_DIR)/ERROR.o \
 		$(OUTPUT_KERNEL_DIR)/KHEAP.o \
+		$(OUTPUT_KERNEL_DIR)/BEEPER.o \
 		$(OUTPUT_KERNEL_DIR)/PROC.o \
 		$(OUTPUT_KERNEL_DIR)/FPU.o \
 		$(OUTPUT_KERNEL_DIR)/BITMAP.o \
@@ -243,7 +245,12 @@ run:
 	-drive id=cdrom,file=$(OUTPUT_ISO_DIR)/$(ISO_NAME),format=raw,if=none \
 	-drive id=hd0,file=hdd.img,format=raw,if=none \
 	-device ide-hd,drive=hd0,bus=ide.0 \
-	-device ide-cd,drive=cdrom,bus=ide.1
+	-device ide-cd,drive=cdrom,bus=ide.1 \
+	-audiodev pa,id=ac97snd0,out.frequency=44100,out.channels=2 \
+	-audiodev pa,id=pcspksnd0,out.frequency=44100,out.channels=1
+	-device ac97,audiodev=ac97snd0 \
+	-device pcspk,audiodev=pcspksnd0
+
 
 runlh:
 	@echo "Running ISO in QEMU..."

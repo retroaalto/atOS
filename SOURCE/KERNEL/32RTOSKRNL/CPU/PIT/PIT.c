@@ -38,6 +38,8 @@ static volatile U32 current_task_esp __attribute__((section(".data"))) = 0;
 
 static volatile U32 next_task_num_switches __attribute__((section(".data"))) = 0;
 static volatile U32 next_task_pid __attribute__((section(".data"))) = 0;
+
+static BOOL BLOCK_TASK_SWITCH ATTRIB_DATA = FALSE;
 void set_next_task_pid(U32 pid) {
     next_task_pid = pid;
 }

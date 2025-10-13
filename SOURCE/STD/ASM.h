@@ -78,22 +78,9 @@ static inline void _outl(unsigned short port, unsigned int val) {
                   : "memory");
 }
 
-// Read `count` 16-bit words from port into buffer
-static inline void _insw(unsigned short port, void *buffer, unsigned int count) {
-    asm volatile (
-                 "cld; rep insw"
-                  : "+D"(buffer), "+c"(count)
-                  : "d"(port)
-                  : "memory");
-}
 
-// Write `count` 16-bit words from buffer to port
-static inline void _outsw(unsigned short port, const void *buffer, unsigned int count) {
-    asm volatile ("cld; rep outsw"
-                  : "+S"(buffer), "+c"(count)
-                  : "d"(port)
-                  : "memory");
-}
+
+
 #ifndef KERNEL_ENTRY
 static inline void cpu_relax(void) {
     __asm__ volatile ("pause");
@@ -112,6 +99,28 @@ static inline void NMI_disable() {
     _outb(0x70, _inb(0x70) | 0x80);
     _inb(0x71);
 }
-#endif // KERNEL_ENRTY
 
+static inline VOID __delay(U32 ms) {
+    for (volatile U32 i = 0; i < ms * 1000; i++) {
+        NOP;
+    }
+}
+
+
+#endif // KERNEL_ENRTY
+// Write `count` 16-bit words from buffer to port
+static inline void _outsw(unsigned short port, const void *buffer, unsigned int count) {
+    asm volatile ("cld; rep outsw"
+                  : "+S"(buffer), "+c"(count)
+                  : "d"(port)
+                  : "memory");
+}
+// Read `count` 16-bit words from port into buffer
+static inline void _insw(unsigned short port, void *buffer, unsigned int count) {
+    asm volatile (
+                 "cld; rep insw"
+                  : "+D"(buffer), "+c"(count)
+                  : "d"(port)
+                  : "memory");
+}
 #endif // STD_ASM_H
