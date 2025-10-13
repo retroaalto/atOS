@@ -4,14 +4,15 @@
 #include "../../../STD/TYPEDEF.h"
 #include "../../../STD/ASM.h"
 
-#define ATA_DATA  0
-#define ATA_ERR  1
-#define ATA_SECCOUNT  2
-#define ATA_LBA_LO  3
-#define ATA_LBA_MID  4
-#define ATA_LBA_HI  5
-#define ATA_DRIVE_HEAD  6
-#define ATA_COMM_REG  7
+#define ATA_DATA  			0x0
+#define ATA_ERR  			0x1
+#define ATA_SECCOUNT  		0x2
+#define ATA_LBA_LO  		0x3
+#define ATA_LBA_MID  		0x4
+#define ATA_LBA_HI  		0x5
+#define ATA_DRIVE_HEAD  	0x6
+#define ATA_COMM_REG  		0x7
+#define ATA_CTRL_REG 		0x0E
 
 
 #define ATA_PRIMARY_BASE                    0x1F0 // Base port for ATA
@@ -93,6 +94,20 @@
 #define ATAPI_CMD_READ_CD 	0xBE
 #define ATAPI_CMD_SEND_DISC_STRUCTURE 	0xBF
 
+#define ATA_CTRL_NO_IRQ           	0x02 // Disable Interrupts (nIEN = 1)
+#define ATA_CTRL_SOFT_RESET       	0x04 // Software Reset
+
+#define ATA_CMD_IDENTIFY          	0xEC
+#define ATAPI_CMD_IDENTIFY        	0xA1
+#define ATA_PIO_CMD_READ28			0x20
+#define ATA_PIO_CMD_WRITE28	  		0x30
+
+
+#define ATA_MDA_CMD_READ28               0xC8
+#define ATA_MDA_CMD_WRITE28              0xCA
+#define ATA_MDA_CMD_IDENTIFY            0xEC
+
+
 // -------------------------
 //  Status register bits
 // -------------------------
@@ -106,6 +121,13 @@
 #define ATA_FAILED                0
 #define ATA_SUCCESS               1
 
+#ifndef ATA_MASTER
+#define ATA_MASTER                  0xA0
+#endif
+
+#ifndef ATA_SLAVE
+#define ATA_SLAVE                   0xB0
+#endif
 
 static inline void ata_io_wait(const U8 p) {
 	_inb(p + ATA_CONTROL_REG + ATA_ALTERNATE_STATUS);

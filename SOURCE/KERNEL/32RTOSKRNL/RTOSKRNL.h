@@ -15,6 +15,7 @@
 #include <DRIVERS/PS2/KEYBOARD.h>
 #include <DRIVERS/ATAPI/ATAPI.h>
 #include <DRIVERS/ATA_PIIX3/ATA_PIIX3.h>
+#include <DRIVERS/ATA_PIO/ATA_PIO.h>
 #include <CPU/PIT/PIT.h>
 
 #include <RTOSKRNL/RTOSKRNL_INTERNAL.h>

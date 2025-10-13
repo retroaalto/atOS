@@ -1,9 +1,8 @@
-// ATA_PIIX3.h
 #ifndef ATA_PIIX3_DRIVER_H
 #define ATA_PIIX3_DRIVER_H
-
 #include <STD/TYPEDEF.h>
 #include <DRIVERS/ATA_SHARED.h>
+#include <DRIVERS/ATA_PIO/ATA_PIO.h>
 #include <DRIVERS/PCI/PCI.h> // Include PCI interface
 
 // DMA flags and limits
@@ -25,37 +24,27 @@
 #define BM_CMD_WRITE                0x00
 
 // ATA Commands (for registers)
-#define BM_CMD_READ28               0xC8
-#define BM_CMD_WRITE28              0xCA
 
 // BM_STATUS bits
-#define BM_STATUS_INT               0x04
-#define BM_STATUS_ERR               0x02
-#define BM_STATUS_RESET             0x04  // Writing 1 clears interrupt/status
+#define BM_STATUS_STOP   0x0
+#define BM_STATUS_ACTIVE 0x01  // 1 == DMA active
+#define BM_STATUS_ERROR  0x02
+#define BM_STATUS_IRQ    0x04  // bit set when device triggered IRQ; write-1 to clear
+#define BM_STATUS_ACK    0x06
 
-// ATA drive types
-#define ATA_MASTER                  0xA0
-#define ATA_SLAVE                   0xB0
+// Public API
+BOOLEAN ATA_PIIX3_INIT(VOID);
 
-// ATA Commands
-#define ATA_CMD_IDENTIFY            0xEC
-
+/*
+Return values as follows
 #define ATA_PRIMARY_MASTER          'E'
 #define ATA_PRIMARY_SLAVE           'F'
 #define ATA_SECONDARY_MASTER        'G'
 #define ATA_SECONDARY_SLAVE         'H'
-
-typedef struct {
-    U32 phys_addr;
-    U16 byte_count;
-    U16 flags; // bit 15 = end-of-table
-} ATTRIB_PACKED PRDT_ENTRY;
-
-// Public API
-BOOLEAN ATA_PIIX3_INIT(VOID);
-U32 ATA_IDENTIFY(VOID);
+*/
 U32 ATA_GET_IDENTIFIER(VOID);
-U16* ATA_PIIX3_GET_DRIVE_IDENTIFY_INFO(U32 DEVICE_ID);
+U32 ATA_IDENTIFY(VOID);
+
 BOOLEAN ATA_PIIX3_READ_SECTORS(U8 device_id, U32 lba, U8 sector_count, VOIDPTR out_buffer);
 BOOLEAN ATA_PIIX3_WRITE_SECTORS(U8 device_id, U32 lba, U8 sector_count, VOIDPTR in_buffer);
 

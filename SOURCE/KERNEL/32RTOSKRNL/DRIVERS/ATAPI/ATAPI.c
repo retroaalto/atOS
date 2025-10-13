@@ -105,12 +105,12 @@ int read_cdrom(U32 atapiWhere, U32 lba, U32 sectors, U16 *buffer) {
 	_outb(port + ATA_COMM_REG, 0xA0); // Packet command
 	ata_io_wait(port); // I think we might need this delay, not sure, so keep this
  
-        // Wait for status
+    // Wait for status
 	while (1) {
 		U8 status = _inb(port + ATA_COMM_REG);
-		if ((status & 0x01) == 1)
-			return 1;
-		if (!(status & 0x80) && (status & 0x08))
+		if ((status & STAT_ERR) == 1)
+			return ATA_FAILED;
+		if (!(status & STAT_BSY) && (status & STAT_DRQ))
 			break;
 		ata_io_wait(port);
 	}
@@ -123,9 +123,9 @@ int read_cdrom(U32 atapiWhere, U32 lba, U32 sectors, U16 *buffer) {
                 // Wait until ready
 		while (1) {
 			U8 status = _inb(port + ATA_COMM_REG);
-			if (status & 0x01)
-				return 1;
-			if (!(status & 0x80) && (status & 0x08))
+			if (status & STAT_ERR)
+				return ATA_FAILED;
+			if (!(status & STAT_BSY) && (status & STAT_DRQ))
 				break;
 		}
 

@@ -145,18 +145,6 @@ BOOLEAN PCI_FIND_IDE_CONTROLLER(U8* out_bus, U8* out_slot, U8* out_func) {
     return FALSE;
 }
 
-BOOLEAN PCI_ENABLE_BUS_MASTER_FOR_PIXX3(void) {
-    U8 bus, slot, func;
-    if(!PCI_FIND_IDE_CONTROLLER(&bus, &slot, &func)) return FALSE;
-
-    U16 command = PCI_GET_COMMAND(bus, slot, func);
-    command |= 0x04; // Set Bus Master Enable bit
-    PCI_WRITE16(bus, slot, func, PCI_COMMAND_OFFSET, command);
-
-    // Verify
-    command = PCI_GET_COMMAND(bus, slot, func);
-    return (command & 0x04) != 0;
-}
 
 // Enumerate all PCI devices and fill pci_devices[]
 void PCI_ENUMERATE(void) {
@@ -226,4 +214,12 @@ PCI_DEVICE_ENTRY* PCI_GET_LIST(void) {
 }
 void PCI_INITIALIZE(void) {
     PCI_ENUMERATE();
+}
+
+BOOL PCI_ENABLE_BUS_MASTERING(U8 bus, U8 slot, U8 func) {
+    U16 cmd = PCI_GET_COMMAND(bus, slot, func);
+    PCI_WRITE16(bus, slot, func, PCI_COMMAND_OFFSET, cmd | 0x04);
+    
+    cmd = PCI_GET_COMMAND(bus, slot, func);
+    return (cmd & 0x04) != 0;
 }

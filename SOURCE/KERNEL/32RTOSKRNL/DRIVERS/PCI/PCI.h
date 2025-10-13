@@ -221,8 +221,26 @@ U16 PCI_GET_SUBSYSTEM_VENDOR_ID(U8 bus, U8 slot, U8 func);
 U16 PCI_GET_SUBSYSTEM_ID(U8 bus, U8 slot, U8 func);
 U8 PCI_IS_MULTI_FUNCTION_DEVICE(U8 bus, U8 slot);
 
+BOOL PCI_ENABLE_BUS_MASTERING(U8 bus, U8 slot, U8 func);
+
 void PCI_INITIALIZE(void);
 U32 PCI_GET_DEVICE_COUNT(void);
 PCI_DEVICE_ENTRY* PCI_GET_DEVICE(U32 index);
 PCI_DEVICE_ENTRY* PCI_GET_LIST(void);
+
+static inline void bm_write8(U32 bm_base, BOOL io, U32 offset, U8 value) {
+    if(io) _outb((U16)(bm_base + offset), value);
+    else   *(volatile U8*)(bm_base + offset) = value;
+}
+
+static inline U8 bm_read8(U32 bm_base, BOOL io, U32 offset) {
+    if(io) return _inb((U16)(bm_base + offset));
+    else   return *(volatile U8*)(bm_base + offset);
+}
+
+static inline void bm_write32(U32 bm_base, BOOL io, U32 offset, U32 value) {
+    if(io) _outl((U16)(bm_base + offset), value);
+    else   *(volatile U32*)(bm_base + offset) = value;
+}
+
 #endif // PCI_H

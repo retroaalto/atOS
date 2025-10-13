@@ -80,7 +80,8 @@ static inline void _outl(unsigned short port, unsigned int val) {
 
 // Read `count` 16-bit words from port into buffer
 static inline void _insw(unsigned short port, void *buffer, unsigned int count) {
-    asm volatile ("cld; rep insw"
+    asm volatile (
+                 "cld; rep insw"
                   : "+D"(buffer), "+c"(count)
                   : "d"(port)
                   : "memory");
@@ -93,10 +94,14 @@ static inline void _outsw(unsigned short port, const void *buffer, unsigned int 
                   : "d"(port)
                   : "memory");
 }
-
+#ifndef KERNEL_ENTRY
 static inline void cpu_relax(void) {
     __asm__ volatile ("pause");
 }
 
+static inline void mfence(void) {
+    __asm__ volatile("mfence" ::: "memory");
+}
+#endif // KERNEL_ENRTY
 
 #endif // STD_ASM_H

@@ -52,17 +52,7 @@ void rtos_kernel(U0) {
     
     PCI_INITIALIZE();
     panic_if(!ATA_PIIX3_INIT(), PANIC_TEXT("Failed to initialize ATA DMA"), PANIC_INITIALIZATION_FAILED);
-    
-    // U32 res = ATA_GET_IDENTIFIER();
-    // #define TEST_SECTORS 3
-    // U8 buf[ATA_PIIX3_SECTOR_SIZE * TEST_SECTORS];
-    // MEMSET(buf, 'A', sizeof(buf));
-    // // ATA_PIIX3_WRITE_SECTORS((U8)res, 0, 1, buf);
-    // // MEMZERO(buf, ATA_PIIX3_SECTOR_SIZE);
-    // ATA_PIIX3_READ_SECTORS((U8)res, 0, 2, buf);
-    // // Write content of buf to vram for testing
-    // DUMP_MEMORY(buf, sizeof(buf));
-    // for(;;);
+    panic_if(!ATA_PIO_INIT(), PANIC_TEXT("Failed to initialize ATA PIO"), PANIC_INITIALIZATION_FAILED);
 
     LOAD_AND_RUN_KERNEL_SHELL();
     RTOSKRNL_LOOP();
