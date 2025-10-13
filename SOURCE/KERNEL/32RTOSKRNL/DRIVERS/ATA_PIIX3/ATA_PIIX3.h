@@ -45,7 +45,11 @@ Return values as follows
 U32 ATA_GET_IDENTIFIER(VOID);
 U32 ATA_IDENTIFY(VOID);
 
-BOOLEAN ATA_PIIX3_READ_SECTORS(U8 device_id, U32 lba, U8 sector_count, VOIDPTR out_buffer);
-BOOLEAN ATA_PIIX3_WRITE_SECTORS(U8 device_id, U32 lba, U8 sector_count, VOIDPTR in_buffer);
+BOOLEAN ATA_PIIX3_READ_SECTORS_EXT(U8 device_id, U32 lba, U8 sector_count, VOIDPTR out_buffer);
+BOOLEAN ATA_PIIX3_WRITE_SECTORS_EXT(U8 device_id, U32 lba, U8 sector_count, VOIDPTR in_buffer);
 
+BOOLEAN ATA_PIIX3_READ_SECTORS(U32 lba, U8 sector_count, VOIDPTR out_buffer);
+BOOLEAN ATA_PIIX3_WRITE_SECTORS(U32 lba, U8 sector_count, VOIDPTR in_buffer);
+
+VOID ATA_IRQ_HANDLER(U32, U32);
 #endif // ATA_PIIX3_DRIVER_H

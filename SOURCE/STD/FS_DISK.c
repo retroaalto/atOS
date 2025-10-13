@@ -25,3 +25,10 @@ VOID FREE_ISO9660_MEMORY(VOIDPTR ptr) {
     if (!ptr) return;
     SYSCALL1(SYSCALL_ISO9660_FREE_MEMORY, (U32)ptr);
 }
+
+U32 HDD_WRITE(U32 lba, U32 sectors, U8 *buf) {
+    return SYSCALL3(SYSCALL_HDD_WRITE, lba, sectors, (U32)buf);
+}
+U32 HDD_READ(U32 lba, U32 sectors, U8 *buf) {
+    return SYSCALL3(SYSCALL_HDD_READ, lba, sectors, (U32)buf);
+}

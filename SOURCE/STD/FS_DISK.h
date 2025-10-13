@@ -46,4 +46,18 @@ VOID FREE_ISO9660_MEMORY(VOIDPTR ptr);
 /// @return Non zero on success, zero on failure
 U32 CDROM_READ(U32 lba, U32 sectors, U8 *buf);
 
+/// @brief Reads from a hard disk
+/// @param lba Lba to read from disk
+/// @param sectors Sectors to read (Max 256)
+/// @param buf Buffer, must (sectors * 512)
+/// @return Non zero on success, zero on failure
+U32 HDD_READ(U32 lba, U32 sectors, U8 *buf);
+
+/// @brief Reads from a hard disk
+/// @param lba Lba to write to disk
+/// @param sectors Sectors to write (Max 256)
+/// @param buf Buffer, must (sectors * 512)
+/// @return Non zero on success, zero on failure
+U32 HDD_WRITE(U32 lba, U32 sectors, U8 *buf);
+
 #endif // STD_FS_DISK_H

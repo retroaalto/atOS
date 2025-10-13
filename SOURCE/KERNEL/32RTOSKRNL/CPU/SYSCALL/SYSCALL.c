@@ -1,19 +1,32 @@
 #include <STD/TYPEDEF.h>
-#include <CPU/SYSCALL/SYSCALL.h>
-#include <DRIVERS/VIDEO/VBE.h>
 #include <STD/ASM.h>
-#include <CPU/INTERRUPTS/INTERRUPTS.h>
-#include <DRIVERS/PS2/KEYBOARD.h>
-#include <HEAP/KHEAP.h>
 #include <STD/MEM.h>
-#include <FS/ISO9660/ISO9660.h>
+
 #include <PROC/PROC.h>
+
+#include <CPU/SYSCALL/SYSCALL.h>
+#include <CPU/INTERRUPTS/INTERRUPTS.h>
+
+#include <MEMORY/HEAP/KHEAP.h>
+
+#include <FS/ISO9660/ISO9660.h>
+
+#include <DRIVERS/VIDEO/VBE.h>
+#include <DRIVERS/PS2/KEYBOARD.h>
+#include <DRIVERS/ATA_PIO/ATA_PIO.h>
 
 #define SYSCALL_ENTRY(id, fn) [id] = fn,
 static SYSCALL_HANDLER syscall_table[SYSCALL_MAX] = {
     #include <CPU/SYSCALL/SYSCALL_LIST.h>
 };
 #undef SYSCALL_ENTRY
+
+U32 SYS_HDD_READ_SECTOR(U32 lba, U32 sector_count, U32 buf, U32 unused4, U32 unused5) {
+    return ATA_PIO_READ_SECTORS(lba, sector_count, buf);
+}
+U32 SYS_HDD_WRITE_SECTOR(U32 lba, U32 sector_count, U32 buf, U32 unused4, U32 unused5) {
+    return ATA_PIO_WRITE_SECTORS(lba, sector_count, buf);
+}
 
 U32 SYS_VBE_UPDATE_VRAM(U32 unused1, U32 unused2, U32 unused3, U32 unused4, U32 unused5) {
     (void)unused1; (void)unused2; (void)unused3; (void)unused4; (void)unused5;

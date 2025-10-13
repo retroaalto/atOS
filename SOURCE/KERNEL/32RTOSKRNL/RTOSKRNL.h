@@ -16,7 +16,7 @@
 #include <DRIVERS/ATAPI/ATAPI.h>
 #include <DRIVERS/ATA_PIIX3/ATA_PIIX3.h>
 #include <DRIVERS/ATA_PIO/ATA_PIO.h>
-#include <CPU/PIT/PIT.h>
+#include <DRIVERS/CMOS/CMOS.h>
 
 #include <RTOSKRNL/RTOSKRNL_INTERNAL.h>
 #include <RTOSKRNL/PROC/PROC.h>
@@ -26,6 +26,7 @@
 #include <MEMORY/PAGEFRAME/PAGEFRAME.h>
 #include <MEMORY/HEAP/KHEAP.h>
 
+#include <CPU/PIT/PIT.h>
 #include <CPU/PIC/PIC.h>
 #include <CPU/GDT/GDT.h>
 #include <CPU/IDT/IDT.h>

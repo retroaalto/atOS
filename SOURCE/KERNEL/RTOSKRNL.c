@@ -2,23 +2,6 @@
 #define RTOS_KERNEL
 #endif
 #include <RTOSKRNL.h>
-/*
-TODO:
-    Test via Shell:
-        E820 & Paging
-        Process Management
-        Multitasking
-        Inter-Process Communication
-
-    atOShell
-    HDD driver
-    Syscalls
-    Speaker driver
-
-    BYTEMAP atmp
-    shell atosh
-    shell lang batsh
-*/
 
 __attribute__((noreturn))
 void rtos_kernel(U0) {
@@ -46,13 +29,18 @@ void rtos_kernel(U0) {
     
     panic_if(!PS2_KEYBOARD_INIT(), PANIC_TEXT("Failed to initialize PS2 keyboard"), PANIC_INITIALIZATION_FAILED);
     
+    // panic_if(!ATA_PIIX3_INIT(), PANIC_TEXT("Failed to initialize ATA DMA"), PANIC_INITIALIZATION_FAILED);
+
     debug_vram_end(); // End early mode, now using task framebuffers
     init_multitasking();
     STI;
     
+    INIT_RTC();
     PCI_INITIALIZE();
-    panic_if(!ATA_PIIX3_INIT(), PANIC_TEXT("Failed to initialize ATA DMA"), PANIC_INITIALIZATION_FAILED);
+    
     panic_if(!ATA_PIO_INIT(), PANIC_TEXT("Failed to initialize ATA PIO"), PANIC_INITIALIZATION_FAILED);
+
+    initialize_filestructure();
 
     LOAD_AND_RUN_KERNEL_SHELL();
     RTOSKRNL_LOOP();

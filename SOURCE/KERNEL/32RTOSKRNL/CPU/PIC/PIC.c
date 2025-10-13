@@ -2,37 +2,9 @@
 #include "./PIC/PIC.h"
 #include "../../../STD/ASM.h"
 
-
-
-
-enum {
-    PIC_ICW1_ICW4           = 0x01,
-    PIC_ICW1_SINGLE         = 0x02,
-    PIC_ICW1_INTERVAL4      = 0x04,
-    PIC_ICW1_LEVEL          = 0x08,
-    PIC_ICW1_INITIALIZE     = 0x10
-} PIC_ICW1;
-
-enum {
-    PIC_ICW4_8086           = 0x1,
-    PIC_ICW4_AUTO_EOI       = 0x2,
-    PIC_ICW4_BUFFER_MASTER  = 0x4,
-    PIC_ICW4_BUFFER_SLAVE   = 0x0,
-    PIC_ICW4_BUFFERRED      = 0x8,
-    PIC_ICW4_SFNM           = 0x10,
-} PIC_ICW4;
-
 enum {
     PIC_CMD_END_OF_INTERRUPT    = 0x20,
-    PIC_CMD_READ_IRR            = 0x0A,
-    PIC_CMD_READ_ISR            = 0x0B,
 } PIC_CMD;
-
-
-// void PIC_Disable() {
-//     _outb(PIC1_DATA_PORT, 0xFF);
-//     _outb(PIC2_DATA_PORT, 0xFF);
-// }
 
 void PIC_Mask(int irq) {
     if(irq < 8) {
@@ -45,24 +17,37 @@ void PIC_Mask(int irq) {
 }
 
 void PIC_Unmask(int irq) {
-    if(irq < 8) {
+    if (irq < 8) {
+        // Master PIC
         U8 mask = _inb(PIC1_DATA_PORT);
-        _outb(PIC1_DATA_PORT, mask & ~(1 << irq));
+        mask &= ~(1 << irq);       // Clear the bit to unmask
+        _outb(PIC1_DATA_PORT, mask);
     } else {
-        U8 mask = _inb(PIC2_DATA_PORT);
-        _outb(PIC2_DATA_PORT, mask & ~(1 << (irq - 8)));
+        // Slave PIC
+        int slave_irq = irq - 8;
+
+        // Unmask the slave IRQ
+        U8 slave_mask = _inb(PIC2_DATA_PORT);
+        slave_mask &= ~(1 << slave_irq); 
+        _outb(PIC2_DATA_PORT, slave_mask);
+
+        // Ensure master cascade line (IRQ2) is always unmasked
+        U8 master_mask = _inb(PIC1_DATA_PORT);
+        master_mask &= ~(1 << 2);  // Clear IRQ2
+        _outb(PIC1_DATA_PORT, master_mask);
     }
 }
 
 
 void pic_send_eoi(U8 irq) {
-    if (irq >= 8) _outb(0xA0, 0x20);
-    _outb(0x20, 0x20);
+    if (irq >= 8) {
+        _outb(PIC2_COMMAND_PORT, PIC_CMD_END_OF_INTERRUPT); _io_wait();
+    }
+    _outb(PIC1_COMMAND_PORT, PIC_CMD_END_OF_INTERRUPT); _io_wait();
 }
 
 
 void pic_remap(U8 offset1, U8 offset2) {
-    // Expect IF=0 on entry. Do not STI here.
     // Mask all IRQs immediately
     _outb(PIC1_DATA_PORT, 0xFF);
     _outb(PIC2_DATA_PORT, 0xFF);
@@ -72,7 +57,6 @@ void pic_remap(U8 offset1, U8 offset2) {
     _outb(PIC2_COMMAND_PORT, 0x11); _io_wait();
     
     // ICW2: vector offsets
-    _io_wait();
     _outb(PIC1_DATA_PORT, offset1); _io_wait();    // e.g., 0x20
     _outb(PIC2_DATA_PORT, offset2); _io_wait();    // e.g., 0x28
 
@@ -84,22 +68,7 @@ void pic_remap(U8 offset1, U8 offset2) {
     _outb(PIC1_DATA_PORT, 0x01); _io_wait();
     _outb(PIC2_DATA_PORT, 0x01); _io_wait();
 
-    // Leave masked; caller decides what to unmask later
-    _outb(PIC1_DATA_PORT, 0xFF);
-    _outb(PIC2_DATA_PORT, 0xFF);
+    // Unmask cascade
+    _outb(PIC1_DATA_PORT, 0xFB);
+    _outb(PIC2_DATA_PORT, 0xFF);       // All slave IRQs masked
 }
-
-
-// uint16_t PIC_ReadIRQRequestRegister() {
-//     _outb(PIC1_COMMAND_PORT, PIC_CMD_READ_IRR);
-//     _outb(PIC2_COMMAND_PORT, PIC_CMD_READ_IRR);
-
-//     return ((uint16_t)_inb(PIC1_COMMAND_PORT)) | (((uint16_t)_inb(PIC2_COMMAND_PORT)) << 8); 
-// }
-
-// uint16_t PIC_ReadInServiceRegister() {
-//     _outb(PIC1_COMMAND_PORT, PIC_CMD_READ_ISR);
-//     _outb(PIC2_COMMAND_PORT, PIC_CMD_READ_ISR);
-
-//     return ((uint16_t)_inb(PIC1_COMMAND_PORT)) | (((uint16_t)_inb(PIC2_COMMAND_PORT)) << 8); 
-// }

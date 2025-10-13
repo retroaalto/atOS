@@ -1,0 +1,8 @@
+CMOS syslist
+STD/TIME
+PROC_COM RTC
+
+Speaker driver
+
+BYTEMAP atmp
+shell lang batsh

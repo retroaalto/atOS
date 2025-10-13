@@ -8,10 +8,7 @@
 
 // Initialize IRQs
 void IRQ_INIT(void) {
-    pic_remap(PIC_REMAP_OFFSET, PIC_REMAP_OFFSET2);                // Remap PICs
-    for(U8 i = 0; i < 16; i++) {
-        PIC_Mask(i);
-    }
+    pic_remap(PIC_REMAP_OFFSET, PIC_REMAP_OFFSET2); // Remap PICs
     return;
 }
 

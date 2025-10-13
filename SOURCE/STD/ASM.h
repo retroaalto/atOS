@@ -102,6 +102,16 @@ static inline void cpu_relax(void) {
 static inline void mfence(void) {
     __asm__ volatile("mfence" ::: "memory");
 }
+
+static inline void NMI_enable() {
+    _outb(0x70, _inb(0x70) & 0x7F);
+    _inb(0x71);
+}
+
+static inline void NMI_disable() {
+    _outb(0x70, _inb(0x70) | 0x80);
+    _inb(0x71);
+}
 #endif // KERNEL_ENRTY
 
 #endif // STD_ASM_H

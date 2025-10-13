@@ -5,6 +5,7 @@
 #include <STD/MEM.h>
 #include <STD/STRING.h>
 #include <DRIVERS/VIDEO/VBE.h>
+#include <CPU/PIC/PIC.h>
 
 #define POLLING_TIME 0xFFFFF
 
@@ -32,6 +33,12 @@ typedef struct {
 } MDA_MODES;
 
 static MDA_MODES supported_dma_modes ATTRIB_DATA = { 0, 0, 0, 0, 0 };
+
+static volatile BOOL dma_done ATTRIB_DATA = FALSE;
+static VOID* dma_target_buf ATTRIB_DATA = NULL;
+static U32 dma_bytes ATTRIB_DATA = 0;
+static U8 dma_write ATTRIB_DATA = FALSE;
+
 
 static BOOL ATA_PIIX3_LOCATE_BUS_MASTER(void) {
     U32 pci_device_count = PCI_GET_DEVICE_COUNT();
@@ -95,7 +102,7 @@ BOOLEAN ATA_PIIX3_INIT(VOID) {
     // Identify first available drive
     U32 identification = ATA_GET_IDENTIFIER();
     if (identification == ATA_FAILED) return FALSE;
-
+    panic_debug("A",0);
     PRDT = (PRDT_ENTRY*)KMALLOC_ALIGN(sizeof(PRDT_ENTRY), ATA_PIIX3_PRDT_ALIGN);
     panic_if(!PRDT, PANIC_TEXT("Failed to allocate PRDT"), PANIC_OUT_OF_MEMORY);
     MEMZERO(PRDT, sizeof(PRDT_ENTRY));
@@ -138,6 +145,11 @@ BOOLEAN ATA_PIIX3_INIT(VOID) {
             supported_dma_modes.UDMA_1    |= (w88 & (1 << 1)) != 0;
         }
     }
+
+    ISR_REGISTER_HANDLER(PIC_REMAP_OFFSET + 14, ATA_IRQ_HANDLER);
+    ISR_REGISTER_HANDLER(PIC_REMAP_OFFSET + 15, ATA_IRQ_HANDLER);
+    PIC_Unmask(14);
+    PIC_Unmask(15);
     return TRUE;
 }
 
@@ -147,32 +159,11 @@ BOOLEAN ATA_PIIX3_XFER(U8 device, U32 lba, U8 sectors, VOIDPTR buf, BOOLEAN writ
     if (!PRDT || !DMA_BUFFER) return FALSE;
 
     U32 total_bytes = sectors * ATA_PIIX3_SECTOR_SIZE;
-    if (total_bytes > 0x10000) return FALSE; // PIIX3 max 64 KiB per PRDT entry
+    if (total_bytes > 0x10000) return FALSE;
 
-    U16 base = 0;
-    U32 bm_base = 0;
-    BOOL is_io = FALSE;
-
-    switch (device) {
-        case ATA_PRIMARY_MASTER:
-        case ATA_PRIMARY_SLAVE:
-            base = ATA_PRIMARY_BASE;
-            bm_base = BM_BASE_PRIMARY;
-            is_io = BM_PRIMARY_IS_IO;
-            break;
-        case ATA_SECONDARY_MASTER:
-        case ATA_SECONDARY_SLAVE:
-            base = ATA_SECONDARY_BASE;
-            bm_base = BM_BASE_SECONDARY;
-            is_io = BM_SECONDARY_IS_IO;
-            break;
-        default:
-            return FALSE;
-    }
-
-    // Reset BM controller state
-    bm_write8(bm_base, is_io, BM_COMMAND_OFFSET, 0);
-    bm_write8(bm_base, is_io, BM_STATUS_OFFSET, BM_STATUS_ERROR | BM_STATUS_IRQ);
+    U16 base = (device & 2) ? ATA_SECONDARY_BASE : ATA_PRIMARY_BASE;
+    U32 bm_base = (device & 2) ? BM_BASE_SECONDARY : BM_BASE_PRIMARY;
+    BOOL is_io = (device & 2) ? BM_SECONDARY_IS_IO : BM_PRIMARY_IS_IO;
 
     // Setup PRDT + DMA buffer
     MEMZERO(DMA_BUFFER, total_bytes);
@@ -181,16 +172,18 @@ BOOLEAN ATA_PIIX3_XFER(U8 device, U32 lba, U8 sectors, VOIDPTR buf, BOOLEAN writ
     PRDT[0].flags = END_OF_TABLE_FLAG;
     bm_write32(bm_base, is_io, BM_PRDT_ADDR_OFFSET, (U32)PRDT);
 
-    panic_if(((U32)PRDT) & 0x3, "PRDT not DWORD aligned", PRDT);
-    panic_if(((U32)DMA_BUFFER) & 0x3, "DMA buffer not DWORD aligned", DMA_BUFFER);
+    if (write) MEMCPY(DMA_BUFFER, buf, total_bytes);
 
-    if (write) MEMCPY_OPT(DMA_BUFFER, buf, total_bytes);
+    dma_target_buf = buf;
+    dma_bytes = total_bytes;
+    dma_write = write;
+    dma_done = FALSE;
 
     // Start DMA engine
-    bm_write8(bm_base, is_io, BM_STATUS_OFFSET, BM_STATUS_ERROR | BM_STATUS_IRQ); // clear previous errors/IRQ
+    bm_write8(bm_base, is_io, BM_STATUS_OFFSET, BM_STATUS_ERROR | BM_STATUS_IRQ);
     bm_write8(bm_base, is_io, BM_COMMAND_OFFSET, (write ? BM_CMD_WRITE : BM_CMD_READ) | BM_CMD_START_STOP);
 
-    // Program ATA registers for LBA28
+    // Program ATA registers
     _outb(base + ATA_DRIVE_HEAD, 0xE0 | ((device & 1) ? 0x10 : 0) | ((lba >> 24) & 0x0F));
     ata_io_wait(base);
     _outb(base + ATA_SECCOUNT, sectors);
@@ -198,57 +191,60 @@ BOOLEAN ATA_PIIX3_XFER(U8 device, U32 lba, U8 sectors, VOIDPTR buf, BOOLEAN writ
     _outb(base + ATA_LBA_MID,  (U8)((lba >> 8) & 0xFF));
     _outb(base + ATA_LBA_HI,   (U8)((lba >> 16) & 0xFF));
     _outb(base + ATA_COMM_REG, write ? ATA_MDA_CMD_WRITE28 : ATA_MDA_CMD_READ28);
-    ata_io_wait(base);
-        
-    // Poll for DMA completion
-    U32 timeout = POLLING_TIME;
-    while (timeout--) {
-        U8 bm_stat  = bm_read8(bm_base, is_io, BM_STATUS_OFFSET);
-        U8 ata_stat = _inb(base + ATA_COMM_REG);
 
-        if (bm_stat & BM_STATUS_ERROR || ata_stat & STAT_ERR) {
-            // Stop DMA & acknowledge
-            bm_write8(bm_base, is_io, BM_COMMAND_OFFSET, BM_STATUS_STOP);
-            bm_write8(bm_base, is_io, BM_STATUS_OFFSET, BM_STATUS_ACK);
-            return FALSE;
-        }
-
-        // DMA done when BM not active AND ATA not busy
-        if (!(bm_stat & BM_STATUS_ACTIVE) && !(ata_stat & STAT_BSY)) break;
-
-        cpu_relax();
-        ata_io_wait(base);
-    }
-
-    if (timeout == 0) {
-        // Stop DMA & acknowledge
-        bm_write8(bm_base, is_io, BM_COMMAND_OFFSET, BM_STATUS_STOP);
-        bm_write8(bm_base, is_io, BM_STATUS_OFFSET, BM_STATUS_ACK);
-        return FALSE;
-    }
-
-    // Stop DMA engine cleanly
-    bm_write8(bm_base, is_io, BM_COMMAND_OFFSET, BM_STATUS_STOP);
-    bm_write8(bm_base, is_io, BM_STATUS_OFFSET, BM_STATUS_ACK);
-
-    // Final ATA status check
-    timeout = POLLING_TIME;
-    while (timeout--) {
-        U8 status = _inb(base + ATA_COMM_REG);
-        if (status & STAT_ERR) return FALSE;
-        if (!(status & STAT_BSY) && (status & STAT_DRQ)) break;
-        ata_io_wait(base);
-    }
-
-    if (!write) MEMCPY_OPT(buf, DMA_BUFFER, total_bytes);
+    // Wait for IRQ
+    CLI;
+    while (!dma_done) HLT; // could use proper thread sleep instead
+    STI;
 
     return TRUE;
 }
 
-BOOLEAN ATA_PIIX3_READ_SECTORS(U8 device, U32 lba, U8 sectors, VOIDPTR out) {
+BOOLEAN ATA_PIIX3_READ_SECTORS_EXT(U8 device, U32 lba, U8 sectors, VOIDPTR out) {
     return ATA_PIIX3_XFER(device, lba, sectors, out, FALSE);
 }
 
-BOOLEAN ATA_PIIX3_WRITE_SECTORS(U8 device, U32 lba, U8 sectors, VOIDPTR in) {
+BOOLEAN ATA_PIIX3_WRITE_SECTORS_EXT(U8 device, U32 lba, U8 sectors, VOIDPTR in) {
     return ATA_PIIX3_XFER(device, lba, sectors, in, TRUE);
+}
+
+BOOLEAN ATA_PIIX3_READ_SECTORS(U32 lba, U8 sectors, VOIDPTR out) {
+    U8 device = ATA_GET_IDENTIFIER();
+    return ATA_PIIX3_XFER(device, lba, sectors, out, FALSE);
+}
+
+BOOLEAN ATA_PIIX3_WRITE_SECTORS(U32 lba, U8 sectors, VOIDPTR in) {
+    U8 device = ATA_GET_IDENTIFIER();
+    return ATA_PIIX3_XFER(device, lba, sectors, in, TRUE);
+}
+
+
+void ATA_IRQ_HANDLER(U32 vector, U32 errcode) {
+    (void)errcode;
+
+    // Determine primary/secondary channel
+    U32 bm_base = (vector == PIC_REMAP_OFFSET + 14) ? BM_BASE_PRIMARY : BM_BASE_SECONDARY;
+    BOOL is_io = (vector == PIC_REMAP_OFFSET + 14) ? BM_PRIMARY_IS_IO : BM_SECONDARY_IS_IO;
+
+    // Read BM status
+    U8 status = bm_read8(bm_base, is_io, BM_STATUS_OFFSET);
+
+    // Stop DMA engine
+    bm_write8(bm_base, is_io, BM_COMMAND_OFFSET, BM_STATUS_STOP);
+
+    // Check for errors
+    if (status & BM_STATUS_ERROR) {
+        panic("ATA DMA error", status);
+    }
+
+    // Copy DMA buffer if reading
+    if (!dma_write && dma_target_buf) {
+        MEMCPY(dma_target_buf, DMA_BUFFER, dma_bytes);
+    }
+
+    // Signal completion
+    dma_done = TRUE;
+
+    // Ack IRQ
+    pic_send_eoi(vector - PIC_REMAP_OFFSET);
 }

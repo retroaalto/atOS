@@ -65,6 +65,6 @@ void DUMP_MEMORY(U32 addr, U32 length);
 void set_rki_row(U32 rki_row);
 
 void LOAD_AND_RUN_KERNEL_SHELL(VOID);
-
+BOOL initialize_filestructure(VOID);
 void RTOSKRNL_LOOP(VOID);
 #endif // RTOSKRNL_INTERNAL_H

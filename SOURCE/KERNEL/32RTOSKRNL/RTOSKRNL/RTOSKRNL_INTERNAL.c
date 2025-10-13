@@ -374,15 +374,18 @@ void LOAD_AND_RUN_KERNEL_SHELL(VOID) {
 }
 
 
+BOOL initialize_filestructure(VOID) {
+
+}
+
+
 void RTOSKRNL_LOOP(VOID) {
     VBE_DRAW_ELLIPSE(1000, 0, 200,200, VBE_AQUA);
     U32 i = 0;
     U32 j = 0;
     U32 pass = 0;
     TCB *a = get_tcb_by_pid(1);
-    // DUMP_MEMORY(a->framebuffer_phys + (PAGE_SIZE * 5), PAGE_SIZE);
     while(1) {
-        // VBE_DRAW_ELLIPSE(500, 500, 200, 200, VBE_RED);
         VBE_DRAW_LINE(0, i, j, i, pass++ % 2 == 0 ? VBE_RED : VBE_GREEN);
         i++;
         if(i >= 1024) i = 0;

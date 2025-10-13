@@ -28,23 +28,6 @@ int ata_read_identify_to_buffer(U16 base_port, U8 drive, U16 *ident_out) {
         return 1; // ata drive
     }
 
-    // ATAPI fallback check (restored for robust identification)
-    _outb(base_port + ATA_ERR, 0);
-    ata_io_wait(base_port);
-    _outb(base_port + ATA_COMM_REG, ATAPI_CMD_IDENTIFY);
-    ata_io_wait(base_port);
-
-    status = _inb(base_port + ATA_COMM_REG);
-    if (status == 0) return 0;
-
-    timeout = 1000000;
-    while ((_inb(base_port + ATA_COMM_REG) & STAT_BSY) && timeout--) {}
-    status = _inb(base_port + ATA_COMM_REG);
-    if (!(status & STAT_ERR) && (status & STAT_DRQ)) {
-        for (int i = 0; i < 256; i++) ident_out[i] = _inw(base_port + ATA_DATA);
-        return 2; // cd-rom (ATAPI)
-    }
-
     return 0;
 }
 

@@ -72,7 +72,7 @@ void irq_common_handler(I32 vector, U32 errcode) {
     (void)errcode;
     // vector is 0x20..0x2F for IRQs
     #ifdef __RTOS__
-    if (vector < PIC_REMAP_OFFSET || vector >= PIC_REMAP_OFFSET + 16) {
+    if (vector < PIC_REMAP_OFFSET || vector >= PIC_REMAP_END) {
         // Not an IRQ, should not happen here
         panic(PANIC_TEXT("Non-IRQ received in irq_common_handler!"), vector);
         return;
@@ -237,7 +237,7 @@ U0 SETUP_ISRS(U0) {
 }
 VOID SETUP_ISR_HANDLERS(VOID) {
     for(int i = 0; i < IDT_COUNT; i++) {
-        if(i >= PIC_REMAP_OFFSET && i < PIC_REMAP_OFFSET2) {
+        if(i >= PIC_REMAP_OFFSET && i < PIC_REMAP_END) {
             ISR_REGISTER_HANDLER(i, irq_common_handler); // No default handler
         } else {
             ISR_REGISTER_HANDLER(i, isr_common_handler); // Reserved / unused
