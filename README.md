@@ -152,9 +152,9 @@ Planned and in-progress features for atOS:
 * [X] ISO9660 support
 * [X] Basic drivers (keyboard, screen, disk I/O)
 * [ ] FAT32 filesystem support
-* [ ] System call interface
-* [ ] Multitasking and scheduling
-* [ ] Shell environment for interacting with the system
+* [X] System call interface
+* [X] Multitasking and scheduling
+* [X] Shell environment for interacting with the system
 * [ ] Userland application support via custom language
 
 *This roadmap is tentative and may evolve as the project grows.*
