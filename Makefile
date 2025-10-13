@@ -126,6 +126,7 @@ kernel:
 	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/DRIVERS/ATA_PIIX3/ATA_PIIX3.c -o $(OUTPUT_KERNEL_DIR)/ATA_PIIX3.o
 	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/DRIVERS/ATA_PIO/ATA_PIO.c -o $(OUTPUT_KERNEL_DIR)/ATA_PIO.o
 	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/DRIVERS/CMOS/CMOS.c -o $(OUTPUT_KERNEL_DIR)/CMOS.o
+	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/DRIVERS/RTL8139/RTL8139.c -o $(OUTPUT_KERNEL_DIR)/E1000.o
 	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/DRIVERS/BEEPER/BEEPER.c -o $(OUTPUT_KERNEL_DIR)/BEEPER.o
 	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/DRIVERS/PCI/PCI.c -o $(OUTPUT_KERNEL_DIR)/PCI.o
 	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/CPU/PIT/PIT.c -o $(OUTPUT_KERNEL_DIR)/PIT.o
@@ -187,6 +188,7 @@ kernel:
 		$(OUTPUT_KERNEL_DIR)/BEEPER.o \
 		$(OUTPUT_KERNEL_DIR)/PROC.o \
 		$(OUTPUT_KERNEL_DIR)/FPU.o \
+		$(OUTPUT_KERNEL_DIR)/E1000.o \
 		$(OUTPUT_KERNEL_DIR)/BITMAP.o \
 		$(OUTPUT_KERNEL_DIR)/ATA_PIIX3.o \
 		$(OUTPUT_KERNEL_DIR)/ATA_PIO.o \
@@ -249,8 +251,8 @@ run:
 	-audiodev pa,id=ac97snd0,out.frequency=44100,out.channels=2 \
 	-audiodev pa,id=pcspksnd0,out.frequency=44100,out.channels=1
 	-device ac97,audiodev=ac97snd0 \
-	-device pcspk,audiodev=pcspksnd0
-
+	-device pcspk,audiodev=pcspksnd0 \
+	-netdev user,id=mynet0 -device e1000,netdev=mynet0
 
 runlh:
 	@echo "Running ISO in QEMU..."

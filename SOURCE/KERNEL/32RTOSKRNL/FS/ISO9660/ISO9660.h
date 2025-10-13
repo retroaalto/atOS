@@ -121,6 +121,16 @@ PrimaryVolumeDescriptor;
 
 #ifndef ISO9660_ONLY_DEFINES
 
+#define ISO9660_TYPE_DIRECTORY 0
+#define ISO9660_TYPE_FILE      1
+U32 ISO9660_GET_TYPE(IsoDirectoryRecord *rec);
+
+/// @brief Returns a list of all dir content names
+/// @param dir Directory to look into
+/// @return List of all dir content names. NOTE:
+/// @note First 4 bytes contain the list length!
+U8 *ISO9660_GET_DIR_CONTENTS(IsoDirectoryRecord *dir);
+
 /// @brief Check if the ISO9660 image is valid.
 /// @param pvd Pointer to the PrimaryVolumeDescriptor to check.
 /// @return TRUE if valid, FALSE otherwise.

@@ -1,8 +1,16 @@
+
 CMOS syslist
 STD/TIME
 PROC_COM RTC
 
+RTL8139
+
+Beeper driver
 Speaker driver
 
 BYTEMAP atmp
 shell lang batsh
+
+Shell proc handler
+
+Compiler

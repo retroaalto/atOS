@@ -288,3 +288,93 @@ void ISO9660_FREE_MEMORY(VOIDPTR ptr) {
     if (!ptr) return;
     Free(ptr);
 }
+
+U32 ISO9660_GET_TYPE(IsoDirectoryRecord *rec) {
+    if(rec->fileFlags & ISO9660_FILE_FLAG_DIRECTORY) return ISO9660_TYPE_DIRECTORY;
+    else return ISO9660_TYPE_FILE;
+}
+U8 *ISO9660_GET_DIR_CONTENTS(IsoDirectoryRecord *dir) {
+    if (!dir) return NULLPTR;
+
+    U32 lba = dir->extentLocationLE_LBA;
+    U32 size = dir->extentLengthLE;
+    if (lba == 0 || size == 0) return NULLPTR;
+
+    U32 sectors = ISO9660_CALCULATE_SECTORS(size);
+    U8 *buffer = MAlloc(sectors * ISO9660_SECTOR_SIZE);
+    if (!buffer) return NULLPTR;
+
+    if (READ_CDROM(GET_ATAPI_INFO(), lba, sectors, buffer) == ATA_FAILED) {
+        Free(buffer);
+        return NULLPTR;
+    }
+
+    /* First pass: count entries and total name bytes */
+    U32 offset = 0;
+    U32 count = 0;
+    U32 total_name_bytes = 0;
+
+    while (offset < size) {
+        IsoDirectoryRecord *record = (IsoDirectoryRecord *)(buffer + offset);
+        if (record->length == 0) break;
+
+        U8 fn_len = record->fileNameLength;
+        if (fn_len > 0) {
+            // Skip special entries for current (0x00) and parent (0x01)
+            if (!(fn_len == 1 && (record->fileIdentifier[0] == 0x00 || record->fileIdentifier[0] == 0x01))) {
+                // Ensure we don't exceed reasonable limits
+                if (fn_len >= ISO9660_MAX_PATH) { Free(buffer); return NULLPTR; }
+                count++;
+                total_name_bytes += (U32)fn_len + 1; // include null terminator
+                if (count > ISO9660_MAX_DIR_RECORDS) break; // safety cap
+            }
+        }
+
+        offset += record->length;
+    }
+
+    if (count == 0) {
+        Free(buffer);
+        // Return buffer containing zero count only
+        U8 *ret = MAlloc(sizeof(U32));
+        if (!ret) return NULLPTR;
+        U32 zero = 0;
+        MEMCPY(ret, &zero, sizeof(U32));
+        return ret;
+    }
+
+    /* Allocate result: 4 bytes for count + total_name_bytes */
+    U32 result_size = sizeof(U32) + total_name_bytes;
+    U8 *result = MAlloc(result_size);
+    if (!result) { Free(buffer); return NULLPTR; }
+
+    /* Write count (little-endian) */
+    MEMCPY(result, &count, sizeof(U32));
+
+    /* Second pass: copy names after the count */
+    U32 write_off = sizeof(U32);
+    offset = 0;
+    U32 got = 0;
+
+    while (offset < size && got < count) {
+        IsoDirectoryRecord *record = (IsoDirectoryRecord *)(buffer + offset);
+        if (record->length == 0) break;
+
+        U8 fn_len = record->fileNameLength;
+        if (fn_len > 0) {
+            if (!(fn_len == 1 && (record->fileIdentifier[0] == 0x00 || record->fileIdentifier[0] == 0x01))) {
+                // copy the name (not necessarily null-terminated in source)
+                if (write_off + fn_len + 1 > result_size) break; // safety
+                STRNCPY((CHAR *)(result + write_off), (CHAR *)record->fileIdentifier, fn_len);
+                ((CHAR *)(result + write_off))[fn_len] = '\0';
+                write_off += fn_len + 1;
+                got++;
+            }
+        }
+
+        offset += record->length;
+    }
+
+    Free(buffer);
+    return result;
+}

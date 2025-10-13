@@ -38,10 +38,6 @@ void rtos_kernel(U0) {
     INIT_RTC();
     PCI_INITIALIZE();
 
-    SET_BEEPER_FREQUENCY(440);
-    START_BEEPER();
-    for(;;);
-
     panic_if(!ATA_PIO_INIT(), PANIC_TEXT("Failed to initialize ATA PIO"), PANIC_INITIALIZATION_FAILED);
 
     initialize_filestructure();

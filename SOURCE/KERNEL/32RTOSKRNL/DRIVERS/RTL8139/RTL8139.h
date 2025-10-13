@@ -1,0 +1,5 @@
+#ifndef RTL8139_DRIVER_H
+#define RTL8139_DRIVER_H
+#include <STD/TYPEDEF.h>
+
+#endif // RTL8139_DRIVER_H
