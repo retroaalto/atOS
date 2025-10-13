@@ -7,16 +7,23 @@
 #include <DRIVERS/VIDEO/VBE.h>
 #include <STD/TYPEDEF.h>
 
+
+typedef enum {
+    CURSOR_BLOCK = 0,
+    CURSOR_UNDERLINE = 1,
+    CURSOR_BAR = 2
+} CURSOR_STYLE_ENUM;
+
 typedef struct {
     U32 Column;
     U32 Row;
     VBE_PIXEL_COLOUR bgColor;
     VBE_PIXEL_COLOUR fgColor;
-    BOOLEAN AUTO_SCROLL;
-    BOOLEAN AUTO_WRAP;
+    CURSOR_STYLE_ENUM CURSOR_STYLE;
+    BOOLEAN CURSOR_BLINK;
     BOOLEAN CURSOR_VISIBLE;
-    BOOLEAN CURSOR_BLINK; 
-
+    BOOLEAN INSERT_MODE;
+    
     // Screen size in characters
     U32 ROWS;
     U32 COLUMNS;
@@ -37,6 +44,8 @@ typedef OutputInfo* OutputHandle;
 
 OutputHandle GetOutputHandle(void);
 
+#define PATH_END_CHAR " $ "
+#define LEND "\r\n" // Line end (CR+LF)
 #undef  SCREEN_WIDTH
 #undef  SCREEN_HEIGHT
 #define SCREEN_WIDTH  1024
@@ -49,7 +58,12 @@ OutputHandle GetOutputHandle(void);
 #define AMOUNT_OF_COLS (SCREEN_WIDTH / (CHAR_WIDTH + CHAR_SPACING))
 #define AMOUNT_OF_ROWS (SCREEN_HEIGHT / (CHAR_HEIGHT + CHAR_SPACING))
 #define CHARACTERS 256 // Extended ASCII characters
+#define CUR_LINE_MAX_LENGTH (AMOUNT_OF_ROWS*AMOUNT_OF_COLS)
+#define CMD_LINE_HISTORY 25
 
+U8 *GET_CURRENT_LINE();
+VOID REDRAW_CURRENT_LINE();
+VOID PRINTNEWLINE(VOID);
 U0 INIT_SHELL_VOUTPUT(VOID);
 // Increases the cursor column by one, moving to next row if at end
 U0 COLUMN_INC(U0);
@@ -79,10 +93,24 @@ U0 SET_AUTO_WRAP(BOOLEAN enable);
 U32 PUTS(U8 *str);
 // Draws a single character at (x, y) in pixels
 U32 PUTC(U8 c);
+void RESTORE_CURSOR_UNDERNEATH(U32 col, U32 row);
+// Moves the cursor to the start of the next row
+VOID NEW_ROW(VOID);
 
-// Formatted print to the screen, similar to printf in C standard library
-// Supports %c, %s, %d, %u, %x, and %%
-U32 PRINTF(U8 *format, ...);
+// Draws the shell line start (current path and "> ")
+VOID PUT_SHELL_START(VOID);
+
+// Outputs the current working directory path to the screen
+VOID PUT_CURRENT_PATH(VOID);
+
+// Scrolls the text buffer up by one row
+VOID BLINK_CURSOR(VOID);
+
+VOID DELETE_CHAR_AT_CURSOR(VOID);
+VOID DELETE_CHAR_AT_CURSOR();
+
+// Handles a backspace key press, deleting the character before the cursor
+VOID HANDLE_BACKSPACE(VOID);
 
 // Clears the screen and resets cursor position
 VOID CLS(U0);
@@ -92,5 +120,20 @@ VOID FLUSH_SCREEN(U0);
 U32 COL_TO_PIX(U32 col);
 // Converts a text row number to pixel Y coordinate
 U32 ROW_TO_PIX(U32 row);
+
+VOID DRAW_TEXT_BUFFER(VOID);
+VOID MOVE_BUFFER_CONTENTS_LEFT_FROM(U32 col, U32 row);
+VOID CLEAR_TEXTBUFFER(VOID);
+VOID REDRAW_CHAR(U32 col, U32 row);
+
+VOID HANDLE_KEY_ARROW_LEFT();
+VOID HANDLE_KEY_ARROW_RIGHT();
+VOID HANDLE_KEY_ARROW_UP();
+VOID HANDLE_KEY_ARROW_DOWN();
+VOID HANDLE_KEY_DELETE();
+VOID HANDLE_KEY_ENTER();
+VOID HANDLE_CTRL_C();
+VOID TOGGLE_INSERT_MODE();
+VOID SET_CURSOR_BLINK(BOOLEAN blink);
 
 #endif // VOUTPUT_H

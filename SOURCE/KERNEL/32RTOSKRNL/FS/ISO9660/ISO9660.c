@@ -3,7 +3,7 @@
 #include <STD/STRING.h>
 #include <STD/MEM.h>
 #include <MEMORY/HEAP/KHEAP.h>
-#include <DRIVERS/DISK/ATA_ATAPI.h>
+#include <DRIVERS/ATAPI/ATAPI.h>
 #include <DRIVERS/VIDEO/VBE.h>
 
 #ifdef __RTOS__
@@ -33,9 +33,9 @@ BOOLEAN ISO9660_READ_PVD(PrimaryVolumeDescriptor *descriptor, U32 size) {
     if (!descriptor || size < sizeof(PrimaryVolumeDescriptor)) return FALSE;
 
     U32 atapiStatus = INITIALIZE_ATAPI();
-    if (atapiStatus == ATAPI_FAILED) return FALSE;
+    if (atapiStatus == ATA_FAILED) return FALSE;
 
-    if (READ_CDROM(atapiStatus, 16, 1, descriptor) == ATAPI_FAILED) return FALSE;
+    if (READ_CDROM(atapiStatus, 16, 1, descriptor) == ATA_FAILED) return FALSE;
 
     return TRUE;
 }
@@ -129,7 +129,7 @@ BOOLEAN ISO9660_READ_FROM_DIRECTORY(
     U8 *buffer = MAlloc(sectors * 2048);
     if (!buffer) return FALSE;
 
-    if (READ_CDROM(GET_ATAPI_INFO(), lba, sectors, buffer) == ATAPI_FAILED) {
+    if (READ_CDROM(GET_ATAPI_INFO(), lba, sectors, buffer) == ATA_FAILED) {
         Free(buffer);
         return FALSE;
     }
@@ -275,9 +275,9 @@ VOIDPTR ISO9660_READ_FILEDATA_TO_MEMORY(IsoDirectoryRecord *fileptr) {
 
     U32 sectors = ISO9660_CALCULATE_SECTORS(size);
     U32 atapiStatus = INITIALIZE_ATAPI();
-    if (atapiStatus == ATAPI_FAILED) { Free(buffer); return NULLPTR; }
+    if (atapiStatus == ATA_FAILED) { Free(buffer); return NULLPTR; }
 
-    if (READ_CDROM(atapiStatus, lba, sectors, buffer) == ATAPI_FAILED) {
+    if (READ_CDROM(atapiStatus, lba, sectors, buffer) == ATA_FAILED) {
         Free(buffer);
         return NULLPTR;
     }

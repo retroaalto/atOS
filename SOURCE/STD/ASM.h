@@ -94,4 +94,9 @@ static inline void _outsw(unsigned short port, const void *buffer, unsigned int 
                   : "memory");
 }
 
+static inline void cpu_relax(void) {
+    __asm__ volatile ("pause");
+}
+
+
 #endif // STD_ASM_H

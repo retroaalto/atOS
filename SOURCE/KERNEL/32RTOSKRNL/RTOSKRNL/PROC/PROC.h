@@ -254,6 +254,7 @@ static inline void write_cr3(U32 val) {
 void free_message(PROC_MESSAGE *msg);
 void send_msg(PROC_MESSAGE *msg);
 U32 get_active_task_count(void);
+U32 get_uptime_sec(void);
 
 /// @brief Run a user binary in a new process
 /// @param proc_name Name of the process. Max length is TASK_NAME_MAX_LEN-1.

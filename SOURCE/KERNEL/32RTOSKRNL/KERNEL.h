@@ -29,7 +29,7 @@ REMARKS
 #endif // KERNEL_ENTRY
 
 #include "./DRIVERS/VIDEO/VBE.h"
-#include "./DRIVERS/DISK/ATA_ATAPI.h"
+#include "./DRIVERS/ATAPI/ATAPI.h"
 #include "./CPU/INTERRUPTS/INTERRUPTS.h"
 
 #define RM2LA(seg, off)  (((U32)(seg) << 4) + (U32)(off))

@@ -105,10 +105,10 @@ IRQ_WRAPPER(40) // IRQ8 - RTC
 IRQ_WRAPPER(41) // IRQ9 - ACPI
 IRQ_WRAPPER(42) // IRQ10 - Reserved
 IRQ_WRAPPER(43) // IRQ11 - Reserved
-IRQ_WRAPPER(44) // IRQ12 - Reserved
-IRQ_WRAPPER(45) // IRQ13 - Reserved
-IRQ_WRAPPER(46) // IRQ14 - Reserved
-IRQ_WRAPPER(47) // IRQ15 - Reserved
+IRQ_WRAPPER(44) // IRQ12 - PS2 Mouse
+IRQ_WRAPPER(45) // IRQ13 - FPU / Coprocessor / Inter-processor
+IRQ_WRAPPER(46) // IRQ14 - Primary ATA
+IRQ_WRAPPER(47) // IRQ15 - Secondary ATA
 
 // All remaining vectors
 ISR_NOERRORCODE(48)

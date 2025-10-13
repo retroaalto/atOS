@@ -16,6 +16,10 @@ file(GLOB STD_SOURCES
 set(Sources
     ${CUR_DIR}/SHELL.c
     ${CUR_DIR}/VOUTPUT.c
+    ${CUR_DIR}/LOOP.c
+    ${CUR_DIR}/SHELL_PROC.c
+    ${CUR_DIR}/COMMANDS.c
+    ${CUR_DIR}/INPUTS.c
     ${STD_SOURCES}
 )
 

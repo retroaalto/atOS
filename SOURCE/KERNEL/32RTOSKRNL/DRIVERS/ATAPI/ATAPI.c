@@ -1,18 +1,10 @@
-#include "./ATA_ATAPI.h"
+#include "./ATAPI.h"
 #include "../VIDEO/VBE.h"
 #include "../../../../STD/ASM.h"
 
 #ifndef KERNEL_ENTRY
 static U32 atapi_drive_info __attribute__((section(".data"))) = 0;
 #endif // KERNEL_ENTRY
-
-static inline void ata_io_wait(const U8 p) {
-	_inb(p + ATA_CONTROL_REG + ATA_ALTERNATE_STATUS);
-	_inb(p + ATA_CONTROL_REG + ATA_ALTERNATE_STATUS);
-	_inb(p + ATA_CONTROL_REG + ATA_ALTERNATE_STATUS);
-	_inb(p + ATA_CONTROL_REG + ATA_ALTERNATE_STATUS);
-}
-
 
 // Check if ATAPI device exists on the given channel and drive (master/slave)
 BOOLEAN atapi_cdrom_exists(U16 base_port, U8 drive) {
@@ -49,29 +41,20 @@ BOOLEAN atapi_cdrom_exists(U16 base_port, U8 drive) {
     return FALSE; // some other device
 }
 
-
-BOOLEAN ATA_HDD_EXISTS(U0) {
-    return TRUE;
-}
-
-BOOLEAN ATA_CHECK() {
-    return TRUE;
-}
-
 U32 ATAPI_CHECK() {
     // Check primary master
-    if (atapi_cdrom_exists(ATA_PRIMARY_BASE, ATA_MASTER)) return ATAPI_PRIMARY_MASTER;
+    if (atapi_cdrom_exists(ATA_PRIMARY_BASE, ATAPI_MASTER)) return ATAPI_PRIMARY_MASTER;
 
     // Check primary slave
-    if (atapi_cdrom_exists(ATA_PRIMARY_BASE, ATA_SLAVE)) return ATAPI_PRIMARY_SLAVE;
+    if (atapi_cdrom_exists(ATA_PRIMARY_BASE, ATAPI_SLAVE)) return ATAPI_PRIMARY_SLAVE;
 
     // Check secondary slave
-    if (atapi_cdrom_exists(ATA_SECONDARY_BASE, ATA_SLAVE)) return ATAPI_SECONDARY_SLAVE;
+    if (atapi_cdrom_exists(ATA_SECONDARY_BASE, ATAPI_SLAVE)) return ATAPI_SECONDARY_SLAVE;
 
     // Check secondary master
-    if (atapi_cdrom_exists(ATA_SECONDARY_BASE, ATA_MASTER)) return ATAPI_SECONDARY_MASTER;
+    if (atapi_cdrom_exists(ATA_SECONDARY_BASE, ATAPI_MASTER)) return ATAPI_SECONDARY_MASTER;
 
-    return 0; // No ATAPI CD-ROM found
+    return ATA_FAILED; // No ATAPI CD-ROM found
 }
 
 #ifndef KERNEL_ENTRY
@@ -152,7 +135,7 @@ int read_cdrom(U32 atapiWhere, U32 lba, U32 sectors, U16 *buffer) {
 		_insw(port + ATA_DATA, (U16 *) ((U8 *) buffer + i * 0x800), size / 2); // Read it
 	}
 
-	return ATAPI_SUCCESS;
+	return ATA_SUCCESS;
 }
 
 U32 READ_CDROM(U32 atapiWhere, U32 lba, U32 sectors, U8 *buf) {

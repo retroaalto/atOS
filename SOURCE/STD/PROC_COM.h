@@ -63,6 +63,12 @@ PROC_MESSAGE *GET_MESSAGE();
 // Free a message received via GET_MESSAGE
 VOID FREE_MESSAGE(PROC_MESSAGE *msg);
 
+U32 GET_PIT_TICKS();
+
+U32 GET_SYS_SECONDS();
+
+U32 CPU_SLEEP(U32 ms); // Sleep for ms milliseconds, returns 0 on success, 1 on error
+
 /**
  * SHELLCOM
  */
