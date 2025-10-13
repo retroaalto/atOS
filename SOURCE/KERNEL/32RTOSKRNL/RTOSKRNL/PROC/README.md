@@ -25,7 +25,6 @@ Processes can be created using the `PROC_RUN` and `PROC_RUNW` for extended optio
 
 ### Scheduling
 
-My thoughts were:
 Each process has its own framebuffer if it needs one. 
 
 By pressing ALT+(0-9), A different shell is put into focus that handles its own child processes.
