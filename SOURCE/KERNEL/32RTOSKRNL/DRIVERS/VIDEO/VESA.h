@@ -51,10 +51,8 @@ REMARKS
 /*+++
 external definitions
 ---*/
-extern volatile U32 CURSOR; // Defined in KERNEL.c
 #define VIDEO_MODE_VESA 0x00000001 // VESA mode flag
 #define VIDEO_MODE_VBE  0x00000002 // VBE mode flag
-extern volatile U32 VIDEO_MODE; // Defined in KERNEL.c
 
 // #define VIDEO_MEMORY ((volatile U16*)0x00F00000)
 #define VIDEO_MEMORY ((volatile U16*)0xB8000) // Text mode video memory address

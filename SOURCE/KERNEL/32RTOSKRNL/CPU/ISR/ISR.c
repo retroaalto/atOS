@@ -70,6 +70,7 @@ void double_fault_handler(I32 num, U32 errcode) {
 
 void irq_common_handler(I32 vector, U32 errcode) {
     (void)errcode;
+    // vector is 0x20..0x2F for IRQs
     #ifdef __RTOS__
     if (vector < PIC_REMAP_OFFSET || vector >= PIC_REMAP_OFFSET + 16) {
         // Not an IRQ, should not happen here
@@ -77,9 +78,12 @@ void irq_common_handler(I32 vector, U32 errcode) {
         return;
     }
     #endif // __RTOS__
-    if (g_Handlers[vector]) g_Handlers[vector](vector, errcode);
-    int irq = vector - PIC_REMAP_OFFSET; // 0x20
-    if ((unsigned)irq < 16) pic_send_eoi(irq);
+    if (g_Handlers[vector]) 
+        g_Handlers[vector](vector, errcode);
+    else {
+        int irq = vector - PIC_REMAP_OFFSET; // 0x20
+        if ((unsigned)irq < 16) pic_send_eoi(irq);
+    }
 }
 
 #ifdef __RTOS__
@@ -201,7 +205,7 @@ void isr_dispatch_c(int vector, U32 errcode, regs *regs_ptr) {
 
 void irq_dispatch_c(int vector, U32 errcode, regs *regs_ptr) {
     (void)regs_ptr;
-    irq_common_handler(vector, errcode);
+    irq_common_handler(vector, errcode); // We send the full 0x20..0x2F vector
 }
 
 
@@ -233,7 +237,7 @@ U0 SETUP_ISRS(U0) {
 }
 VOID SETUP_ISR_HANDLERS(VOID) {
     for(int i = 0; i < IDT_COUNT; i++) {
-        if(i >= 32 && i < 48) {
+        if(i >= PIC_REMAP_OFFSET && i < PIC_REMAP_OFFSET2) {
             ISR_REGISTER_HANDLER(i, irq_common_handler); // No default handler
         } else {
             ISR_REGISTER_HANDLER(i, isr_common_handler); // Reserved / unused

@@ -56,6 +56,7 @@ void PS2_KEYBOARD_HANDLER(I32 num, U32 errcode) {
     (void)num; (void)errcode; // not used
     U8 scancode = PS2_INB(PS2_DATAPORT);
     PUSH_TO_CMD_QUEUE(scancode);
+    pic_send_eoi(1); // IRQ1 is for keyboard
 }
 
 
@@ -317,6 +318,7 @@ KEYPRESS ParsePS2_CS2(U32 scancode1, U32 scancode2, U8 scancode1_bytes, U8 scanc
         case SC2_PRESSED_G: keypress.keycode = KEY_G; break;
         case SC2_PRESSED_Y: keypress.keycode = KEY_Y; break;
         case SC2_PRESSED_6: keypress.keycode = KEY_6; break;
+        case SC2_PRESSED_M: keypress.keycode = KEY_M; break;
         case SC2_PRESSED_U: keypress.keycode = KEY_U; break;
         case SC2_PRESSED_7: keypress.keycode = KEY_7; break;
         case SC2_PRESSED_8: keypress.keycode = KEY_8; break;
@@ -405,6 +407,7 @@ KEYPRESS ParsePS2_CS2(U32 scancode1, U32 scancode2, U8 scancode1_bytes, U8 scanc
                 case SC2_RELEASED_PART2_G: keypress.keycode = KEY_G; break;
                 case SC2_RELEASED_PART2_Y: keypress.keycode = KEY_Y; break;
                 case SC2_RELEASED_PART2_6: keypress.keycode = KEY_6; break;
+                case SC2_RELEASED_PART2_M: keypress.keycode = KEY_M; break;
                 case SC2_RELEASED_PART2_U: keypress.keycode = KEY_U; break;
                 case SC2_RELEASED_PART2_7: keypress.keycode = KEY_7; break;
                 case SC2_RELEASED_PART2_8: keypress.keycode = KEY_8; break;

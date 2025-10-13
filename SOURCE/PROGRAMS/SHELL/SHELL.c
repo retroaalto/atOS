@@ -12,7 +12,7 @@
 
 static BOOLEAN draw_access_granted ATTRIB_DATA = FALSE;
 static BOOLEAN keyboard_access_granted ATTRIB_DATA = FALSE;
-
+static SHELL_INSTANCE shndl ATTRIB_DATA = { 0 };
 U0 SHELL_LOOP(U0);
 U0 INITIALIZE_SHELL();
 
@@ -22,7 +22,12 @@ U0 _start(U0) {
 
     INITIALIZE_SHELL();
     INIT_SHELL_VOUTPUT();
+
     SHELL_LOOP();
+}
+
+SHELL_INSTANCE *GET_SHNDL(VOID) {
+    return &shndl;
 }
 
 U0 INITIALIZE_SHELL() {
@@ -36,7 +41,23 @@ U0 INITIALIZE_SHELL() {
 
     msg = CREATE_PROC_MSG(0, PROC_GET_KEYBOARD_EVENTS, NULL, 0);
     SEND_MESSAGE(&msg);
+    
+    shndl.cursor = GetOutputHandle();
+    shndl.focused_pid = PROC_GETPID();
+    shndl.previously_focused_pid = shndl.focused_pid;
+    SWITCH_LINE_EDIT_MODE();
+    // shndl.path 
+    STRNCPY(shndl.path, '/', FAT32_MAX_PATH);
 }
+
+U0 SWITCH_CMD_INTERFACE_MODE(VOID) {
+    shndl.state = STATE_CMD_INTERFACE;
+}
+
+U0 SWITCH_LINE_EDIT_MODE() {
+    shndl.state = STATE_EDIT_LINE;
+}
+
 U0 MSG_LOOP(U0) {
     U32 msg_count = MESSAGE_AMOUNT();
     for(U32 i = 0; i <= msg_count; i++) {
@@ -51,27 +72,18 @@ U0 MSG_LOOP(U0) {
                 draw_access_granted = TRUE;
                 CLEAR_SCREEN_COLOUR(VBE_AQUA);
                 break;
-            case PROC_MSG_KEYBOARD:
-                if(!keyboard_access_granted) break;
-                if (msg->data_provided && msg->data) {
-                    KEYPRESS *kp = (KEYPRESS *)msg->data;
-                    MODIFIERS *mods = (MODIFIERS *)((U8 *)msg->data + sizeof(KEYPRESS));
-                    HANDLE_KB(kp, mods);
-                }
-                break;
         }
         FREE_MESSAGE(msg);
     }
 }
 U0 SHELL_LOOP(U0) {
-    OutputHandle out = GetOutputHandle();
     U32 i = 0;
     U32 j = 0;
     U32 pass = 0;
     
     while(1) {
         MSG_LOOP();
-        if(draw_access_granted) break;
+        if(draw_access_granted && keyboard_access_granted) break;
     }
     CLS();
 
@@ -79,7 +91,14 @@ U0 SHELL_LOOP(U0) {
     PUTS("atOShell v0.1\r\nType 'help' for a list of commands.\r\n");
     PUT_SHELL_START();
     while(1) {
-        MSG_LOOP();
-        BLINK_CURSOR();
+        switch (shndl.state) {
+            case STATE_CMD_INTERFACE:
+                CMD_INTERFACE_LOOP();
+                break;
+            case STATE_EDIT_LINE:
+            default:
+                EDIT_LINE_LOOP();
+                break;
+        }
     }
 }

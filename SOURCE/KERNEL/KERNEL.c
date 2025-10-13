@@ -132,7 +132,7 @@ BOOLEAN SEARCH_FILE(
             lba,
             1,
             buffer
-        ) == ATAPI_FAILED
+        ) == ATA_FAILED
     ) {
         return FALSE;
     }
@@ -206,7 +206,7 @@ U0 kernel_after_gdt(U0) {
     U32 atapi_status;
     #define rowinc row += VBE_CHAR_HEIGHT + 2
     atapi_status = ATAPI_CHECK();
-    if (atapi_status == ATAPI_FAILED) {
+    if (atapi_status == ATA_FAILED) {
         VBE_DRAW_STRING(0, row, "ATAPI check failed", VBE_WHITE, VBE_BLACK);
         VBE_UPDATE_VRAM();
         rowinc;
@@ -228,7 +228,7 @@ U0 kernel_after_gdt(U0) {
     rks.ExtentLengthLE = 0;
     rks.ExtentLocationLE_LBA = 0;
     // Read PVD at lba 16
-    if(READ_CDROM(atapi_status, 16, 1, (U8*)pvd) == ATAPI_FAILED) {
+    if(READ_CDROM(atapi_status, 16, 1, (U8*)pvd) == ATA_FAILED) {
         VBE_DRAW_STRING(0, row, "CDROM read failed", VBE_WHITE, VBE_BLACK);
         VBE_UPDATE_VRAM();
         rowinc;
@@ -275,7 +275,7 @@ U0 kernel_after_gdt(U0) {
             rks.ExtentLocationLE_LBA,
             sectors,
             (U8*)RTOSKRNL_ADDRESS
-        ) == ATAPI_FAILED
+        ) == ATA_FAILED
     ) {
         VBE_DRAW_STRING(0, row, "Failed to read 32RTOSKRNL", VBE_WHITE, VBE_BLACK);
         VBE_UPDATE_VRAM();

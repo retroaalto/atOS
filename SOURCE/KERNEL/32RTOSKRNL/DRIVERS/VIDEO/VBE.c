@@ -48,6 +48,7 @@ VOIDPTR __memcpy_safe_chunks(VOIDPTR dest, const VOIDPTR src, U32 n) {
 #include <PROC/PROC.h>
 #include <STD/ASM.h>
 static VOIDPTR focused_task_framebuffer ATTRIB_DATA = FRAMEBUFFER_ADDRESS;
+static BOOLEAN early_mode = TRUE;
 
 static inline int paging_is_enabled(void) {
     U32 cr0;
@@ -71,17 +72,21 @@ static inline void *__memcpy_fast(void *dest, const void *src, U32 n) {
 
 
 void flush_focused_framebuffer() {
-    TCB *focused = get_focused_task();
-    if (!focused) {
-        focused_task_framebuffer = NULL;
-        return;
+    if(early_mode) {
+        focused_task_framebuffer = FRAMEBUFFER_ADDRESS;
+    } else {
+        TCB *focused = get_focused_task();
+        if (!focused) {
+            focused_task_framebuffer = NULL;
+            return;
+        }
+        
+        if(!focused->framebuffer_mapped) {
+            focused_task_framebuffer = NULL;
+            return;
+        }
+        focused_task_framebuffer = (VOIDPTR)((U32)focused->framebuffer_virt);
     }
-    
-    if(!focused->framebuffer_mapped) {
-        focused_task_framebuffer = NULL;
-        return;
-    }
-    focused_task_framebuffer = (VOIDPTR)((U32)focused->framebuffer_virt);
     VBE_MODEINFO* mode = GET_VBE_MODE();
     if (!mode) return;
 
@@ -91,6 +96,10 @@ void flush_focused_framebuffer() {
 }
 
 void update_current_framebuffer() {
+    if(early_mode) {
+        focused_task_framebuffer = FRAMEBUFFER_ADDRESS;
+        return;
+    }
     TCB *current = get_current_tcb();
     if (!current) {
         focused_task_framebuffer = NULL;
@@ -104,7 +113,10 @@ void update_current_framebuffer() {
 }
 
 void debug_vram_start() {
-    focused_task_framebuffer = FRAMEBUFFER_ADDRESS;
+    early_mode = TRUE;
+}
+void debug_vram_end() {
+    early_mode = FALSE;
 }
 void debug_vram_dump() {
     VBE_MODEINFO* mode = GET_VBE_MODE();
@@ -114,6 +126,7 @@ void debug_vram_dump() {
     U32 copy_size = mode->BytesPerScanLineLinear * mode->YResolution;
     if (copy_size > FRAMEBUFFER_SIZE) copy_size = FRAMEBUFFER_SIZE;
     __memcpy_fast(mode->PhysBasePtr, FRAMEBUFFER_ADDRESS, copy_size);
+    early_mode = FALSE;
 }
 
 #endif
@@ -251,7 +264,6 @@ BOOLEAN VBE_DRAW_FRAMEBUFFER(U32 pos, VBE_PIXEL_COLOUR colour) {
 }
 
 BOOLEAN VBE_DRAW_PIXEL(VBE_PIXEL_INFO pixel_info) {
-    
     VBE_MODEINFO* mode = (VBE_MODEINFO*)(VBE_MODE_LOAD_ADDRESS_PHYS);
     if (!mode) return FALSE;
     

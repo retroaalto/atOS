@@ -114,8 +114,7 @@ BOOLEAN PAGING_INIT(void) {
     identity_map_range(page_directory, STACK_0_BASE,           STACK_0_END,           PAGE_PRW);
     identity_map_range(page_directory, MEM_FRAMEBUFFER_BASE,   MEM_FRAMEBUFFER_END,   PAGE_PRW);
 
-    identity_map_range(page_directory, MEM_USER_SPACE_BASE, MEM_USER_SPACE_END_MIN, PAGE_PRW); // VGA memory
-
+    identity_map_range(page_directory, MEM_USER_SPACE_BASE, MEM_USER_SPACE_END_MIN, PAGE_PRW);
     load_page_directory((ADDR)page_directory);
     enable_paging();
     return TRUE;

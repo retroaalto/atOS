@@ -75,7 +75,9 @@
 // ----------------------------------------------------------
 // System Memory Limits
 // ----------------------------------------------------------
-#define MAX_ALLOWED_MEMORY          0x1FEFE0000  // Safety cap (~8 GiB+)
+#define MIN_ALLOWED_MEMORY          0x100000    // 1 MiB minimum
+#define MAX_ALLOWED_MEMORY          (MIN_ALLOWED_MEMORY + 0x3FEE00000)  // End of last free E820 RAM region below 16 TiB
+#define MAX_PHYS_ADDRESS            0xFFFFFFFF   // 4 GiB max physical address
 
 // ----------------------------------------------------------
 // Summary (512 MiB min system):

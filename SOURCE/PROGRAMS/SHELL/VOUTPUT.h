@@ -7,6 +7,7 @@
 #include <DRIVERS/VIDEO/VBE.h>
 #include <STD/TYPEDEF.h>
 
+
 typedef enum {
     CURSOR_BLOCK = 0,
     CURSOR_UNDERLINE = 1,
@@ -20,8 +21,9 @@ typedef struct {
     VBE_PIXEL_COLOUR fgColor;
     CURSOR_STYLE_ENUM CURSOR_STYLE;
     BOOLEAN CURSOR_BLINK;
+    BOOLEAN CURSOR_VISIBLE;
     BOOLEAN INSERT_MODE;
-
+    
     // Screen size in characters
     U32 ROWS;
     U32 COLUMNS;
@@ -42,6 +44,8 @@ typedef OutputInfo* OutputHandle;
 
 OutputHandle GetOutputHandle(void);
 
+#define PATH_END_CHAR " $ "
+#define LEND "\r\n" // Line end (CR+LF)
 #undef  SCREEN_WIDTH
 #undef  SCREEN_HEIGHT
 #define SCREEN_WIDTH  1024
@@ -54,7 +58,12 @@ OutputHandle GetOutputHandle(void);
 #define AMOUNT_OF_COLS (SCREEN_WIDTH / (CHAR_WIDTH + CHAR_SPACING))
 #define AMOUNT_OF_ROWS (SCREEN_HEIGHT / (CHAR_HEIGHT + CHAR_SPACING))
 #define CHARACTERS 256 // Extended ASCII characters
+#define CUR_LINE_MAX_LENGTH (AMOUNT_OF_ROWS*AMOUNT_OF_COLS)
+#define CMD_LINE_HISTORY 25
 
+U8 *GET_CURRENT_LINE();
+VOID REDRAW_CURRENT_LINE();
+VOID PRINTNEWLINE(VOID);
 U0 INIT_SHELL_VOUTPUT(VOID);
 // Increases the cursor column by one, moving to next row if at end
 U0 COLUMN_INC(U0);
@@ -84,7 +93,7 @@ U0 SET_AUTO_WRAP(BOOLEAN enable);
 U32 PUTS(U8 *str);
 // Draws a single character at (x, y) in pixels
 U32 PUTC(U8 c);
-
+void RESTORE_CURSOR_UNDERNEATH(U32 col, U32 row);
 // Moves the cursor to the start of the next row
 VOID NEW_ROW(VOID);
 

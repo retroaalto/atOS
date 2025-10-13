@@ -28,7 +28,7 @@ BOOLEAN KHEAP_INIT(U32 pageNum) {
     if (heap_initialized) return TRUE;
     if (pageNum == 0) return FALSE;
 
-    U32 heap_total_pages = (MEM_KERNEL_HEAP_END - MEM_KERNEL_HEAP_BASE + PAGE_SIZE - 1) / PAGE_SIZE;
+    U32 heap_total_pages = KHEAP_MAX_SIZE_PAGES;
     if (pageNum > heap_total_pages) {
         SET_ERROR_CODE(ERROR_KHEAP_OUT_OF_MEMORY);
         return FALSE;
@@ -81,6 +81,32 @@ BOOLEAN KHEAP_EXPAND(U32 additionalPages) {
     }
 
     return TRUE;
+}
+
+KHeap* KHEAP_GET_INFO(VOID) {
+    if (!heap_initialized) return NULLPTR;
+    return &kernelHeap;
+}
+
+KHeapBlock* KHEAP_GET_X_BLOCK(U32 index) {
+    if (!heap_initialized) return NULLPTR;
+
+    U8 *heapEnd = kheap_end_ptr();
+    KHeapBlock *block = (KHeapBlock*)kernelHeap.baseAddress;
+    U32 currentIndex = 0;
+
+    while ((U8*)block < heapEnd) {
+        if (currentIndex == index) {
+            return block;
+        }
+        // Move to next block
+        U8 *nextAddr = (U8*)block + sizeof(KHeapBlock) + block->size;
+        if (nextAddr >= heapEnd) break; // reached end
+        block = (KHeapBlock*)nextAddr;
+        currentIndex++;
+    }
+
+    return NULLPTR; // index out of range
 }
 
 VOIDPTR KMALLOC(U32 size) {
@@ -279,4 +305,30 @@ BOOLEAN KREALLOC(VOIDPTR *addr, U32 oldSize, U32 newSize) {
     KFREE(*addr);
     *addr = newPtr;
     return TRUE;
+}
+
+VOIDPTR KMALLOC_ALIGN(U32 size, U32 alignment) {
+    if (alignment == 0) alignment = KHEAP_ALIGN; // fallback
+    // Allocate extra memory to store the original pointer for KFREE
+    U32 totalSize = size + alignment + sizeof(VOIDPTR);
+
+    VOIDPTR rawPtr = KMALLOC(totalSize);
+    if (!rawPtr) return NULLPTR;
+
+    // Align the pointer
+    U8* raw = (U8*)rawPtr + sizeof(VOIDPTR);
+    U8* aligned = (U8*)ALIGN_UP_U32((U32)raw, alignment);
+
+    // Store the original pointer just before the aligned block
+    ((VOIDPTR*)aligned)[-1] = rawPtr;
+
+    return (VOIDPTR)aligned;
+}
+
+VOID KFREE_ALIGN(VOIDPTR ptr) {
+    if (!ptr) return;
+
+    // Retrieve the original pointer stored before aligned block
+    VOIDPTR rawPtr = ((VOIDPTR*)ptr)[-1];
+    KFREE(rawPtr);
 }

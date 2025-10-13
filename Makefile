@@ -87,7 +87,7 @@ kernel:
 	$(CComp) $(KRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/CPU/ISR/ISR.c -o $(OUTPUT_KERNEL_DIR)/ISR.o
 	$(CComp) $(KRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/CPU/IRQ/IRQ.c -o $(OUTPUT_KERNEL_DIR)/IRQ.o
 	$(CComp) $(KRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/CPU/INTERRUPTS/INTERRUPTS.c -o $(OUTPUT_KERNEL_DIR)/INTERRUPTS.o
-	$(CComp) $(KRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/DRIVERS/DISK/ATA_ATAPI.c -o $(OUTPUT_KERNEL_DIR)/ATA_ATAPI.o
+	$(CComp) $(KRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/DRIVERS/ATAPI/ATAPI.c -o $(OUTPUT_KERNEL_DIR)/ATA_ATAPI.o
 	$(CComp) $(KRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/CPU/PIC/PIC.c -o $(OUTPUT_KERNEL_DIR)/PIC.o
 
 # Link all object files into KRNL.BIN
@@ -122,7 +122,9 @@ kernel:
 	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/DRIVERS/VIDEO/VESA.c -o $(OUTPUT_KERNEL_DIR)/VESA.o
 	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/DRIVERS/VIDEO/VBE.c -o $(OUTPUT_KERNEL_DIR)/VBE.o
 	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/DRIVERS/PS2/KEYBOARD.c -o $(OUTPUT_KERNEL_DIR)/PS2_KEYBOARD.o
-	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/DRIVERS/DISK/ATA_ATAPI.c -o $(OUTPUT_KERNEL_DIR)/ATA_ATAPI.o
+	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/DRIVERS/ATAPI/ATAPI.c -o $(OUTPUT_KERNEL_DIR)/ATA_ATAPI.o
+	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/DRIVERS/ATA_PIIX3/ATA_PIIX3.c -o $(OUTPUT_KERNEL_DIR)/ATA_PIIX3.o
+	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/DRIVERS/PCI/PCI.c -o $(OUTPUT_KERNEL_DIR)/PCI.o
 	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/CPU/PIT/PIT.c -o $(OUTPUT_KERNEL_DIR)/PIT.o
 	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/CPU/GDT/GDT.c -o $(OUTPUT_KERNEL_DIR)/GDT.o
 	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/CPU/IDT/IDT.c -o $(OUTPUT_KERNEL_DIR)/IDT.o
@@ -181,6 +183,8 @@ kernel:
 		$(OUTPUT_KERNEL_DIR)/PROC.o \
 		$(OUTPUT_KERNEL_DIR)/FPU.o \
 		$(OUTPUT_KERNEL_DIR)/BITMAP.o \
+		$(OUTPUT_KERNEL_DIR)/ATA_PIIX3.o \
+		$(OUTPUT_KERNEL_DIR)/PCI.o \
 
 
 	@echo "32RTOSKRNL.BIN compiled successfully."
@@ -226,12 +230,16 @@ iso: bootloader kernel programs
 # Run ISO in QEMU
 run: 
 	@echo "Running ISO in QEMU..."
-	qemu-img create -f raw hdd.img 256M
+# 	qemu-img create -f raw hdd.img 256M
 	qemu-system-i386 -vga std \
-	-boot d \
-	-cdrom $(OUTPUT_ISO_DIR)/$(ISO_NAME) \
 	-m 1024 \
-	-drive file=hdd.img,format=raw,if=ide,index=0,media=disk \
+	-boot order=d \
+	-device piix3-ide,id=ide \
+	-cdrom $(OUTPUT_ISO_DIR)/$(ISO_NAME) \
+	-drive id=cdrom,file=$(OUTPUT_ISO_DIR)/$(ISO_NAME),format=raw,if=none \
+	-drive id=hd0,file=hdd.img,format=raw,if=none \
+	-device ide-hd,drive=hd0,bus=ide.0 \
+	-device ide-cd,drive=cdrom,bus=ide.1
 
 runlh:
 	@echo "Running ISO in QEMU..."

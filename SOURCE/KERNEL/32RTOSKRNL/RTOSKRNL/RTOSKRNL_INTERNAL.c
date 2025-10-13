@@ -6,7 +6,7 @@ and some not-so-important functions are here.
 #include <STD/ASM.h>
 #include <MEMORY/PAGEFRAME/PAGEFRAME.h>
 #include <MEMORY/PAGING/PAGING.h>
-#include <DRIVERS/DISK/ATA_ATAPI.h>
+#include <DRIVERS/ATAPI/ATAPI.h>
 #include <FS/ISO9660/ISO9660.h>
 #include <FS/FAT32/FAT32.h>
 #include <STD/STRING.h>
@@ -206,9 +206,8 @@ void PANIC_RAW(const U8 *msg, U32 errmsg, VBE_COLOUR fg, VBE_COLOUR bg) {
     U8 buf[16];
     ITOA(errmsg, buf, 16);
     VBE_DRAW_STRING(0, rki_row, "ERRORCODE: 0x", fg, bg);
-    // VBE_UPDATE_VRAM();
-    // HLT;
     VBE_DRAW_STRING(VBE_CHAR_WIDTH*13, rki_row, buf, fg, bg);
+    VBE_DRAW_CHARACTER(VBE_CHAR_WIDTH*19, rki_row, (U8)errmsg, fg, bg);
     INC_rki_row(rki_row);
     VBE_DRAW_STRING(0, rki_row, msg, fg, bg);
     INC_rki_row(rki_row);

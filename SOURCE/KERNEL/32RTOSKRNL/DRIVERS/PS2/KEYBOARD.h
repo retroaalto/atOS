@@ -275,6 +275,7 @@ typedef enum {
     SC2_PRESSED(G, 0x34), // G
     SC2_PRESSED(Y, 0x35), // Y
     SC2_PRESSED(6, 0x36), // 6
+    SC2_PRESSED(M, 0x3B), // M
     SC2_PRESSED(U, 0x3C), // U
     SC2_PRESSED(7, 0x3D), // 7
     SC2_PRESSED(8, 0x3E), // 8
@@ -399,6 +400,7 @@ typedef enum {
     SC2_2PART_RELEASED(G, 0xF0, 0x34), // G
     SC2_2PART_RELEASED(Y, 0xF0, 0x35), // Y
     SC2_2PART_RELEASED(6, 0xF0, 0x36), // 6
+    SC2_2PART_RELEASED(M, 0xF0, 0x3B), // M
     SC2_2PART_RELEASED(U, 0xF0, 0x3C), // U
     SC2_2PART_RELEASED(7, 0xF0, 0x3D), // 7
     SC2_2PART_RELEASED(8, 0xF0, 0x3E), // 8

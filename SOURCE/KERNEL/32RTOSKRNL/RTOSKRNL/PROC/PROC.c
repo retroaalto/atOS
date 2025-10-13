@@ -673,7 +673,7 @@ TCB *find_next_active_task(void) {
 TrapFrame* pit_handler_task_control(TrapFrame *cur) {
     // todo: tick counter here
     tcks++;
-    if(EVERY_HZ(tcks, 24)) {
+    if(EVERY_HZ(tcks, REFRESH_HZ)) {
         flush_focused_framebuffer(); 
     }
     if (!initialized) {

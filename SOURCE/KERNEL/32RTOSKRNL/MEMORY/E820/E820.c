@@ -44,12 +44,12 @@ BOOLEAN E820_INIT(void) {
 
     // Copy the E820 entries from the entry table to our local array
 
-    // U8 buf[20];
     for (U32 i = 0; i < EXPECTED_MAX_SIZE; i++) {
         if (entry_table[i].BaseAddressLow == 0 && entry_table[i].LengthLow == 0
             && entry_table[i].BaseAddressHigh == 0 && entry_table[i].LengthHigh == 0) {
             break;
         }
+        // U8 buf[20];
         // ITOA_U(i, buf, 10);
         // VBE_DRAW_STRING(0, i * (VBE_CHAR_HEIGHT + 2), buf, VBE_WHITE, VBE_BLACK);
         // ITOA_U(entry_table[i].BaseAddressLow, buf, 16);
