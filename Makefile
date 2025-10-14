@@ -46,11 +46,12 @@ INPUT_ISO_DIR_SYSTEM ?= $(INPUT_ISO_DIR)/ATOS
 INPUT_ISO_DIR_USER ?= $(INPUT_ISO_DIR)/USER
 INPUT_ISO_DIR_PROGRAMS ?= $(INPUT_ISO_DIR)/PROGRAMS
 
-.PHONY: all kernel bootloader iso clean run help programs
+.PHONY: all kernel bootloader iso clean run help programs diskvbr
 
 # Default target
 all: iso
 
+# Bootloader build (16-bit raw binary)
 # Bootloader build (16-bit raw binary)
 $(OUTPUT_BOOTLOADER_DIR)/BOOTLOADER.BIN: $(SOURCE_BOOTLOADER_DIR)/BOOTLOADER.asm
 	@echo "Compiling bootloader (16-bit real mode)..."
@@ -60,8 +61,16 @@ $(OUTPUT_BOOTLOADER_DIR)/BOOTLOADER.BIN: $(SOURCE_BOOTLOADER_DIR)/BOOTLOADER.asm
 
 bootloader: $(OUTPUT_BOOTLOADER_DIR)/BOOTLOADER.BIN
 
-# Kernel build (raw binaries only, no linker script)
-# Kernel build target (raw binary, no linker script)
+
+# Disk VBR build (Volume Boot Record for FAT)
+$(OUTPUT_BOOTLOADER_DIR)/DISK_VBR.BIN: $(SOURCE_BOOTLOADER_DIR)/DISK_VBR.asm
+	@echo "Compiling disk VBR (16-bit real mode)..."
+	mkdir -p $(OUTPUT_BOOTLOADER_DIR)
+	$(ASSEMBLER) -f bin -D__REAL_MODE__ -o $@ $<
+	@echo "Disk VBR compiled successfully."
+
+diskvbr: $(OUTPUT_BOOTLOADER_DIR)/DISK_VBR.BIN
+
 kernel: 
 	@echo "Compiling KERNEL.BIN (16-bit real mode second stage)..."
 	mkdir -p $(OUTPUT_KERNEL_DIR)
@@ -144,7 +153,7 @@ kernel:
 	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/MEMORY/HEAP/KHEAP.c -o $(OUTPUT_KERNEL_DIR)/KHEAP.o
 	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/MEMORY/BYTEMAP/BYTEMAP.c -o $(OUTPUT_KERNEL_DIR)/BYTEMAP.o
 	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/FS/ISO9660/ISO9660.c -o $(OUTPUT_KERNEL_DIR)/ISO9660.o
-	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/FS/FAT32/FAT32.c -o $(OUTPUT_KERNEL_DIR)/FAT32.o
+	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/FS/FAT/FAT.c -o $(OUTPUT_KERNEL_DIR)/FAT32.o
 	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_DIR)/STD/MEM.c -o $(OUTPUT_KERNEL_DIR)/MEM.o
 	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_DIR)/STD/STRING.c -o $(OUTPUT_KERNEL_DIR)/STRING.o
 	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_DIR)/STD/MATH.c -o $(OUTPUT_KERNEL_DIR)/MATH.o
@@ -213,13 +222,14 @@ programs:
 	@echo "All user programs built successfully."
 
 # ISO build
-iso: bootloader kernel programs
+iso: bootloader kernel programs diskvbr
 	@echo "Creating ISO directory structure..."
 	mkdir -p $(INPUT_ISO_DIR)/INNER/INNER2
 	mkdir -p $(INPUT_ISO_DIR_SYSTEM)
 	mkdir -p $(INPUT_ISO_DIR_USER)
 	mkdir -p $(INPUT_ISO_DIR_PROGRAMS)
 	cp -f $(OUTPUT_BOOTLOADER_DIR)/BOOTLOADER.BIN $(INPUT_ISO_DIR)/BOOTLOADER.BIN
+	cp -f $(OUTPUT_BOOTLOADER_DIR)/DISK_VBR.BIN $(INPUT_ISO_DIR_SYSTEM)/DISK_VBR.BIN
 	cp -f $(SOURCE_DIR)/BAsE.txt $(INPUT_ISO_DIR)/BAsE.txt
 
 	mkdir -p $(INPUT_ISO_DIR)/INNER/INNER2
@@ -238,7 +248,7 @@ iso: bootloader kernel programs
 # Run ISO in QEMU
 run: 
 	@echo "Running ISO in QEMU..."
-# 	qemu-img create -f raw hdd.img 256M
+	qemu-img create -f raw hdd.img 256M
 	qemu-system-i386 -vga std \
 	-m 1024 \
 	-boot order=d \

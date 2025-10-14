@@ -80,6 +80,15 @@ U0 *STRCHR(CONST U8* str, U8 c) {
     while (*str && (*str != c)) str++;
     return (*str == c) ? (U0 *)str : NULL;
 }
+U0 *STRRCHR(CONST U8* str, U8 c) {
+    U0 *last = NULL;
+    while (*str) {
+        if (*str == c) last = (U0 *)str;
+        str++;
+    }
+    return last;
+}
+
 U32 ATOI(CONST U8* str) {
     U32 res = 0;
     while (*str >= '0' && *str <= '9') {

@@ -83,12 +83,9 @@ U64;
 #define INT          I32
 #define UINT         U32
 
-typedef I8           BYTE;
-typedef U8           UBYTE;
-typedef I16          WORD;
-typedef U16          UWORD;
-typedef I32          DWORD;
-typedef U32          UDWORD;
+typedef U8           BYTE;
+typedef U16          WORD;
+typedef U32          DWORD;
 
 typedef U8*          PU8;
 typedef U16*         PU16;

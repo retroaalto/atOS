@@ -28,4 +28,5 @@ BOOLEAN ATA_PIO_WRITE_SECTORS_EXT(U8 device_id, U32 lba, U8 sector_count, VOIDPT
 BOOLEAN ATA_PIO_READ_SECTORS(U32 lba, U8 sector_count, VOIDPTR out_buffer);
 BOOLEAN ATA_PIO_WRITE_SECTORS(U32 lba, U8 sector_count, VOIDPTR in_buffer);
 
+U32 ATA_CALC_SEC_COUNT(U32 bytes);
 #endif // ATA_PIO_DRIVER_H

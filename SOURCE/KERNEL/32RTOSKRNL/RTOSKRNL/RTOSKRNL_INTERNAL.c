@@ -7,8 +7,9 @@ and some not-so-important functions are here.
 #include <MEMORY/PAGEFRAME/PAGEFRAME.h>
 #include <MEMORY/PAGING/PAGING.h>
 #include <DRIVERS/ATAPI/ATAPI.h>
+#include <DRIVERS/ATA_PIO/ATA_PIO.h>
 #include <FS/ISO9660/ISO9660.h>
-#include <FS/FAT32/FAT32.h>
+#include <FS/FAT/FAT.h>
 #include <STD/STRING.h>
 #include <MEMORY/HEAP/KHEAP.h>
 #include <CPU/PIT/PIT.h>
@@ -375,12 +376,47 @@ void LOAD_AND_RUN_KERNEL_SHELL(VOID) {
 
 
 BOOL initialize_filestructure(VOID) {
+    // LOAD_BPB();
+    
+    WRITE_DISK_BPB(FAT32);
+    IsoDirectoryRecord *vbr = NULLPTR;
+    VOIDPTR bin = NULLPTR;
+    U32 sz = 0;
+    vbr = ISO9660_FILERECORD_TO_MEMORY("ATOS/DISK_VBR.BIN");
+    if(!vbr) return FALSE;
+    sz = vbr->extentLengthLE;
+    bin = ISO9660_READ_FILEDATA_TO_MEMORY(vbr);
+    if(!bin) {
+        ISO9660_FREE_MEMORY(vbr);
+        return FALSE;
+    }
 
+    if(!POPULATE_BOOTLOADER(bin, sz)) {
+        ISO9660_FREE_MEMORY(vbr);
+        ISO9660_FREE_MEMORY(bin);
+        return FALSE;
+    }
+
+    ISO9660_FREE_MEMORY(vbr);
+    ISO9660_FREE_MEMORY(bin);
+
+    // Virtual boot record is now loaded on the disk!
+    if(!FAT_CreateRootDirectory()) return FALSE;
+
+    FAT_CreateFileFull("/test.txt", "Hello world!", 13, 0);
+    FAT_ENTRY_INFO *entries = KMALLOC(sizeof(FAT_ENTRY_INFO) * MAX_NESTED_DIRS);
+    MEMZERO(entries,sizeof(FAT_ENTRY_INFO) * MAX_NESTED_DIRS);
+    U32 count = FAT_ListDirectory(FAT_GetRootDirCluster(), entries, MAX_NESTED_DIRS);
+    for(U32 i = 0; i < count; i++){
+        VBE_DRAW_STRING(0, i*16, entries[i].long_name, VBE_RED, VBE_BEIGE);
+    }
+    VBE_UPDATE_VRAM();
+    HLT;
+    return TRUE;
 }
 
 
 void RTOSKRNL_LOOP(VOID) {
-    VBE_DRAW_ELLIPSE(1000, 0, 200,200, VBE_AQUA);
     U32 i = 0;
     U32 j = 0;
     U32 pass = 0;
@@ -398,3 +434,4 @@ void RTOSKRNL_LOOP(VOID) {
         handle_kernel_messages();
     }
 }
+

@@ -3,7 +3,7 @@
 #include <STD/TYPEDEF.h>
 #include <PROGRAMS/SHELL/VOUTPUT.h>
 #include <DRIVERS/PS2/KEYBOARD.h>
-#include <FAT32/FAT32.h>
+#include <FAT/FAT.h>
 
 typedef enum {
     STATE_CMD_INTERFACE, // A focused PROC is running 
@@ -19,7 +19,7 @@ typedef struct {
     U32 previously_focused_pid;
     OutputHandle cursor;
     SHELL_STATES state;
-    U8 path[FAT32_MAX_PATH];
+    U8 path[FAT_MAX_PATH];
     ENV_VARS VARS;
 } SHELL_INSTANCE;
 

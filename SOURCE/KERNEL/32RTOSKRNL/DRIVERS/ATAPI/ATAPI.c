@@ -90,7 +90,7 @@ int read_cdrom(U32 atapiWhere, U32 lba, U32 sectors, U16 *buffer) {
     }
 
         // The command
-	volatile U8 read_cmd[12] = {0xA8, 0,
+	volatile U8 read_cmd[12] = {ATAPI_CMD_READ12, 0,
 	                                 (lba >> 0x18) & 0xFF, (lba >> 0x10) & 0xFF, (lba >> 0x08) & 0xFF,
 	                                 (lba >> 0x00) & 0xFF,
 	                                 (sectors >> 0x18) & 0xFF, (sectors >> 0x10) & 0xFF, (sectors >> 0x08) & 0xFF,

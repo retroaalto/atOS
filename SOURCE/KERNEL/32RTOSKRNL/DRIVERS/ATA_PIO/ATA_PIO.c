@@ -24,7 +24,9 @@ int ata_read_identify_to_buffer(U16 base_port, U8 drive, U16 *ident_out) {
     while ((_inb(base_port + ATA_COMM_REG) & STAT_BSY) && timeout--) {}
     status = _inb(base_port + ATA_COMM_REG);
     if (!(status & STAT_ERR)) {
-        for (int i = 0; i < 256; i++) ident_out[i] = _inw(base_port + ATA_DATA);
+        for (int i = 0; i < 256; i++) 
+            ident_out[i] = _inw(base_port + ATA_DATA);
+        if (ident_out[0] & 0x8000) return FALSE; // It's ATAPI -> skip
         return 1; // ata drive
     }
 
@@ -40,15 +42,15 @@ BOOLEAN ATA_PIO_DRIVE_EXISTS(U16 base_port, U8 drive) {
 U32 ATA_PIO_IDENTIFY(void) {
     if (ATA_PIO_DRIVE_EXISTS(ATA_PRIMARY_BASE, ATA_MASTER))   return PIO_IDENTIFIER = ATA_PRIMARY_MASTER;
     if (ATA_PIO_DRIVE_EXISTS(ATA_PRIMARY_BASE, ATA_SLAVE))    return PIO_IDENTIFIER = ATA_PRIMARY_SLAVE;
-
+    
     if (ATA_PIO_DRIVE_EXISTS(ATA_SECONDARY_BASE, ATA_MASTER)) return PIO_IDENTIFIER = ATA_SECONDARY_MASTER;
     if (ATA_PIO_DRIVE_EXISTS(ATA_SECONDARY_BASE, ATA_SLAVE))  return PIO_IDENTIFIER = ATA_SECONDARY_SLAVE;
-
+    
     return PIO_IDENTIFIER = ATA_FAILED;
 }
 
 U32 ATA_PIO_GET_IDENTIFIER(VOID) {
-    if(!PIO_IDENTIFIER) return ATA_PIO_IDENTIFY(); // Corrected call
+    if(!PIO_IDENTIFIER) return ATA_PIO_IDENTIFY();
     return PIO_IDENTIFIER;
 }
 
@@ -168,4 +170,8 @@ BOOLEAN ATA_PIO_READ_SECTORS(U32 lba, U8 sector_count, VOIDPTR out_buffer) {
 }
 BOOLEAN ATA_PIO_WRITE_SECTORS(U32 lba, U8 sector_count, VOIDPTR in_buffer) {
     return ATA_PIO_XFER((U8)ATA_PIO_GET_IDENTIFIER(), lba, sector_count, in_buffer, TRUE);
+}
+
+U32 ATA_CALC_SEC_COUNT(U32 bytes) {
+    return (bytes + (ATA_PIO_SECTOR_SIZE - 1)) / ATA_PIO_SECTOR_SIZE;
 }

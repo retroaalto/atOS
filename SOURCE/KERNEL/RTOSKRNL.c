@@ -40,7 +40,7 @@ void rtos_kernel(U0) {
 
     panic_if(!ATA_PIO_INIT(), PANIC_TEXT("Failed to initialize ATA PIO"), PANIC_INITIALIZATION_FAILED);
 
-    initialize_filestructure();
+    panic_if(!initialize_filestructure(), PANIC_TEXT("Failed to initialize FAT on disk"), PANIC_INITIALIZATION_FAILED);
 
     LOAD_AND_RUN_KERNEL_SHELL();
     RTOSKRNL_LOOP();

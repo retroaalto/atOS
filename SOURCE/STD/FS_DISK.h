@@ -7,12 +7,15 @@
 #define STD_FS_DISK_H
 
 #include <STD/TYPEDEF.h>
+
 #define ISO9660_ONLY_DEFINES
 #include <FS/ISO9660/ISO9660.h> // For ISO9660 filesystem types
-#define FAT32_ONLY_DEFINES
-#include <FS/FAT32/FAT32.h>     // For FAT32 filesystem types
+
+#define FAT_ONLY_DEFINES
+#include <FS/FAT/FAT.h>     // For FAT32 filesystem types
+
 #undef ISO9660_ONLY_DEFINES
-#undef FAT32_ONLY_DEFINES
+#undef FAT_ONLY_DEFINES
 
 /**
  * Filesystem types

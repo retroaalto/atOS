@@ -47,7 +47,7 @@ U0 INITIALIZE_SHELL() {
     shndl.previously_focused_pid = shndl.focused_pid;
     SWITCH_LINE_EDIT_MODE();
     // shndl.path 
-    STRNCPY(shndl.path, '/', FAT32_MAX_PATH);
+    STRNCPY(shndl.path, '/', FAT_MAX_PATH);
 }
 
 U0 SWITCH_CMD_INTERFACE_MODE(VOID) {
