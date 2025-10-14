@@ -17,6 +17,11 @@
 #undef ISO9660_ONLY_DEFINES
 #undef FAT_ONLY_DEFINES
 
+typedef struct {
+    VOIDPTR data;
+    U32 sz;
+} FILE;
+
 /**
  * Filesystem types
  */

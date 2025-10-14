@@ -124,19 +124,6 @@ typedef enum {
     FAT16,
 } FAT_TYPE;
 
-typedef struct {
-    U32 first_cluster;                   // First cluster of file/dir
-    U32 size;                            // File size in bytes
-    U16 creation_time;                   // FAT creation time
-    U16 creation_date;                   // FAT creation date
-    U16 last_mod_time;                   // Last modification time
-    U16 last_mod_date;                   // Last modification date
-    U16 last_access_date;                // Last access date
-    U8  attributes;                      // File/dir flags
-    U8  short_name[11];                  // 8.3 short name
-    CHAR long_name[FAT_MAX_FILENAME];    // Long file name if present
-    U8  lfn_used;                        // 1 if long name is used
-} FAT_ENTRY_INFO;
 
 
 #ifndef FAT_ONLY_DEFINES
@@ -161,87 +148,6 @@ BOOLEAN WRITE_DISK_BPB(FAT_TYPE TYPE);
 /// @return TRUE if successful
 BOOLEAN POPULATE_BOOTLOADER(VOIDPTR BOOTLOADER_BIN, U32 sz);
 
-/// @brief Compute checksum for LFN entry from short 8.3 name
-/// @param short_name 8.3 filename
-/// @return Checksum byte
-U8 LFN_Checksum(const U8 short_name[11]);
 
-/// @brief Generate a short 8.3 name from a long filename
-/// @param long_name Input filename
-/// @param out_short_name Output buffer (11 bytes)
-void FAT_GenerateShortName(const CHAR *long_name, U8 out_short_name[11]);
-
-/// @brief Create a new file in a directory cluster
-/// @param dir_cluster Parent directory cluster
-/// @param filename Full filename (long or short)
-/// @param size Initial file size
-/// @param out_cluster Pointer to first cluster allocated for file
-/// @return TRUE if successful
-BOOLEAN FAT_CreateFile(U32 dir_cluster, const CHAR *filename, U32 size, U32 *out_cluster);
-
-/// @brief Allocate clusters for a file
-/// @param size Number of bytes to allocate
-/// @param out_first_cluster Returns first cluster number
-/// @return TRUE if successful
-BOOLEAN FAT_AllocateFileClusters(U32 size, U32 *out_first_cluster);
-
-/// @brief Write a directory entry (short 8.3 + optional LFN)
-/// @param dir_cluster Parent directory cluster
-/// @param short_name Short 8.3 name
-/// @param long_name Long filename (optional)
-/// @param start_cluster First cluster of file
-/// @param size File size
-/// @param attr File attributes
-/// @return TRUE if entry written successfully
-BOOLEAN FAT_WriteFileEntry(U32 dir_cluster,
-                           const U8 short_name[11],
-                           const CHAR *long_name,
-                           U32 start_cluster,
-                           U32 size,
-                           U8 attr);
-
-/// @brief Create a new directory
-/// @param parent_cluster Parent directory cluster
-/// @param dirname Directory name (short or long)
-/// @param out_cluster Pointer to first cluster allocated
-/// @return TRUE if successful
-BOOLEAN FAT_CreateDirectory(U32 parent_cluster, const CHAR *dirname, U32 *out_cluster);
-
-/// @brief Initialize "." and ".." entries inside a new directory
-/// @param dir_cluster Cluster of the new directory
-/// @param parent_cluster Cluster of parent directory
-/// @return TRUE if successful
-BOOLEAN FAT_InitDirectoryEntries(U32 dir_cluster, U32 parent_cluster);
-
-/// @brief Returns cluster of root directory
-/// @return Cluster of root dir
-U32 FAT_GetRootDirCluster();
-
-/// @brief Creates root directory
-/// @return TRUE if succesfull
-BOOLEAN FAT_CreateRootDirectory();
-
-/// @brief Get the first sector of a directory (root or subdirectory)
-/// @param cluster Cluster number of directory (0 = root for FAT12/16)
-/// @return Sector number of the first sector of the directory
-U32 FAT_GetDirFirstSector(U32 cluster);
-
-/// @brief Writes file data
-/// @param first_cluster File cluster
-/// @param data Data to write
-/// @param size Size of data
-/// @return TRUE if succesfull
-BOOLEAN FAT_WriteFileData(U32 first_cluster, const U8 *data, U32 size);
-
-BOOLEAN FAT_CreateDirectoryPath(const CHAR *path, U8 flags);
-BOOLEAN FAT_CreateFileWithContents(const CHAR *path, const U8 *data, U32 size, U8 flags);
-BOOLEAN FAT_CreateFileFull(const CHAR *path, const U8 *data, U32 size, U8 flags);
-
-void FAT_ParseTime(U16 fat_time, U8 *hour, U8 *min, U8 *sec);
-void FAT_ParseDate(U16 fat_date, U16 *year, U8 *month, U8 *day);
-BOOLEAN FAT_GetEntryByPath(CHAR *path, FAT_ENTRY_INFO *out_info);
-BOOLEAN FAT_GetFileContents(FAT_ENTRY_INFO *entry, U8 *buffer, U32 buffer_size);
-U32 FAT_ListDirectory(U32 dir_cluster, FAT_ENTRY_INFO *entries, U32 max_entries);
-U32 FAT_GetNextCluster(U32 cluster);
 #endif // FAT_ONLY_DEFINES
 #endif // FAT_H

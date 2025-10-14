@@ -400,16 +400,6 @@ BOOL initialize_filestructure(VOID) {
     ISO9660_FREE_MEMORY(vbr);
     ISO9660_FREE_MEMORY(bin);
 
-    // Virtual boot record is now loaded on the disk!
-    if(!FAT_CreateRootDirectory()) return FALSE;
-
-    FAT_CreateFileFull("/test.txt", "Hello world!", 13, 0);
-    FAT_ENTRY_INFO *entries = KMALLOC(sizeof(FAT_ENTRY_INFO) * MAX_NESTED_DIRS);
-    MEMZERO(entries,sizeof(FAT_ENTRY_INFO) * MAX_NESTED_DIRS);
-    U32 count = FAT_ListDirectory(FAT_GetRootDirCluster(), entries, MAX_NESTED_DIRS);
-    for(U32 i = 0; i < count; i++){
-        VBE_DRAW_STRING(0, i*16, entries[i].long_name, VBE_RED, VBE_BEIGE);
-    }
     VBE_UPDATE_VRAM();
     HLT;
     return TRUE;
