@@ -89,13 +89,21 @@ Download from the [official QEMU website](https://www.qemu.org/download/#windows
 ### Booting atOS with QEMU
 
 ```bash
-qemu-img create -f raw hdd.img 256M
-qemu-system-i386 \
-  -boot d \
-  -vga std \
-  -cdrom atOS.iso \
-  -drive file=hdd.img,format=raw,if=ide,index=0,media=disk \
-  -m 1024 \
+	qemu-img create -f raw hdd.img 256M   # Creates a hard disk image.
+
+  # Runs Qemu from ISO with attached HDD, RTL8139, AC97 and PCI support
+	qemu-system-i386 -vga std \
+    -m 1024 \
+    -boot order=d \
+    -device piix3-ide,id=ide \
+    -cdrom $(OUTPUT_ISO_DIR)/$(ISO_NAME) \
+    -drive id=cdrom,file=$(OUTPUT_ISO_DIR)/$(ISO_NAME),format=raw,if=none \
+    -drive id=hd0,file=hdd.img,format=raw,if=none \
+    -device ide-hd,drive=hd0,bus=ide.0 \
+    -device ide-cd,drive=cdrom,bus=ide.1 \
+    -audiodev sdl,id=snd0 \
+    -device ac97,audiodev=snd0 \
+	  -device rtl8139
 ```
 
 ---
@@ -109,16 +117,8 @@ Want to dig into the source or contribute? Here’s how to set up the environmen
 Install the essential build tools:
 
 ```bash
-sudo apt install qemu-system-x86 nasm make gcc genisoimage
+sudo apt install qemu-system-x86 nasm make gcc genisoimage cmake ninja-build
 ```
-
-| Tool            | Purpose                      |
-| --------------- | ---------------------------- |
-| qemu-system-x86 | Run and debug the OS         |
-| nasm            | Assemble low-level code      |
-| make            | Automate builds              |
-| gcc             | Utility compilation          |
-| genisoimage     | Generate bootable ISO images |
 
 ### Building
 

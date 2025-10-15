@@ -10,8 +10,8 @@ void rtos_kernel(U0) {
     // These are called here, to fix address issues and to set up new values
     GDT_INIT();
     IDT_INIT();
-    SETUP_ISR_HANDLERS();
     IRQ_INIT();
+    SETUP_ISR_HANDLERS();
     disable_fpu();
     panic_if(!vesa_check(), PANIC_TEXT("Failed to initialize VESA"), PANIC_INITIALIZATION_FAILED);
     
@@ -34,23 +34,19 @@ void rtos_kernel(U0) {
 
     debug_vram_end(); // End early mode, now using task framebuffers
     init_multitasking();
-    STI;
-    
     INIT_RTC();
+    STI;
     
     panic_if(!ATA_PIO_INIT(), PANIC_TEXT("Failed to initialize ATA PIO"), PANIC_INITIALIZATION_FAILED);
     
-    // SET_BEEPER_FREQUENCY(440);
-    // START_BEEPER();
-    // debug_vram_start();
-    // panic_debug_if(
-    //     !RTL8139_INIT(),
-    //     "rtl err",
-    //     0
-    // );
-    // debug_vram_dump();  
-    // HLT;
     
+    panic_debug_if(
+        !RTL8139_INIT(),
+        "rtl err",
+        0
+    );
+    for(;;) {}
+    HLT;    
     panic_if(!initialize_filestructure(), PANIC_TEXT("Failed to initialize FAT on disk"), PANIC_INITIALIZATION_FAILED);
 
     LOAD_AND_RUN_KERNEL_SHELL();

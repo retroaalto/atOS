@@ -164,12 +164,23 @@ U0 *ITOA(S32 value, I8* buffer, U32 base) {
             // Convert integer to hexadecimal string
             {
                 U32 i = 0;
-                while (value) {
-                    U32 digit = value % 16;
-                    buffer[i++] = (digit < 10) ? (digit + '0') : (digit - 10 + 'A');
-                    value /= 16;
+                if (value == 0) {
+                    buffer[i++] = '0';
+                } else {
+                    while (value) {
+                        U32 digit = value % 16;
+                        buffer[i++] = (digit < 10) ? (digit + '0') : (digit - 10 + 'A');
+                        value /= 16;
+                    }
                 }
+
+                // Ensure 2 digits for a byte
+                if (i == 1) {
+                    buffer[i++] = '0';
+                }
+
                 buffer[i] = '\0';
+
                 // Reverse the string
                 for (U32 j = 0; j < i / 2; j++) {
                     U8 temp = buffer[j];
@@ -177,6 +188,7 @@ U0 *ITOA(S32 value, I8* buffer, U32 base) {
                     buffer[i - j - 1] = temp;
                 }
             }
+
             break;
         default:
             // Unsupported base
@@ -228,6 +240,12 @@ U0 *ITOA_U(U32 value, U8* buffer, U32 base) {
                     buffer[i++] = (digit < 10) ? (digit + '0') : (digit - 10 + 'A');
                     value /= 16;
                 }
+
+                // Ensure 2 digits for a byte
+                if (i == 1) {
+                    buffer[i++] = '0';
+                }
+
                 buffer[i] = '\0';
                 // Reverse the string
                 for (U32 j = 0; j < i / 2; j++) {

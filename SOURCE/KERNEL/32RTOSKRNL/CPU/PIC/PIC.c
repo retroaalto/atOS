@@ -17,6 +17,7 @@ void PIC_Mask(int irq) {
 }
 
 void PIC_Unmask(int irq) {
+    CLI;
     if (irq < 8) {
         // Master PIC
         U8 mask = _inb(PIC1_DATA_PORT);
@@ -36,6 +37,7 @@ void PIC_Unmask(int irq) {
         master_mask &= ~(1 << 2);  // Clear IRQ2
         _outb(PIC1_DATA_PORT, master_mask);
     }
+    STI;
 }
 
 

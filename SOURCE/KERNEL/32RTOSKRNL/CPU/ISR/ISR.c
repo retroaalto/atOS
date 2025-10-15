@@ -28,6 +28,7 @@ REMARKS
 #include <RTOSKRNL/RTOSKRNL_INTERNAL.h>
 #include <DRIVERS/VIDEO/VBE.h>
 #include <CPU/PIC/PIC.h>
+#include <RTL8139/RTL8139.h>
 static ISRHandler g_Handlers[IDT_COUNT] __attribute__((section(".data"))) = { 0 };
 #else // __RTOS__
 static ISRHandler g_Handlers[IDT_COUNT]  = { 0 };
@@ -77,6 +78,7 @@ void irq_common_handler(I32 vector, U32 errcode) {
         panic(PANIC_TEXT("Non-IRQ received in irq_common_handler!"), vector);
         return;
     }
+    if(vector != 0x21 && vector != 0x28) DUMP_ERRCODE(vector);
     #endif // __RTOS__
     if (g_Handlers[vector]) 
         g_Handlers[vector](vector, errcode);
@@ -251,6 +253,5 @@ VOID SETUP_ISR_HANDLERS(VOID) {
     ISR_REGISTER_HANDLER(14, page_fault_handler);
     ISR_REGISTER_HANDLER(8, double_fault_handler);
     ISR_REGISTER_HANDLER(2, nmi_handler);
-    // ISR_REGISTER_HANDLER(SYSCALL_VECTOR, syscall_dispatcher);
     #endif // __RTOS__
 }

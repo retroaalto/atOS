@@ -3,5 +3,8 @@
 #include <STD/TYPEDEF.h>
 
 BOOLEAN RTL8139_INIT();
+BOOLEAN RTL8139_STOP(); // NOTE: This will ALWAYS return FALSE
+void SEND_RTL8139_PACKET(U8 *packet, U32 len);
+void RTL8139_HANDLER(U32 vec, U32 errno);
 
 #endif // RTL8139_DRIVER_H

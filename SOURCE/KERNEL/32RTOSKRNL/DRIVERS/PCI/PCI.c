@@ -4,6 +4,8 @@
 static PCI_DEVICE_ENTRY pci_devices[PCI_MAX_DEVICES];
 static U32 pci_device_count = 0;
 
+#define PCI_COMMAND_IO  (1 << 0)
+#define PCI_COMMAND_BUSMASTER (1 << 2)
 
 U8 PCI_READ8(U8 bus, U8 slot, U8 func, U8 offset) {
     U32 address = (U32)((bus << 16) | (slot << 11) | (func << 8) |
@@ -218,7 +220,8 @@ void PCI_INITIALIZE(void) {
 
 BOOL PCI_ENABLE_BUS_MASTERING(U8 bus, U8 slot, U8 func) {
     U16 cmd = PCI_GET_COMMAND(bus, slot, func);
-    PCI_WRITE16(bus, slot, func, PCI_COMMAND_OFFSET, cmd | 0x04);
+    cmd |= (PCI_COMMAND_IO | PCI_COMMAND_BUSMASTER);
+    PCI_WRITE16(bus, slot, func, PCI_COMMAND_OFFSET, cmd);
     
     cmd = PCI_GET_COMMAND(bus, slot, func);
     return (cmd & 0x04) != 0;

@@ -20,12 +20,19 @@ and some not-so-important functions are here.
 #include <DRIVERS/PS2/KEYBOARD.h>
 
 
-#define INC_rki_row(rki_row) (rki_row += VBE_CHAR_HEIGHT + 2)
+#define INC_rki_row(rki_row) (rki_row += VBE_CHAR_HEIGHT + 2); if(rki_row > 1024) rki_row = 0;
 #define DEC_rki_row(rki_row) (rki_row -= VBE_CHAR_HEIGHT + 2)
 static U32 rki_row __attribute__((section(".data"))) = 0;
 
 void set_rki_row(U32 row) {
-    rki_row = row;
+    if (row == U32_MAX)
+    {
+        INC_rki_row(rki_row);
+    }
+    else
+    {
+        rki_row = row;
+    }
 }
 
 static inline U32 ASM_READ_ESP(void) {
@@ -142,26 +149,50 @@ void DUMP_INTNO(U32 int_no) {
 }
 
 void DUMP_MEMORY(U32 addr, U32 length) {
-    U8 buf[20];
+    U8 buf[20] = { 0 };
+    char ascii[16] = { 0 };  // 16 chars per line
     U8 *ptr = (U8*)addr;
+
     for(U32 i = 0; i < length; i++) {
         // Start new line every 16 bytes
         if(i % 16 == 0) {
-            if(i != 0) INC_rki_row(rki_row);  // move down only at new line
-            ITOA((U32)(ptr + i), buf, 16);
+            if(i != 0) {
+                // Draw ASCII characters at end of previous line
+                VBE_DRAW_STRING(100 + 16 * 30, rki_row, ascii, PANIC_COLOUR);
+                INC_rki_row(rki_row);
+            }
+
+            // Print memory address at start of line
+            ITOA_U((U32)(ptr + i), buf, 16);
             VBE_DRAW_STRING(0, rki_row, buf, PANIC_COLOUR);
         }
 
-        // Print the byte
-        ITOA(ptr[i], buf, 16);
+        // Print hex value of the byte
+        ITOA_U(ptr[i], buf, 16);
         VBE_DRAW_STRING(100 + (i % 16) * 30, rki_row, buf, PANIC_COLOUR);
+
+        // Prepare ASCII representation
+        ascii[i % 16] = (ptr[i] >= 0x20 && ptr[i] <= 0x7E) ? ptr[i] : '.';
     }
 
-    // After dumping, move to next line
+    // Draw ASCII for the last line
+    int lastLineBytes = length % 16;
+    if(lastLineBytes == 0) lastLineBytes = 16;  // full line
+    for(int j = lastLineBytes; j < 16; j++) ascii[j] = ' '; // pad remaining
+    VBE_DRAW_STRING(100 + 16 * 30, rki_row, ascii, PANIC_COLOUR);
     INC_rki_row(rki_row);
+
     VBE_UPDATE_VRAM();
 }
 
+
+
+
+void DUMP_STRING(STRING buf) {
+    VBE_DRAW_STRING(0, rki_row, buf, PANIC_COLOUR);
+    INC_rki_row(rki_row);
+    VBE_UPDATE_VRAM();
+}
 
 
 void panic_reg(regs *r, const U8 *msg, U32 errmsg) {

@@ -7,6 +7,11 @@
 #include <DRIVERS/VIDEO/VBE.h>
 #include <CPU/PIC/PIC.h>
 
+/*
+Add handler manually to IRQ handler tree
+Get IRQ num from PCI
+*/
+
 #define POLLING_TIME 0xFFFFF
 
 typedef struct {

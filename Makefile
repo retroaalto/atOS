@@ -46,7 +46,7 @@ INPUT_ISO_DIR_SYSTEM ?= $(INPUT_ISO_DIR)/ATOS
 INPUT_ISO_DIR_USER ?= $(INPUT_ISO_DIR)/USER
 INPUT_ISO_DIR_PROGRAMS ?= $(INPUT_ISO_DIR)/PROGRAMS
 
-.PHONY: all kernel bootloader iso clean run help programs diskvbr
+.PHONY: all kernel bootloader iso clean run help programs diskvbr clean_tap runn setup_tap
 
 # Default target
 all: iso
@@ -135,7 +135,7 @@ kernel:
 	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/DRIVERS/ATA_PIIX3/ATA_PIIX3.c -o $(OUTPUT_KERNEL_DIR)/ATA_PIIX3.o
 	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/DRIVERS/ATA_PIO/ATA_PIO.c -o $(OUTPUT_KERNEL_DIR)/ATA_PIO.o
 	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/DRIVERS/CMOS/CMOS.c -o $(OUTPUT_KERNEL_DIR)/CMOS.o
-	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/DRIVERS/RTL8139/RTL8139.c -o $(OUTPUT_KERNEL_DIR)/E1000.o
+	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/DRIVERS/RTL8139/RTL8139.c -o $(OUTPUT_KERNEL_DIR)/RTL8139.o
 	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/DRIVERS/BEEPER/BEEPER.c -o $(OUTPUT_KERNEL_DIR)/BEEPER.o
 	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/DRIVERS/PCI/PCI.c -o $(OUTPUT_KERNEL_DIR)/PCI.o
 	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/CPU/PIT/PIT.c -o $(OUTPUT_KERNEL_DIR)/PIT.o
@@ -161,6 +161,7 @@ kernel:
 	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/RTOSKRNL/ERROR/ERROR.c -o $(OUTPUT_KERNEL_DIR)/ERROR.o	
 	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/RTOSKRNL/RTOSKRNL_INTERNAL.c -o $(OUTPUT_KERNEL_DIR)/RTOSKRNL_INTERNAL.o
 	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/RTOSKRNL/PROC/PROC.c -o $(OUTPUT_KERNEL_DIR)/PROC.o
+	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/NIC/NIC.c -o $(OUTPUT_KERNEL_DIR)/NIC.o
 	$(CComp) $(RTOSKRNLCompArgs) -c $(SOURCE_KERNEL_DIR)/32RTOSKRNL/RTOSKRNL/BITMAP/BITMAP.c -o $(OUTPUT_KERNEL_DIR)/BITMAP.o
 
 
@@ -188,6 +189,7 @@ kernel:
 		$(OUTPUT_KERNEL_DIR)/RTOSKRNL_INTERNAL.o \
 		$(OUTPUT_KERNEL_DIR)/ATA_ATAPI.o \
 		$(OUTPUT_KERNEL_DIR)/ACPI.o \
+		$(OUTPUT_KERNEL_DIR)/NIC.o \
 		$(OUTPUT_KERNEL_DIR)/MATH.o \
 		$(OUTPUT_KERNEL_DIR)/SYSCALL.o \
 		$(OUTPUT_KERNEL_DIR)/ISO9660.o \
@@ -197,7 +199,7 @@ kernel:
 		$(OUTPUT_KERNEL_DIR)/BEEPER.o \
 		$(OUTPUT_KERNEL_DIR)/PROC.o \
 		$(OUTPUT_KERNEL_DIR)/FPU.o \
-		$(OUTPUT_KERNEL_DIR)/E1000.o \
+		$(OUTPUT_KERNEL_DIR)/RTL8139.o \
 		$(OUTPUT_KERNEL_DIR)/BITMAP.o \
 		$(OUTPUT_KERNEL_DIR)/ATA_PIIX3.o \
 		$(OUTPUT_KERNEL_DIR)/ATA_PIO.o \
@@ -245,6 +247,8 @@ iso: bootloader kernel programs diskvbr
 	genisoimage -o $(OUTPUT_ISO_DIR)/$(ISO_NAME) -r -J -b BOOTLOADER.BIN -no-emul-boot $(INPUT_ISO_DIR)
 	@echo "ISO created at $(OUTPUT_ISO_DIR)/$(ISO_NAME)"
 
+
+
 # Run ISO in QEMU
 run: 
 	@echo "Running ISO in QEMU..."
@@ -252,16 +256,51 @@ run:
 	qemu-system-i386 -vga std \
 	-m 1024 \
 	-boot order=d \
-	-device piix3-ide,id=ide \
 	-cdrom $(OUTPUT_ISO_DIR)/$(ISO_NAME) \
 	-drive id=cdrom,file=$(OUTPUT_ISO_DIR)/$(ISO_NAME),format=raw,if=none \
 	-drive id=hd0,file=hdd.img,format=raw,if=none \
+	-device piix3-ide,id=ide \
 	-device ide-hd,drive=hd0,bus=ide.0 \
 	-device ide-cd,drive=cdrom,bus=ide.1 \
-	-device ac97 \
-	-netdev user,id=mynet0 -device rtl8139,netdev=mynet0 \
+	-device ac97,audiodev=snd0 \
+	-netdev tap,id=tap0,ifname=tap0,script=no,downscript=no \
+	-device rtl8139,netdev=tap0,mac=52:54:00:12:34:56 \
+	-audiodev sdl,id=snd0
 
-# 	-no-kvm-irqchip 
+# remove tap device
+clean_tap:
+	@if ip link show tap0 >/dev/null 2>&1; then \
+	    echo "Removing tap0..."; \
+	    sudo ip link set tap0 down; \
+	    sudo ip tuntap del dev tap0 mode tap; \
+	else \
+	    echo "tap0 does not exist"; \
+	fi
+
+
+runn: clean_tap setup_tap run
+
+setup_tap:
+	$(MAKE) clean_tap
+	# Create TAP device if it doesn't exist
+	@if ! ip link show tap0 >/dev/null 2>&1; then \
+	    echo "Creating TAP device tap0..."; \
+	    sudo ip tuntap add dev tap0 mode tap; \
+	else \
+	    echo "TAP device tap0 already exists"; \
+	fi
+
+	# Bring TAP device up
+	@if ! ip link show tap0 up | grep -q "UP"; then \
+	    echo "Bringing tap0 up..."; \
+	    sudo ip link set tap0 up; \
+	else \
+	    echo "tap0 is already up"; \
+	fi
+
+	@echo "TAP device ready. No IP assigned, communicate using MAC addresses only."
+
+
 
 runlh:
 	@echo "Running ISO in QEMU..."
