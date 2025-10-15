@@ -3,16 +3,6 @@
 
 #include <STD/TYPEDEF.h>
 
-/// @brief FAT12/16 Extended BIOS Parameter Block (EXBR) structure
-typedef struct ATTRIB_PACKED {
-    U8 DRIVE_NUMBER;       ///< BIOS drive number (0x00 = floppy, 0x80 = HDD)
-    U8 RESERVED;           ///< Reserved, must be 0
-    U8 BOOT_SIGNATURE;     ///< Boot signature (0x29 if VOLUME_ID, VOLUME_LABEL, FILE_SYSTEM_TYPE present)
-    U32 VOLUME_ID;         ///< Volume serial number
-    U8 VOLUME_LABEL[11];   ///< Volume label (ASCII, padded with spaces)
-    U8 FILE_SYSTEM_TYPE[8];///< File system type string (e.g., "FAT16   ")
-} EXBR_FAT12_16;
-
 /// @brief FAT32 Extended BIOS Parameter Block (EXBR) structure
 typedef struct ATTRIB_PACKED {
     U32 SECTORS_PER_FAT;       ///< Number of sectors per FAT
@@ -46,11 +36,7 @@ typedef struct ATTRIB_PACKED  {
     U16 NUM_OF_HEADS;            ///< Number of heads (for CHS addressing)
     U32 NUM_OF_HIDDEN_SECTORS;   ///< Hidden sectors before partition
     U32 LARGE_SECTOR_COUNT;      ///< Total sectors (FAT32 or >65535 for FAT12/16)
-    union {
-        EXBR_FAT12_16 FAT12;    ///< FAT12-specific fields
-        EXBR_FAT12_16 FAT16;    ///< FAT16-specific fields
-        EXBR_FAT32    FAT32;    ///< FAT32-specific fields
-    } EXBR;
+    EXBR_FAT32    EXBR;    ///< FAT32-specific fields
 } BPB;
 
 /// @brief FAT32 FSInfo structure (sector providing free cluster count and next free cluster)
@@ -119,8 +105,6 @@ typedef struct ATTRIB_PACKED  {
 #define MAX_NESTED_DIRS  16
 /// @brief FAT type enumeration
 typedef enum {
-    FAT32,
-    FAT12,
     FAT16,
 } FAT_TYPE;
 
@@ -138,9 +122,8 @@ BPB *GET_BPB();
 BOOLEAN LOAD_BPB();
 
 /// @brief Write BPB to disk
-/// @param TYPE FAT type
 /// @return TRUE if successful
-BOOLEAN WRITE_DISK_BPB(FAT_TYPE TYPE);
+BOOLEAN WRITE_DISK_BPB();
 
 /// @brief Populate bootloader sector with boot code and BPB
 /// @param BOOTLOADER_BIN Pointer to bootloader binary

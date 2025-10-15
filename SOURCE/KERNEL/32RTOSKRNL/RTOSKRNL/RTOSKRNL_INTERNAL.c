@@ -378,7 +378,7 @@ void LOAD_AND_RUN_KERNEL_SHELL(VOID) {
 BOOL initialize_filestructure(VOID) {
     // LOAD_BPB();
     
-    WRITE_DISK_BPB(FAT32);
+    WRITE_DISK_BPB();
     IsoDirectoryRecord *vbr = NULLPTR;
     VOIDPTR bin = NULLPTR;
     U32 sz = 0;
@@ -400,8 +400,6 @@ BOOL initialize_filestructure(VOID) {
     ISO9660_FREE_MEMORY(vbr);
     ISO9660_FREE_MEMORY(bin);
 
-    VBE_UPDATE_VRAM();
-    HLT;
     return TRUE;
 }
 

@@ -2,4 +2,6 @@
 #define RTL8139_DRIVER_H
 #include <STD/TYPEDEF.h>
 
+BOOLEAN RTL8139_INIT();
+
 #endif // RTL8139_DRIVER_H

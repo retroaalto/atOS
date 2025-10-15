@@ -29,6 +29,7 @@ void rtos_kernel(U0) {
     
     panic_if(!PS2_KEYBOARD_INIT(), PANIC_TEXT("Failed to initialize PS2 keyboard"), PANIC_INITIALIZATION_FAILED);
     
+    PCI_INITIALIZE();
     // panic_if(!ATA_PIIX3_INIT(), PANIC_TEXT("Failed to initialize ATA DMA"), PANIC_INITIALIZATION_FAILED);
 
     debug_vram_end(); // End early mode, now using task framebuffers
@@ -36,10 +37,20 @@ void rtos_kernel(U0) {
     STI;
     
     INIT_RTC();
-    PCI_INITIALIZE();
-
+    
     panic_if(!ATA_PIO_INIT(), PANIC_TEXT("Failed to initialize ATA PIO"), PANIC_INITIALIZATION_FAILED);
-
+    
+    // SET_BEEPER_FREQUENCY(440);
+    // START_BEEPER();
+    // debug_vram_start();
+    // panic_debug_if(
+    //     !RTL8139_INIT(),
+    //     "rtl err",
+    //     0
+    // );
+    // debug_vram_dump();  
+    // HLT;
+    
     panic_if(!initialize_filestructure(), PANIC_TEXT("Failed to initialize FAT on disk"), PANIC_INITIALIZATION_FAILED);
 
     LOAD_AND_RUN_KERNEL_SHELL();

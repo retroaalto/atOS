@@ -258,11 +258,10 @@ run:
 	-drive id=hd0,file=hdd.img,format=raw,if=none \
 	-device ide-hd,drive=hd0,bus=ide.0 \
 	-device ide-cd,drive=cdrom,bus=ide.1 \
-	-audiodev pa,id=ac97snd0,out.frequency=44100,out.channels=2 \
-	-audiodev pa,id=pcspksnd0,out.frequency=44100,out.channels=1
-	-device ac97,audiodev=ac97snd0 \
-	-device pcspk,audiodev=pcspksnd0 \
-	-netdev user,id=mynet0 -device e1000,netdev=mynet0
+	-device ac97 \
+	-netdev user,id=mynet0 -device rtl8139,netdev=mynet0 \
+
+# 	-no-kvm-irqchip 
 
 runlh:
 	@echo "Running ISO in QEMU..."
