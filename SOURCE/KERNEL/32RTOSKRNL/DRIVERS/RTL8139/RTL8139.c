@@ -233,7 +233,12 @@ void ENABLE_PHY_LOOPBACK() {
     _outw(RTL8139_IO_BASE + RTL8139_BMCR, bmcr);
 }
 
-BOOLEAN RTL8139_INIT() {
+BOOLEAN RTL8139_STATUS() {
+    if(!RTL8139_IO_BASE || !dev) return FALSE;
+    return TRUE;
+}
+
+BOOLEAN RTL8139_START() {
     if(!RTL8139_ENABLE_BUS_MASTERING()) return FALSE;
     if(!RTL8139_IO_BASE || !dev) return FALSE;
     

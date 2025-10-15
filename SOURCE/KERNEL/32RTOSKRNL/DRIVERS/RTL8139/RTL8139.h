@@ -2,7 +2,8 @@
 #define RTL8139_DRIVER_H
 #include <STD/TYPEDEF.h>
 
-BOOLEAN RTL8139_INIT();
+BOOLEAN RTL8139_START();
+BOOLEAN RTL8139_STATUS();
 BOOLEAN RTL8139_STOP(); // NOTE: This will ALWAYS return FALSE
 
 U32 BUILD_ETH_FRAME(U8 *buf, const U8 *dst, const U8 *src, U16 ether_type, const U8 *payload, U32 payload_len);

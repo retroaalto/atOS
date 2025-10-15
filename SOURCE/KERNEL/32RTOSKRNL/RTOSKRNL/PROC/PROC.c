@@ -744,20 +744,10 @@ void early_debug_tcb(U32 pid) {
         VBE_DRAW_STRING(100, rki_row, buf, VBE_GREEN, VBE_BLACK);
         INC_rki_row(&rki_row);
 
-        // ITOA_U((U32)t->pagedir_phys, buf, 16);
-        // VBE_DRAW_STRING(0, rki_row, "Pagedir phys:", VBE_GREEN, VBE_BLACK);
-        // VBE_DRAW_STRING(100, rki_row, buf, VBE_GREEN, VBE_BLACK);
-        // INC_rki_row(&rki_row);
-
-        // ITOA_U((U32)t->pages, buf, 16);
-        // VBE_DRAW_STRING(0, rki_row, "Pages:", VBE_GREEN, VBE_BLACK);
-        // VBE_DRAW_STRING(100, rki_row, buf, VBE_GREEN, VBE_BLACK);
-        // INC_rki_row(&rki_row);
-
-        // ITOA_U((U32)t->info.num_switches, buf, 16);
-        // VBE_DRAW_STRING(0, rki_row, "Switches:", VBE_GREEN, VBE_BLACK);
-        // VBE_DRAW_STRING(100, rki_row, buf, VBE_GREEN, VBE_BLACK);
-        // INC_rki_row(&rki_row);
+        ITOA_U((U32)t->info.num_switches, buf, 16);
+        VBE_DRAW_STRING(0, rki_row, "Switches:", VBE_GREEN, VBE_BLACK);
+        VBE_DRAW_STRING(100, rki_row, buf, VBE_GREEN, VBE_BLACK);
+        INC_rki_row(&rki_row);
 
         ITOA_U((U32)t->info.cpu_time, buf, 16);
         VBE_DRAW_STRING(0, rki_row, "CPU Time (ms):", VBE_GREEN, VBE_BLACK);
@@ -774,20 +764,10 @@ void early_debug_tcb(U32 pid) {
         VBE_DRAW_STRING(150, rki_row, buf, VBE_GREEN, VBE_BLACK);
         INC_rki_row(&rki_row);
 
-        // ITOA_U((U32)get_current_task_esp(), buf, 16);
-        // VBE_DRAW_STRING(0, rki_row, "ESP:", VBE_GREEN, VBE_BLACK);
-        // VBE_DRAW_STRING(100, rki_row, buf, VBE_GREEN, VBE_BLACK);
-        // INC_rki_row(&rki_row);
-
-        // ITOA_U((U32)t->tf->cpu.eip, buf, 16);
-        // VBE_DRAW_STRING(0, rki_row, "EIP:", VBE_GREEN, VBE_BLACK);
-        // VBE_DRAW_STRING(100, rki_row, buf, VBE_GREEN, VBE_BLACK);
-        // INC_rki_row(&rki_row);
-
-        // set_rki_row(rki_row);
-        // DUMP_MEMORY((U32)t->pagedir_phys, PAGE_SIZE/8);
-        // DUMP_MEMORY((U32)t->pages, 256);
-        // DUMP_MEMORY(USER_BINARY_VADDR, 256);
+        set_rki_row(rki_row);
+        DUMP_MEMORY((U32)t->pagedir_phys, PAGE_SIZE/8);
+        DUMP_MEMORY((U32)t->pages, 256);
+        DUMP_MEMORY(USER_BINARY_VADDR, 256);
 
         VBE_UPDATE_VRAM();
     } while((t = t->next) != get_master_tcb());

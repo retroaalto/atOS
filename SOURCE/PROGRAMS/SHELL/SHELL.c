@@ -70,7 +70,6 @@ U0 MSG_LOOP(U0) {
                 break;
             case PROC_FRAMEBUFFER_GRANTED:
                 draw_access_granted = TRUE;
-                CLEAR_SCREEN_COLOUR(VBE_AQUA);
                 break;
         }
         FREE_MESSAGE(msg);

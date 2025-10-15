@@ -323,4 +323,7 @@ help:
 	@echo "  make bootloader - Compile bootloader"
 	@echo "  make iso        - Build bootable ISO (default)"
 	@echo "  make run        - Run ISO in QEMU"
+	@echo "  sudo make runn  - Run ISO in QEMU with ethernet driver"
+	@echo "  sudo make setup_tap      - Setup tap ethernet config"
+	@echo "  sudo make clean_tap      - Clean tap ethernet config"
 	@echo "  make clean      - Clean build artifacts"

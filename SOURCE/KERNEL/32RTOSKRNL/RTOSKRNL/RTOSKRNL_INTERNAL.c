@@ -436,20 +436,17 @@ BOOL initialize_filestructure(VOID) {
 
 
 void RTOSKRNL_LOOP(VOID) {
-    U32 i = 0;
-    U32 j = 0;
-    U32 pass = 0;
-    TCB *a = get_tcb_by_pid(1);
+    early_debug_tcb(get_last_pid());
     while(1) {
-        VBE_DRAW_LINE(0, i, j, i, pass++ % 2 == 0 ? VBE_RED : VBE_GREEN);
-        i++;
-        if(i >= 1024) i = 0;
-        j++;
-        if(j >= 768) j = 0;
-        if(pass >= 100) {
-            pass = 0;
-            pass = (pass % 2 == 0) ? 1 : -1;
-        }
+        // VBE_DRAW_LINE(0, i, j, i, pass++ % 2 == 0 ? VBE_RED : VBE_GREEN);
+        // i++;
+        // if(i >= 1024) i = 0;
+        // j++;
+        // if(j >= 768) j = 0;
+        // if(pass >= 100) {
+        //     pass = 0;
+        //     pass = (pass % 2 == 0) ? 1 : -1;
+        // }
         handle_kernel_messages();
     }
 }

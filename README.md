@@ -89,21 +89,27 @@ Download from the [official QEMU website](https://www.qemu.org/download/#windows
 ### Booting atOS with QEMU
 
 ```bash
-	qemu-img create -f raw hdd.img 256M   # Creates a hard disk image.
+  # If you want to use ethernet driver, run these
+  sudo ip tuntap add dev tap0 mode tap;
+  sudo ip link set tap0 up;
+
+  # Creates a hard disk image.
+	qemu-img create -f raw hdd.img 256M   
 
   # Runs Qemu from ISO with attached HDD, RTL8139, AC97 and PCI support
 	qemu-system-i386 -vga std \
-    -m 1024 \
-    -boot order=d \
-    -device piix3-ide,id=ide \
-    -cdrom $(OUTPUT_ISO_DIR)/$(ISO_NAME) \
-    -drive id=cdrom,file=$(OUTPUT_ISO_DIR)/$(ISO_NAME),format=raw,if=none \
-    -drive id=hd0,file=hdd.img,format=raw,if=none \
-    -device ide-hd,drive=hd0,bus=ide.0 \
-    -device ide-cd,drive=cdrom,bus=ide.1 \
-    -audiodev sdl,id=snd0 \
-    -device ac97,audiodev=snd0 \
-	  -device rtl8139
+	-m 1024 \
+	-boot order=d \
+	-cdrom $(OUTPUT_ISO_DIR)/$(ISO_NAME) \
+	-drive id=cdrom,file=$(OUTPUT_ISO_DIR)/$(ISO_NAME),format=raw,if=none \
+	-drive id=hd0,file=hdd.img,format=raw,if=none \
+	-device piix3-ide,id=ide \
+	-device ide-hd,drive=hd0,bus=ide.0 \
+	-device ide-cd,drive=cdrom,bus=ide.1 \
+	-device ac97,audiodev=snd0 \
+	-netdev tap,id=tap0,ifname=tap0,script=no,downscript=no \
+	-device rtl8139,netdev=tap0,mac=52:54:00:12:34:56 \
+	-audiodev sdl,id=snd0
 ```
 
 ---
@@ -136,6 +142,12 @@ The project uses `make` with simple targets:
   make iso run
   ```
 
+* **Build and launch atOS with ethernet driver:**
+
+  ```bash
+  sudo make iso runn
+  ```
+
 ### Debugging
 
 Debugging support is minimal.
@@ -151,6 +163,7 @@ Planned and in-progress features for atOS:
 * [x] Basic memory management (paging, allocator, frame BYTEMAP)
 * [X] ISO9660 support
 * [X] Basic drivers (keyboard, screen, disk I/O)
+* [X] Ethernet driver
 * [ ] FAT32 filesystem support
 * [X] System call interface
 * [X] Multitasking and scheduling
