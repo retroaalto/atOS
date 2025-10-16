@@ -279,8 +279,6 @@ void early_debug_tcb(U32 pid);
 
 TrapFrame* pit_handler_task_control(TrapFrame* tf);
 
-/// @brief Handle task state transitions.
-void PROC_HANDLE_TASK_TRANSITIONS(void);
 
 TCB *get_tcb_by_pid(U32 pid);
 TCB *get_tcb_by_name(U8 *name);

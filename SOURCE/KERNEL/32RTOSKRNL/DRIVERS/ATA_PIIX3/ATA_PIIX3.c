@@ -198,9 +198,7 @@ BOOLEAN ATA_PIIX3_XFER(U8 device, U32 lba, U8 sectors, VOIDPTR buf, BOOLEAN writ
     _outb(base + ATA_COMM_REG, write ? ATA_MDA_CMD_WRITE28 : ATA_MDA_CMD_READ28);
 
     // Wait for IRQ
-    CLI;
-    while (!dma_done) HLT; // could use proper thread sleep instead
-    STI;
+    while (!dma_done) cpu_relax(); // could use proper thread sleep instead
 
     return TRUE;
 }

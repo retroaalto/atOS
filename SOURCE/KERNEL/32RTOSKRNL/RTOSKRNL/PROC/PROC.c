@@ -776,10 +776,6 @@ void early_debug_tcb(U32 pid) {
 
 
 
-
-
-
-
 U32 get_ticks(void) {
     return tcks;
 }
