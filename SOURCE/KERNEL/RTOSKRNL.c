@@ -41,6 +41,7 @@ void rtos_kernel(U0) {
     
     RTL8139_START(); // Not panic worthy if not working
 
+    // Copies files from ISO to HDD
     panic_if(!initialize_filestructure(), PANIC_TEXT("Failed to initialize FAT on disk"), PANIC_INITIALIZATION_FAILED);
 
     LOAD_AND_RUN_KERNEL_SHELL();

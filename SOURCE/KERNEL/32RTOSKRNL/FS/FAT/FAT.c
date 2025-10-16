@@ -7,6 +7,7 @@
 #include <STD/MEM.h>
 #include <STD/MATH.h>
 #include <STD/STRING.h>
+#include <STD/BINARY.h>s
 
 static BPB bpb ATTRIB_DATA = { 0 };
 static U32 *fat32 ATTRIB_DATA = NULLPTR;
@@ -16,6 +17,11 @@ static BOOL bpb_loaded ATTRIB_DATA = 0;
 static FSINFO fsinfo ATTRIB_DATA = { 0 };
 
 #define SET_BPB(x, val, sz) MEMCPY(&x, val, sz)
+
+#define GET_CLUSTER_SIZE() (bpb.BYTES_PER_SECTOR * bpb.SECTORS_PER_CLUSTER)
+#define GET_CLUSTERS_NEEDED(cluster_size, bytes)( (bytes + cluster_size - 1) / cluster_size)
+#define GET_CLUSTERS_NEEDED_IN_BYTES(clusters_needed, cluster_size) (clusters_needed * (cluster_size))
+
 
 // Writes a single sector to disk at absolute sector number
 BOOL FAT_WRITE_SECTOR_ON_DISK(U32 lba, const U8 *buf) {
@@ -76,16 +82,17 @@ BOOLEAN LOAD_BPB() {
     bpb_loaded = TRUE;
     return TRUE;
 }
+BOOLEAN GET_BPB_LOADED(){ 
+    // TODO: read from disk and check ids, if IDs, LOAD_BPB()
+    return TRUE; 
+}
+
 
 BPB *GET_BPB() { 
     if(!bpb_loaded) {
         if(!LOAD_BPB()) return NULLPTR;
     } 
     return &bpb;
-}
-BOOLEAN GET_BPB_LOADED(){ 
-    // TODO: read from disk and check ids
-    return TRUE; 
 }
 BOOLEAN WRITE_DISK_BPB() {
     MEMZERO(&bpb, sizeof(BPB));
@@ -563,8 +570,6 @@ BOOLEAN CREATE_ROOT_DIR(U32 root_cluster) {
     return FAT_FLUSH();
 }
 
-
-
 BOOLEAN CREATE_FSINFO() {
     FSINFO fsinfo;
     MEMZERO(&fsinfo, sizeof(fsinfo));
@@ -588,7 +593,6 @@ BOOLEAN ZERO_INITIALIZE_FAT32(VOIDPTR BOOTLOADER_BIN, U32 sz) {
 
     return TRUE;
 }
-
 
 BOOLEAN CREATE_CHILD_DIR(U32 parent_cluster, U8 *name, U8 attrib) {
     U32 new_cluster = FIND_NEXT_FREE_CLUSTER();
@@ -648,10 +652,64 @@ U32 GET_ROOT_CLUSTER() {
     return bpb.EXBR.ROOT_CLUSTER;
 }
 
+
 // U32 FIND_DIR_BY_NAME_AND_PARENT(U32 parent, U8 *name);
 // U32 FIND_FILE_BY_NAME_AND_PARENT(U32 parent, U8 *name);
 // VOID FIND_DIR_ENTRY_BY_NAME_AND_PARENT(DIR_ENTRY *out, U32 parent, U8 *name);
-// VOIDPTR READ_FILE_CONTENTS(U32 size_out, DIR_ENTRY);
+VOIDPTR READ_FILE_CONTENTS(U32 *size_out, DIR_ENTRY ent) {
+    VOIDPTR buf = NULL;
+    *size_out = 0;
+    if(IS_FLAG_UNSET(ent.ATTRIB, FAT_ATTRIB_ARCHIVE)) return buf;
+
+    U32 file_size = ent.FILE_SIZE;
+    if (file_size == 0)
+        return buf;
+
+
+    U32 clust = ((U32)ent.HIGH_CLUSTER_BITS << 16) | ent.LOW_CLUSTER_BITS;
+    if (clust < FIRST_ALLOWED_CLUSTER_NUMBER)
+        return buf;
+    
+    U32 cluster_size = GET_CLUSTER_SIZE();
+    U32 clusters_needed = GET_CLUSTERS_NEEDED(cluster_size, file_size);
+    U32 bytes = GET_CLUSTERS_NEEDED_IN_BYTES(clusters_needed, cluster_size);
+    buf = KMALLOC(bytes);
+    if(!buf) return NULL;
+    MEMZERO(buf, bytes);
+
+    U32 total_read = 0;
+    U32 current_cluster = 0;
+    U8 *tmp_clust = KMALLOC(cluster_size);
+    if(!tmp_clust) {
+        KFREE(buf);
+        return NULL;
+    }
+    MEMZERO(tmp_clust, bytes);
+
+    while (current_cluster >= FIRST_ALLOWED_CLUSTER_NUMBER &&
+           current_cluster < FAT32_END_OF_CHAIN &&
+           total_read < file_size) {
+
+        // Read current cluster
+        if (!ATA_PIO_READ_CLUSTER(current_cluster, tmp_clust)) {
+            KFREE(buf);
+            KFREE(tmp_clust);
+            return NULL;
+        }
+
+        // Copy data into output buffer
+        U32 bytes_to_copy = MIN(cluster_size, file_size - total_read);
+        MEMCPY(buf + total_read, tmp_clust, bytes_to_copy);
+        total_read += bytes_to_copy;
+
+        // Move to next cluster in chain
+        current_cluster = fat32[current_cluster];
+    }
+
+    *size_out = total_read;
+    return buf;
+}
+
 // BOOL DIR_ENUMERATE(U32 dir_cluster, DIR_ENTRY *out_entries, U32 max_count);
 // BOOL DIR_REMOVE_ENTRY(U32 parent_cluster, const char *name);
 // BOOL FAT_FREE_CHAIN(U32 start_cluster);

@@ -108,6 +108,7 @@ typedef struct ATTRIB_PACKED  {
 #define FAT_MAX_PATH     260
 #define FAT_MAX_FILENAME 260    // Includes extension. 260 to allow 13 LFNs
 #define MAX_NESTED_DIRS  16
+#define MAX_CHILD_ENTIES 128
 
 #define MAX_LFN_COUNT    (FAT_MAX_FILENAME / CHARS_PER_LFN)
 
