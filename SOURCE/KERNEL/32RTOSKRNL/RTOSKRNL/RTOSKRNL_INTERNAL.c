@@ -362,11 +362,7 @@ void assert(BOOL condition) {
 
 
 
-// #define SHELL_PATH "INNER/INNER2/INSIDE_1.TXT"
-// #define DEBUG_PRINT_SHELL_CONTENTS_AND_HALT
-
 #define SHELL_PATH "PROGRAMS/atOShell/atOShell.BIN"
-// #define SHELL_PATH "PROGRAMS/TEST1/TEST1.BIN"
 
 VOIDPTR LOAD_KERNEL_SHELL(U32 *bin_size_out, IsoDirectoryRecord **fileptr_out) {
     U8 filename[] = SHELL_PATH; // ISO9660 format
@@ -418,24 +414,19 @@ BOOL initialize_filestructure(VOID) {
         return LOAD_BPB();
     }
 
-    IsoDirectoryRecord *vbr = NULLPTR;
     VOIDPTR bin = NULLPTR;
     U32 sz = 0;
-    vbr = ISO9660_FILERECORD_TO_MEMORY("ATOS/DISK_VBR.BIN");
-    if(!vbr) return FALSE;
-    sz = vbr->extentLengthLE;
-    bin = ISO9660_READ_FILEDATA_TO_MEMORY(vbr);
+    bin = ISO9660_READ_FILEDATA_TO_MEMORY_QUICKLY("ATOS/DISK_VBR.BIN", &sz);
     if(!bin) {
-        ISO9660_FREE_MEMORY(vbr);
         return FALSE;
     }
     if(!ZERO_INITIALIZE_FAT32(bin, sz)) {
-        ISO9660_FREE_MEMORY(vbr);
         ISO9660_FREE_MEMORY(bin);
         return FALSE;
     }
 
-    ISO9660_FREE_MEMORY(vbr);
+    U8 contents[64] = "Hello to world and others!";
+    CREATE_CHILD_FILE(GET_ROOT_CLUSTER(), "JustAnotherTextFile.txt", 0, contents, 64);
     ISO9660_FREE_MEMORY(bin);
     return TRUE;
 }

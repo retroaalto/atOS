@@ -188,6 +188,12 @@ VOIDPTR ISO9660_READ_FILEDATA_TO_MEMORY(IsoDirectoryRecord *fileptr);
 /// @param ptr Pointer to the memory to free.
 void ISO9660_FREE_MEMORY(VOIDPTR ptr);
 
+/// @brief Reads file into memory without having to read IsoDirectoryRecord
+/// @param filename File to read
+/// @param filesize_out Size of output
+/// @return Pointer to buffer. Caller must free
+VOIDPTR ISO9660_READ_FILEDATA_TO_MEMORY_QUICKLY(U8 *filename, U32 *filesize_out);
+
 #endif
 
 #endif // ISO9660_H

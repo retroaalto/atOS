@@ -150,6 +150,8 @@ BOOLEAN ZERO_INITIALIZE_FAT32(VOIDPTR BOOTLOADER_BIN, U32 sz);
 
 // ----- Directory and file lookup -----
 
+U32 GET_ROOT_CLUSTER();
+
 U32 FIND_DIR_BY_NAME_AND_PARENT(U32 parent, U8 *name); 
 // Searches for a subdirectory with the given name inside a parent directory.
 // Returns its starting cluster, or 0 if not found.

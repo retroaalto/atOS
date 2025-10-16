@@ -454,3 +454,18 @@ U8 *ISO9660_GET_DIR_CONTENTS(IsoDirectoryRecord *dir) {
     Free(buffer);
     return result;
 }
+
+VOIDPTR ISO9660_READ_FILEDATA_TO_MEMORY_QUICKLY(U8 *filename, U32 *filesize_out) {
+    IsoDirectoryRecord *rec = NULLPTR;
+    VOIDPTR bin = NULLPTR;
+    rec = ISO9660_FILERECORD_TO_MEMORY(filename);
+    if(!rec) return NULLPTR;
+    *filesize_out = rec->extentLengthLE;
+    bin = ISO9660_READ_FILEDATA_TO_MEMORY(rec);
+    if(!bin) {
+        Free(rec);
+        return NULLPTR;
+    }
+    Free(rec);
+    return bin;
+}
