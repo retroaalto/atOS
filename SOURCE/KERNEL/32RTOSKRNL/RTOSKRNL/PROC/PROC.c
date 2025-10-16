@@ -628,6 +628,7 @@ void KILL_PROCESS(U32 pid) {
                 destroy_process_pagedir(curr->pagedir);
             }
             remove_tcb_from_scheduler(curr);
+            KFREE_USER_PAGES(curr->pages, curr->page_count);
             KFREE(curr);
             return;
             proc_amount--;

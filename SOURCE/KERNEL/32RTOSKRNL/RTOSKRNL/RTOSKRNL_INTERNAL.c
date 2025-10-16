@@ -193,7 +193,14 @@ void DUMP_STRING(STRING buf) {
     INC_rki_row(rki_row);
     VBE_UPDATE_VRAM();
 }
-
+void DUMP_STRINGN(STRING buf, U32 n) {
+    U8 res = buf[n];
+    buf[n] = '\0';
+    VBE_DRAW_STRING(0, rki_row, buf, PANIC_COLOUR);
+    INC_rki_row(rki_row);
+    VBE_UPDATE_VRAM();
+    buf[n] = res;
+}
 
 void panic_reg(regs *r, const U8 *msg, U32 errmsg) {
     CLI;
@@ -407,9 +414,10 @@ void LOAD_AND_RUN_KERNEL_SHELL(VOID) {
 
 
 BOOL initialize_filestructure(VOID) {
-    // LOAD_BPB();
-    
-    WRITE_DISK_BPB();
+    if(!GET_BPB_LOADED()) {
+        return LOAD_BPB();
+    }
+
     IsoDirectoryRecord *vbr = NULLPTR;
     VOIDPTR bin = NULLPTR;
     U32 sz = 0;
@@ -421,8 +429,7 @@ BOOL initialize_filestructure(VOID) {
         ISO9660_FREE_MEMORY(vbr);
         return FALSE;
     }
-
-    if(!POPULATE_BOOTLOADER(bin, sz)) {
+    if(!ZERO_INITIALIZE_FAT32(bin, sz)) {
         ISO9660_FREE_MEMORY(vbr);
         ISO9660_FREE_MEMORY(bin);
         return FALSE;
@@ -430,7 +437,6 @@ BOOL initialize_filestructure(VOID) {
 
     ISO9660_FREE_MEMORY(vbr);
     ISO9660_FREE_MEMORY(bin);
-
     return TRUE;
 }
 

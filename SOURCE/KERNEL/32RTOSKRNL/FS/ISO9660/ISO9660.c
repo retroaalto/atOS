@@ -5,16 +5,10 @@
 #include <MEMORY/HEAP/KHEAP.h>
 #include <DRIVERS/ATAPI/ATAPI.h>
 #include <DRIVERS/VIDEO/VBE.h>
+#include <RTOSKRNL/RTOSKRNL_INTERNAL.h>
 
-#ifdef __RTOS__
-// In kernel usage, we use KHEAP for memory management
 #define MAlloc(sz) KMALLOC(sz)
 #define Free(ptr) KFREE(ptr)
-#else
-// In process usage, we use UHEAP
-#error "ISO9660.c can only be compiled in RTOS mode as of now!"
-
-#endif
 
 static PrimaryVolumeDescriptor *pvd = NULLPTR;
 
@@ -185,6 +179,88 @@ BOOLEAN ISO9660_READ_FROM_DIRECTORY(
 
     Free(buffer);
     return FALSE;
+}
+
+BOOLEAN ISO9660_PATH_TABLE_SEARCH(
+    CHAR *original_target,
+    IsoDirectoryRecord *output,
+    IsoDirectoryRecord *root
+) {
+    if(!pvd) return FALSE;
+    U32 path_table_size = pvd->pathTableSizeLE;
+    U32 path_table_loc = pvd->pathTableLocationLE;
+    U8 *buf = MAlloc(ATAPI_SECTOR_SIZE);
+    if(!buf) return FALSE;
+    BOOL res = READ_CDROM(GET_ATAPI_INFO(), path_table_loc, ATAPI_CALC_SECTORS(path_table_size), buf);
+    if(!res) {
+        Free(buf);
+        return res;
+    }
+    U8 *target = MAlloc(STRLEN(original_target) + 1);
+    if (!target) {
+        Free(buf);
+        return FALSE;
+    };
+    STRCPY(target, original_target);
+    U8 *slash = (U8 *)STRCHR(target, '/');
+    if (slash) *slash = '\0';
+
+    PathTableEntry *ent = NULLPTR;
+    U32 pos = 0;
+    U32 look_for_parent_id = 1;//root id
+    BOOL found_dir = FALSE;
+    while(1) {
+        ent = (PathTableEntry *)(buf + pos);
+
+        if (STRNCMP(target, ent->name, ent->nameLength) == TRUE &&
+            ent->parentDirNum == look_for_parent_id) {
+            
+            look_for_parent_id = ent->parentDirNum;
+
+            // Check for remaining path
+            CHAR *slash = STRCHR(original_target, '/');
+            if (slash) {
+                U32 remaining = STRLEN(slash + 1);
+                MEMMOVE(original_target, slash + 1, remaining);
+                original_target[remaining] = '\0';
+                MEMCPY(target, original_target, remaining + 1);
+                slash = STRCHR(target, '/');
+                if (slash) *slash = '\0';
+                pos = 0; // restart scanning path table
+            } else {
+                // Last component reached
+                found_dir = TRUE;
+                break;
+            }
+        }
+
+        pos += sizeof(PathTableEntry) - 1 + ent->nameLength;
+        if (ent->nameLength % 2 == 1) pos++;
+        if(pos >= path_table_size) break;
+    }
+    Free(buf);
+    if (!found_dir && STRLEN(target) == 0) {
+        Free(target);
+        return FALSE;
+    }
+    
+    res = READ_CDROM(GET_ATAPI_INFO(), ent->lbaLocation, 1, buf);
+    if(!res) {
+        Free(target);
+        Free(buf);
+        return FALSE;
+    }
+    MEMCPY(output, buf, sizeof(IsoDirectoryRecord));
+    DUMP_MEMORY(output, sizeof(IsoDirectoryRecord));
+    Free(buf);
+    HLT;
+    if(STRLEN(target) != 0) {
+        DUMP_MEMORY(buf, ATAPI_SECTOR_SIZE);
+        HLT;
+    }
+    Free(target);
+    Free(buf);
+    return TRUE;
 }
 
 BOOLEAN ISO9660_READ_DIRECTORY_RECORD(

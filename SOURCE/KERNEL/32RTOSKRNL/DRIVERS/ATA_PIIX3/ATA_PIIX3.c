@@ -150,7 +150,7 @@ BOOLEAN ATA_PIIX3_INIT(VOID) {
             supported_dma_modes.UDMA_1    |= (w88 & (1 << 1)) != 0;
         }
     }
-
+    // todo: get irq from pci
     ISR_REGISTER_HANDLER(PIC_REMAP_OFFSET + 14, ATA_IRQ_HANDLER);
     ISR_REGISTER_HANDLER(PIC_REMAP_OFFSET + 15, ATA_IRQ_HANDLER);
     PIC_Unmask(14);

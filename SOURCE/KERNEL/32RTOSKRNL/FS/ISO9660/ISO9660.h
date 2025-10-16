@@ -119,6 +119,14 @@ typedef struct _PrimaryVolumeDescriptor {
 __attribute__((packed))
 PrimaryVolumeDescriptor;
 
+typedef struct {
+    U8 nameLength;
+    U8 extAttrRecord;
+    U32 lbaLocation;
+    U16 parentDirNum;
+    U8 name[1];
+} ATTRIB_PACKED PathTableEntry;
+
 #ifndef ISO9660_ONLY_DEFINES
 
 #define ISO9660_TYPE_DIRECTORY 0

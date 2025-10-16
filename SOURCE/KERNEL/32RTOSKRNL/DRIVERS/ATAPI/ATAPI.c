@@ -143,6 +143,8 @@ U32 READ_CDROM(U32 atapiWhere, U32 lba, U32 sectors, U8 *buf) {
     return read_cdrom(atapiWhere, lba, sectors, (U16 *) buf);
 }
 
-
+U32 ATAPI_CALC_SECTORS(U32 len) {
+    return (len + ATAPI_SECTOR_SIZE - 1) / ATAPI_SECTOR_SIZE;
+}
 #ifndef KERNEL_ENTRY
 #endif // KERNEL_ENTRY
