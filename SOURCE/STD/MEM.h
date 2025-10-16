@@ -45,9 +45,10 @@ U0 *MEMMOVE(U0* dest, CONST U0* src, U32 size);
 
 
 // DEVNOTE: Every pointer allocated can be shared across processes!
+// Not to be used inside kernel. Use MEMORY/HEAP/KHEAP
 U0 *MAlloc(U32 size);
 U0 *CAlloc(U32 num, U32 size);
-U0 *ReAlloc(U0* ptr, U32 oldSize, U32 newSize);
+U0 *ReAlloc(U0* ptr, U32 newSize);
 VOID Free(U0* ptr);
 
 #endif // MEM_H

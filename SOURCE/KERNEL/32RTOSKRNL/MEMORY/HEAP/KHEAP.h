@@ -44,10 +44,9 @@ VOIDPTR KCALLOC(U32 num, U32 size);
 
 /// @brief Reallocates memory in the kernel heap.
 /// @param addr Pointer to the current memory block. Updated to point to the new block.
-/// @param oldSize Current size of the memory block in bytes.
 /// @param newSize New size of the memory block in bytes.
 /// @return TRUE if reallocation succeeded, FALSE otherwise.
-BOOLEAN KREALLOC(VOIDPTR *addr, U32 oldSize, U32 newSize);
+BOOLEAN KREALLOC(VOIDPTR *addr, U32 newSize);
 
 /// @brief Allocates memory from the kernel heap with specified alignment.
 /// @param size Size in bytes to allocate.
@@ -73,9 +72,10 @@ VOID KFREE_ALIGN(VOIDPTR ptr);
 /// @return TRUE if initialization succeeded, FALSE otherwise.
 BOOLEAN KHEAP_INIT(U32 pageNum);
 
-typedef struct KHeapBlock {
-    U32 size;       // Size of the block (excluding header)
-    U8 free;        // 1 = free, 0 = allocated
+typedef struct ATTRIB_PACKED {
+    U32 size;       // user-requested size
+    U32 real_size;  // allocated size (after alignment, including split)
+    BOOLEAN free;
 } KHeapBlock;
 
 typedef struct {

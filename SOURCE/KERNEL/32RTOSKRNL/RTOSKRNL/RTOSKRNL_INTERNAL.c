@@ -20,7 +20,7 @@ and some not-so-important functions are here.
 #include <DRIVERS/PS2/KEYBOARD.h>
 
 
-#define INC_rki_row(rki_row) (rki_row += VBE_CHAR_HEIGHT + 2); if(rki_row > 1024) rki_row = 0;
+#define INC_rki_row(rki_row) (rki_row += VBE_CHAR_HEIGHT + 2); if(rki_row > 1000) rki_row = 0;
 #define DEC_rki_row(rki_row) (rki_row -= VBE_CHAR_HEIGHT + 2)
 static U32 rki_row __attribute__((section(".data"))) = 0;
 
@@ -150,13 +150,13 @@ void DUMP_INTNO(U32 int_no) {
 
 void DUMP_MEMORY(U32 addr, U32 length) {
     U8 buf[20] = { 0 };
-    char ascii[16] = { 0 };  // 16 chars per line
+    char ascii[17] = { 0 };  // 16 chars + null terminator
     U8 *ptr = (U8*)addr;
 
-    for(U32 i = 0; i < length; i++) {
+    for (U32 i = 0; i < length; i++) {
         // Start new line every 16 bytes
-        if(i % 16 == 0) {
-            if(i != 0) {
+        if (i % 16 == 0) {
+            if (i != 0) {
                 // Draw ASCII characters at end of previous line
                 VBE_DRAW_STRING(100 + 16 * 30, rki_row, ascii, PANIC_COLOUR);
                 INC_rki_row(rki_row);
@@ -165,6 +165,8 @@ void DUMP_MEMORY(U32 addr, U32 length) {
             // Print memory address at start of line
             ITOA_U((U32)(ptr + i), buf, 16);
             VBE_DRAW_STRING(0, rki_row, buf, PANIC_COLOUR);
+
+            MEMZERO(ascii, sizeof(ascii)); // clear ASCII buffer
         }
 
         // Print hex value of the byte
@@ -177,13 +179,14 @@ void DUMP_MEMORY(U32 addr, U32 length) {
 
     // Draw ASCII for the last line
     int lastLineBytes = length % 16;
-    if(lastLineBytes == 0) lastLineBytes = 16;  // full line
-    for(int j = lastLineBytes; j < 16; j++) ascii[j] = ' '; // pad remaining
+    if (lastLineBytes == 0) lastLineBytes = 16; // full line
+    ascii[lastLineBytes] = '\0';                 // null terminate
     VBE_DRAW_STRING(100 + 16 * 30, rki_row, ascii, PANIC_COLOUR);
     INC_rki_row(rki_row);
 
     VBE_UPDATE_VRAM();
 }
+
 
 
 
@@ -424,9 +427,6 @@ BOOL initialize_filestructure(VOID) {
         ISO9660_FREE_MEMORY(bin);
         return FALSE;
     }
-
-    U8 contents[64] = "Hello to world and others!";
-    CREATE_CHILD_FILE(GET_ROOT_CLUSTER(), "JustAnotherTextFile.txt", 0, contents, 64);
     ISO9660_FREE_MEMORY(bin);
     return TRUE;
 }

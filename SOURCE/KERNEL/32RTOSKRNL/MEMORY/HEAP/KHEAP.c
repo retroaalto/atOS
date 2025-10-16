@@ -110,70 +110,38 @@ KHeapBlock* KHEAP_GET_X_BLOCK(U32 index) {
 }
 
 VOIDPTR KMALLOC(U32 size) {
-    if (!size || !kernelHeap.baseAddress) return NULLPTR;
-
-    // align request
+    if (!size) return NULLPTR;
     U32 req = ALIGN_UP_U32(size, KHEAP_ALIGN);
 
     U8 *heapEnd = kheap_end_ptr();
-    KHeapBlock *start = (KHeapBlock*)kernelHeap.currentPtr;
-    KHeapBlock *block = start;
-
-    // guard: ensure start is within heap
-    if ((U8*)start < kheap_base_ptr() || (U8*)start >= heapEnd) {
-        // reset to base if currentPtr somehow out of range
-        start = (KHeapBlock*)kernelHeap.baseAddress;
-        block = start;
-    }
+    KHeapBlock *block = (KHeapBlock*)kernelHeap.currentPtr;
+    KHeapBlock *start = block;
 
     do {
-        // Basic bounds check before reading header
-        if ((U8*)block < kheap_base_ptr() || (U8*)block + sizeof(KHeapBlock) > heapEnd) {
-            // Corrupt header or reached end; wrap to base and continue
-            block = (KHeapBlock*)kernelHeap.baseAddress;
-            if (block == start) break;
-            continue;
-        }
-
-        if (block->free && block->size >= req) {
-            // Can we split? Ensure the remaining tail can hold header + some space
-            if (block->size >= req + MIN_SPLIT_TAIL) {
+        if (block->free && block->real_size >= req) {
+            // split if possible
+            if (block->real_size >= req + sizeof(KHeapBlock) + KHEAP_ALIGN) {
                 KHeapBlock *next = (KHeapBlock*)((U8*)block + sizeof(KHeapBlock) + req);
-                // bounds check for next header
-                if ((U8*)next + sizeof(KHeapBlock) <= heapEnd) {
-                    next->size = block->size - req - sizeof(KHeapBlock);
-                    next->free = 1;
-                    block->size = req;
-                }
-                // if next header would cross end we skip splitting (treat as exact fit)
+                next->free = 1;
+                next->size = 0;
+                next->real_size = block->real_size - req - sizeof(KHeapBlock);
+                block->real_size = req;
             }
-
+            block->size = size;   // store user-requested size
             block->free = 0;
-            kernelHeap.usedSize += block->size + sizeof(KHeapBlock);
-            if (kernelHeap.freeSize >= block->size + sizeof(KHeapBlock))
-                kernelHeap.freeSize -= block->size + sizeof(KHeapBlock);
-            else
-                kernelHeap.freeSize = 0; // safety
+            kernelHeap.usedSize += block->real_size + sizeof(KHeapBlock);
+            if (kernelHeap.freeSize >= block->real_size + sizeof(KHeapBlock))
+                kernelHeap.freeSize -= block->real_size + sizeof(KHeapBlock);
 
-            // Move currentPtr to next block after allocated one
-            U8 *nextPtr = (U8*)block + sizeof(KHeapBlock) + block->size;
-            if (nextPtr >= heapEnd)
-                kernelHeap.currentPtr = kernelHeap.baseAddress; // wrap around
-            else
-                kernelHeap.currentPtr = (VOIDPTR)nextPtr;
-
+            // move currentPtr
+            U8 *nextPtr = (U8*)block + sizeof(KHeapBlock) + block->real_size;
+            kernelHeap.currentPtr = (nextPtr >= heapEnd) ? kernelHeap.baseAddress : nextPtr;
             return (VOIDPTR)((U8*)block + sizeof(KHeapBlock));
         }
 
-        // advance to next block
-        U8 *nextAddr = (U8*)block + sizeof(KHeapBlock) + block->size;
-        if (nextAddr >= heapEnd) {
-            // wrap-around
-            block = (KHeapBlock*)kernelHeap.baseAddress;
-        } else {
-            block = (KHeapBlock*)nextAddr;
-        }
-
+        // move to next block
+        U8 *nextAddr = (U8*)block + sizeof(KHeapBlock) + block->real_size;
+        block = (nextAddr >= heapEnd) ? (KHeapBlock*)kernelHeap.baseAddress : (KHeapBlock*)nextAddr;
     } while (block != start);
 
     SET_ERROR_CODE(ERROR_KHEAP_OUT_OF_MEMORY);
@@ -186,15 +154,15 @@ VOID KFREE(VOIDPTR ptr) {
     U8 *heapBase = kheap_base_ptr();
     U8 *heapEnd  = kheap_end_ptr();
 
-    // Validate ptr and header location
+    // Get block header
     KHeapBlock *block = (KHeapBlock*)((U8*)ptr - sizeof(KHeapBlock));
     if ((U8*)block < heapBase || (U8*)block + sizeof(KHeapBlock) > heapEnd) return; // invalid pointer
-
     if (block->free) return; // already free
 
     block->free = 1;
-    // adjust accounting with overflow-safety
-    U32 reclaimed = block->size + sizeof(KHeapBlock);
+
+    // adjust accounting using real_size (allocated size)
+    U32 reclaimed = block->real_size + sizeof(KHeapBlock);
     if (kernelHeap.usedSize >= reclaimed)
         kernelHeap.usedSize -= reclaimed;
     else
@@ -202,29 +170,22 @@ VOID KFREE(VOIDPTR ptr) {
     kernelHeap.freeSize += reclaimed;
 
     // Coalesce with next block if free and valid
-    KHeapBlock *next = (KHeapBlock*)((U8*)block + sizeof(KHeapBlock) + block->size);
-    if ((U8*)next + sizeof(KHeapBlock) <= heapEnd) {
-        if (next->free) {
-            // ensure next->size is reasonable before adjusting
-            block->size += sizeof(KHeapBlock) + next->size;
-        }
+    KHeapBlock *next = (KHeapBlock*)((U8*)block + sizeof(KHeapBlock) + block->real_size);
+    if ((U8*)next + sizeof(KHeapBlock) <= heapEnd && next->free) {
+        block->real_size += sizeof(KHeapBlock) + next->real_size;
+        block->size = block->size; // keep user size unchanged
     }
 
-    // Coalesce with previous block (scan from base to find previous)
-    // Only do this if block is not the first block at heap base
+    // Coalesce with previous block (scan from base)
     if ((U8*)block > heapBase) {
-        // scan blocks until we reach block (linear scan)
         KHeapBlock *scan = (KHeapBlock*)heapBase;
         while ((U8*)scan + sizeof(KHeapBlock) <= heapEnd) {
-            U8 *scanNextAddr = (U8*)scan + sizeof(KHeapBlock) + scan->size;
+            U8 *scanNextAddr = (U8*)scan + sizeof(KHeapBlock) + scan->real_size;
             if (scanNextAddr == (U8*)block) {
-                // found previous
                 if (scan->free) {
-                    // merge scan and block
-                    scan->size += sizeof(KHeapBlock) + block->size;
-                    // adjust accounting: we already marked `block` as free and added reclaimed,
-                    // no further accounting needed here
-                    block = scan; // merged block becomes the base
+                    scan->real_size += sizeof(KHeapBlock) + block->real_size;
+                    scan->size = scan->size; // preserve user size
+                    block = scan; // merged block becomes base
                 }
                 break;
             }
@@ -233,6 +194,7 @@ VOID KFREE(VOIDPTR ptr) {
         }
     }
 }
+
 
 VOIDPTR KCALLOC(U32 num, U32 size) {
     // multiply with overflow check (simple)
@@ -245,63 +207,44 @@ VOIDPTR KCALLOC(U32 num, U32 size) {
     return ptr;
 }
 
-BOOLEAN KREALLOC(VOIDPTR *addr, U32 oldSize, U32 newSize) {
+BOOLEAN KREALLOC(VOIDPTR *addr, U32 newSize) {
     if (!addr || !*addr) return FALSE;
 
-    U32 old_al = ALIGN_UP_U32(oldSize, KHEAP_ALIGN);
-    U32 new_al = ALIGN_UP_U32(newSize, KHEAP_ALIGN);
-
-    if (new_al <= old_al) return TRUE; // shrinking or same, nothing to do
-
-    // try in-place expansion: see if next block is free and large enough
-    U8 *heapBase = kheap_base_ptr();
-    U8 *heapEnd  = kheap_end_ptr();
-
     KHeapBlock *block = (KHeapBlock*)((U8*)(*addr) - sizeof(KHeapBlock));
-    if ((U8*)block >= heapBase && (U8*)block + sizeof(KHeapBlock) <= heapEnd) {
-        KHeapBlock *next = (KHeapBlock*)((U8*)block + sizeof(KHeapBlock) + block->size);
-        if ((U8*)next + sizeof(KHeapBlock) <= heapEnd && next->free) {
-            U32 combined = block->size + sizeof(KHeapBlock) + next->size;
-            if (combined >= new_al) {
-                // consume next block (possibly leaving a tail)
-                U32 needed_extra = new_al - block->size;
-                // If after consuming we can split tail, do so safely
-                if (combined >= new_al + MIN_SPLIT_TAIL) {
-                    // new next header after expansion
-                    KHeapBlock *newNext = (KHeapBlock*)((U8*)block + sizeof(KHeapBlock) + new_al);
-                    if ((U8*)newNext + sizeof(KHeapBlock) <= heapEnd) {
-                        newNext->size = combined - new_al - sizeof(KHeapBlock);
-                        newNext->free = 1;
-                    } else {
-                        // cannot split, just grow into full combined block
-                        new_al = combined;
-                    }
-                } else {
-                    // take whole combined block
-                    new_al = combined;
-                }
+    if (!block || block->free) return FALSE;
 
-                // update sizes & accounting
-                U32 before = block->size + sizeof(KHeapBlock);
-                block->size = new_al;
-                U32 after = block->size + sizeof(KHeapBlock);
-                // adjust used/free sizes
-                if (after > before) {
-                    U32 diff = after - before;
-                    kernelHeap.usedSize += diff;
-                    if (kernelHeap.freeSize >= diff) kernelHeap.freeSize -= diff;
-                    else kernelHeap.freeSize = 0;
-                }
-                return TRUE;
+    U32 new_al = ALIGN_UP_U32(newSize, KHEAP_ALIGN);
+    if (new_al <= block->real_size) {
+        block->size = newSize; // shrink in-place
+        return TRUE;
+    }
+
+    // Try to expand into next free block
+    KHeapBlock *next = (KHeapBlock*)((U8*)block + sizeof(KHeapBlock) + block->real_size);
+    U8 *heapEnd = kheap_end_ptr();
+    if ((U8*)next + sizeof(KHeapBlock) <= heapEnd && next->free) {
+        U32 combined = block->real_size + sizeof(KHeapBlock) + next->real_size;
+        if (combined >= new_al) {
+            // can expand
+            U32 tail = combined - new_al;
+            if (tail >= sizeof(KHeapBlock) + KHEAP_ALIGN) {
+                KHeapBlock *newNext = (KHeapBlock*)((U8*)block + sizeof(KHeapBlock) + new_al);
+                newNext->size = 0;
+                newNext->real_size = tail - sizeof(KHeapBlock);
+                newNext->free = 1;
+                block->real_size = new_al;
+            } else {
+                block->real_size = combined;
             }
+            block->size = newSize;
+            return TRUE;
         }
     }
 
     // fallback: allocate new, copy, free old
     VOIDPTR newPtr = KMALLOC(newSize);
     if (!newPtr) return FALSE;
-
-    MEMCPY(newPtr, *addr, oldSize);
+    MEMCPY(newPtr, *addr, block->size);
     KFREE(*addr);
     *addr = newPtr;
     return TRUE;

@@ -1,5 +1,9 @@
 #ifndef ISO9660_H
 #define ISO9660_H
+/*
+Define ISO9660_ONLY_DEFINES 
+for only definitions
+*/
 
 #include "../../../STD/TYPEDEF.h"
 
@@ -131,13 +135,19 @@ typedef struct {
 
 #define ISO9660_TYPE_DIRECTORY 0
 #define ISO9660_TYPE_FILE      1
+/// @brief Gets record type
+/// @param rec Pointer to recod
+/// @return ISO9660_TYPE_DIRECTORY or ISO9660_TYPE_FILE
 U32 ISO9660_GET_TYPE(IsoDirectoryRecord *rec);
 
-/// @brief Returns a list of all dir content names
+/// @brief Returns a list of all dir records
 /// @param dir Directory to look into
-/// @return List of all dir content names. NOTE:
-/// @note First 4 bytes contain the list length!
-U8 *ISO9660_GET_DIR_CONTENTS(IsoDirectoryRecord *dir);
+/// @param recursive Not supported...
+/// @param success TRUE is set on success
+/// @return List of all dir records. fileNameLength is included!
+IsoDirectoryRecord **ISO9660_GET_DIR_CONTENTS(IsoDirectoryRecord *dir, BOOLEAN recursive, U32 *size_out, U8 *success);
+
+void ISO9660_FREE_LIST(IsoDirectoryRecord **ptr, U32 cnt);
 
 /// @brief Check if the ISO9660 image is valid.
 /// @param pvd Pointer to the PrimaryVolumeDescriptor to check.
@@ -194,6 +204,6 @@ void ISO9660_FREE_MEMORY(VOIDPTR ptr);
 /// @return Pointer to buffer. Caller must free
 VOIDPTR ISO9660_READ_FILEDATA_TO_MEMORY_QUICKLY(U8 *filename, U32 *filesize_out);
 
-#endif
+#endif // ISO9660_ONLY_DEFINES
 
 #endif // ISO9660_H

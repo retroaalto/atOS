@@ -365,12 +365,23 @@ void ISO9660_FREE_MEMORY(VOIDPTR ptr) {
     Free(ptr);
 }
 
+void ISO9660_FREE_LIST(IsoDirectoryRecord **ptr, U32 cnt){
+    for(U32 i = 0; i < cnt; i++) {
+        if(ptr[i]) Free(ptr[i]);
+    }
+    Free(ptr);
+}
+
 U32 ISO9660_GET_TYPE(IsoDirectoryRecord *rec) {
     if(rec->fileFlags & ISO9660_FILE_FLAG_DIRECTORY) return ISO9660_TYPE_DIRECTORY;
     else return ISO9660_TYPE_FILE;
 }
-U8 *ISO9660_GET_DIR_CONTENTS(IsoDirectoryRecord *dir) {
-    if (!dir) return NULLPTR;
+IsoDirectoryRecord **ISO9660_GET_DIR_CONTENTS(IsoDirectoryRecord *dir, BOOLEAN recursive, U32 *size_out, U8 *success) {
+    if (!dir || !size_out) return NULLPTR;
+    recursive = FALSE;
+
+    *size_out = 0;
+    *success = FALSE;
 
     U32 lba = dir->extentLocationLE_LBA;
     U32 size = dir->extentLengthLE;
@@ -385,10 +396,9 @@ U8 *ISO9660_GET_DIR_CONTENTS(IsoDirectoryRecord *dir) {
         return NULLPTR;
     }
 
-    /* First pass: count entries and total name bytes */
     U32 offset = 0;
+    IsoDirectoryRecord **entries = NULL;
     U32 count = 0;
-    U32 total_name_bytes = 0;
 
     while (offset < size) {
         IsoDirectoryRecord *record = (IsoDirectoryRecord *)(buffer + offset);
@@ -396,55 +406,28 @@ U8 *ISO9660_GET_DIR_CONTENTS(IsoDirectoryRecord *dir) {
 
         U8 fn_len = record->fileNameLength;
         if (fn_len > 0) {
-            // Skip special entries for current (0x00) and parent (0x01)
-            if (!(fn_len == 1 && (record->fileIdentifier[0] == 0x00 || record->fileIdentifier[0] == 0x01))) {
-                // Ensure we don't exceed reasonable limits
-                if (fn_len >= ISO9660_MAX_PATH) { Free(buffer); return NULLPTR; }
+            const U8 *fn = record->fileIdentifier;
+
+            // Skip "." and ".."
+            if (!(fn_len == 1 && (fn[0] == 0x00 || fn[0] == 0x01))) {
+                // Add this record to the array
+                entries = KREALLOC(entries, sizeof(IsoDirectoryRecord*) * (count + 1));
+                entries[count] = MAlloc(record->length);
+                MEMCPY(entries[count], record, record->length);
                 count++;
-                total_name_bytes += (U32)fn_len + 1; // include null terminator
-                if (count > ISO9660_MAX_DIR_RECORDS) break; // safety cap
-            }
-        }
-
-        offset += record->length;
-    }
-
-    if (count == 0) {
-        Free(buffer);
-        // Return buffer containing zero count only
-        U8 *ret = MAlloc(sizeof(U32));
-        if (!ret) return NULLPTR;
-        U32 zero = 0;
-        MEMCPY(ret, &zero, sizeof(U32));
-        return ret;
-    }
-
-    /* Allocate result: 4 bytes for count + total_name_bytes */
-    U32 result_size = sizeof(U32) + total_name_bytes;
-    U8 *result = MAlloc(result_size);
-    if (!result) { Free(buffer); return NULLPTR; }
-
-    /* Write count (little-endian) */
-    MEMCPY(result, &count, sizeof(U32));
-
-    /* Second pass: copy names after the count */
-    U32 write_off = sizeof(U32);
-    offset = 0;
-    U32 got = 0;
-
-    while (offset < size && got < count) {
-        IsoDirectoryRecord *record = (IsoDirectoryRecord *)(buffer + offset);
-        if (record->length == 0) break;
-
-        U8 fn_len = record->fileNameLength;
-        if (fn_len > 0) {
-            if (!(fn_len == 1 && (record->fileIdentifier[0] == 0x00 || record->fileIdentifier[0] == 0x01))) {
-                // copy the name (not necessarily null-terminated in source)
-                if (write_off + fn_len + 1 > result_size) break; // safety
-                STRNCPY((CHAR *)(result + write_off), (CHAR *)record->fileIdentifier, fn_len);
-                ((CHAR *)(result + write_off))[fn_len] = '\0';
-                write_off += fn_len + 1;
-                got++;
+                // If recursive and is a directory
+                if (recursive && (record->fileFlags & 0x02)) {
+                    U32 subcount = 0;
+                    IsoDirectoryRecord **sub_entries = ISO9660_GET_DIR_CONTENTS(record, TRUE, &subcount, success);
+                    if (sub_entries && subcount > 0) {
+                        entries = KREALLOC(entries, sizeof(IsoDirectoryRecord*) * (count + subcount));
+                        for (U32 i = 0; i < subcount; i++) {
+                            entries[count + i] = sub_entries[i];
+                        }
+                        count += subcount;
+                        Free(sub_entries);
+                    }
+                }
             }
         }
 
@@ -452,8 +435,13 @@ U8 *ISO9660_GET_DIR_CONTENTS(IsoDirectoryRecord *dir) {
     }
 
     Free(buffer);
-    return result;
+
+    *size_out = count;
+    *success = TRUE;
+    return entries;
 }
+
+
 
 VOIDPTR ISO9660_READ_FILEDATA_TO_MEMORY_QUICKLY(U8 *filename, U32 *filesize_out) {
     IsoDirectoryRecord *rec = NULLPTR;
@@ -468,4 +456,8 @@ VOIDPTR ISO9660_READ_FILEDATA_TO_MEMORY_QUICKLY(U8 *filename, U32 *filesize_out)
     }
     Free(rec);
     return bin;
+}
+
+BOOLEAN ISO9660_IS_DIR(IsoDirectoryRecord *rec) {
+
 }

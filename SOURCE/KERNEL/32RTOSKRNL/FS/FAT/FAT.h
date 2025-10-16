@@ -1,6 +1,11 @@
 #ifndef FAT_H
 #define FAT_H
 
+/*
+Define FAT_ONLY_DEFINES
+for only definitions
+*/
+
 #include <STD/TYPEDEF.h>
 
 /// @brief FAT32 Extended BIOS Parameter Block (EXBR) structure
@@ -66,10 +71,6 @@ typedef struct ATTRIB_PACKED {
     U32 FILE_SIZE;               ///< File size in bytes
 } DIR_ENTRY;
 
-/// @brief Max filename and extension lengths
-#define MAX_FILENAME_LEN    8
-#define MAX_FILENAME_EXT    3
-
 /// @brief FAT file attribute flags
 #define FAT_ATTRIB_READ_ONLY    0x01
 #define FAT_ATTRIB_HIDDEN       0x02
@@ -79,7 +80,6 @@ typedef struct ATTRIB_PACKED {
 #define FAT_ATTRIB_ARCHIVE      0x20
 #define FAT_ATTRIB_LFN          (FAT_ATTRIB_READ_ONLY|FAT_ATTRIB_HIDDEN|FAT_ATTRIB_SYSTEM|FAT_ATTRIB_VOL_ID)
 
-#define FIRST_ALLOWED_CLUSTER_NUMBER 2
 
 /// @brief Encode hour, minute, second into FAT 16-bit time
 #define SET_TIME(h, m, s) \
@@ -101,26 +101,37 @@ typedef struct ATTRIB_PACKED  {
     U16 NAME_3[2];       ///< Final 2 UTF-16 characters
 } LFN;
 
-#define CHARS_PER_LFN 13
-#define LFN_LAST_ENTRY (1<<6)
+
 
 /// @brief FAT path and name limits
-#define FAT_MAX_PATH     260
+#define FAT_MAX_PATH     1024
 #define FAT_MAX_FILENAME 260    // Includes extension. 260 to allow 13 LFNs
-#define MAX_NESTED_DIRS  16
+#define MAX_NESTED_DIRS  32
 #define MAX_CHILD_ENTIES 128
 
+#define CHARS_PER_LFN 13
+#define LFN_LAST_ENTRY (1<<6)
 #define MAX_LFN_COUNT    (FAT_MAX_FILENAME / CHARS_PER_LFN)
 
+typedef struct {
+    DIR_ENTRY entry;             ///< Standard directory entry
+    CHAR lfn[FAT_MAX_FILENAME];  ///< Full long file name (ASCII, null-terminated)
+} FAT_LFN_ENTRY;
+
 #ifndef FAT_ONLY_DEFINES
+
+#define FIRST_ALLOWED_CLUSTER_NUMBER 2
+
 // FAT32 special cluster markers
 #define FAT32_FREE_CLUSTER       0x00000000
 #define FAT32_RESERVED_CLUSTER   0xFFFFFFFF
 #define FAT32_BAD_CLUSTER        0x0FFFFFF7
-#define FAT32_END_OF_CHAIN       0x0FFFFFFF
+#define FAT32_END_OF_CHAIN       0x0FFFFFF8
+
 
 #define SECT_PER_CLUST     8
 #define BYTES_PER_SECT     512
+#define ENTRIES_PER_SECTOR (BYTES_PER_SECT / sizeof(DIR_ENTRY))
 #define CLUSTER_SIZE        (SECT_PER_CLUST * BYTES_PER_SECT)
 
 // Cluster value range checks
@@ -161,34 +172,41 @@ U32 FIND_FILE_BY_NAME_AND_PARENT(U32 parent, U8 *name);
 // Searches for a file with the given name inside a parent directory.
 // Returns its starting cluster, or 0 if not found.
 
-VOID FIND_DIR_ENTRY_BY_NAME_AND_PARENT(DIR_ENTRY *out, U32 parent, U8 *name);
+BOOLEAN FIND_DIR_ENTRY_BY_NAME_AND_PARENT(DIR_ENTRY *out, U32 parent, U8 *name);
 // Fills 'out' with the directory entry structure of the given name in 'parent' directory.
-// Returns nothing; 'out->FILENAME[0] == 0' if not found.
+// Returns TRUE on success
+
+/// @brief Reads all LFN entries preceding a DIR_ENTRY and reconstructs the name.
+/// @param ent The short DIR_ENTRY for which we want LFNs
+/// @param out Preallocated buffer of LFN entries (size should allow MAX_LFN_COUNT)
+/// @param size_out Number of LFN entries found
+/// @return TRUE if any LFN entries were found, FALSE otherwise
+BOOLEAN READ_LFNS(DIR_ENTRY *ent, LFN *out, U32 *size_out);
+
 
 // ----- Directory and file creation -----
 
-BOOLEAN CREATE_CHILD_DIR(U32 parent_cluster, U8 *name, U8 attrib);
+BOOLEAN CREATE_CHILD_DIR(U32 parent_cluster, U8 *name, U8 attrib, U32 *cluster_out);
 // Creates a new subdirectory under the given parent directory.
 // Allocates a free cluster, zeroes it, and writes "." and ".." entries.
 
-BOOLEAN CREATE_CHILD_FILE(U32 parent_cluster, U8 *name, U8 attrib, PU8 filedata, U32 filedata_size);
+BOOLEAN CREATE_CHILD_FILE(U32 parent_cluster, U8 *name, U8 attrib, PU8 filedata, U32 filedata_size, U32 *cluster_out);
 // Creates a new empty file in the specified parent directory.
 // Allocates a directory entry but does not allocate data clusters yet.
 
-// ----- File reading -----
-
-VOIDPTR READ_FILE_CONTENTS(U32 *size_out, DIR_ENTRY entry);
-// Reads the entire contents of a file into a newly allocated buffer.
-// Returns pointer to buffer and sets *size_out to file size in bytes.
 
 // ----- Directory management -----
+
+BOOL DIR_ENUMERATE_LFN(U32 dir_cluster, FAT_LFN_ENTRY *out_entries, U32 max_count);
+// Reads all valid directory entries from a directory cluster chain.
+// Fills up to 'max_count' entries in 'out_entries'. Returns TRUE if successful.
 
 BOOL DIR_ENUMERATE(U32 dir_cluster, DIR_ENTRY *out_entries, U32 max_count);
 // Reads all valid directory entries from a directory cluster chain.
 // Fills up to 'max_count' entries in 'out_entries'. Returns TRUE if successful.
 
-BOOL DIR_REMOVE_ENTRY(U32 parent_cluster, const char *name);
-// Deletes a file or directory entry from 'parent_cluster'.
+BOOL DIR_REMOVE_ENTRY(DIR_ENTRY *entry, const char *name);
+// Deletes a file or directory entry from 'entry'.
 // Marks the entry as deleted (0xE5) and frees associated clusters if needed.
 
 // ----- FAT management -----
@@ -201,13 +219,14 @@ BOOL FAT_TRUNCATE_CHAIN(U32 start_cluster, U32 new_size_clusters);
 
 // ----- File data operations -----
 
-BOOL FILE_READ(U32 start_cluster, U8 *buf, U32 size);
-// Reads 'size' bytes of data from a file’s cluster chain into 'buf'.
+VOIDPTR READ_FILE_CONTENTS(U32 *size_out, DIR_ENTRY *entry);
+// Reads the entire contents of a file into a newly allocated buffer.
+// Returns pointer to buffer and sets *size_out to file size in bytes.
 
-BOOL FILE_WRITE(U32 start_cluster, const U8 *data, U32 size);
+BOOL FILE_WRITE(DIR_ENTRY *entry, const U8 *data, U32 size);
 // Writes 'size' bytes to a file’s cluster chain, allocating new clusters if necessary.
 
-BOOL FILE_APPEND(U32 start_cluster, const U8 *data, U32 size);
+BOOL FILE_APPEND(DIR_ENTRY *entry, const U8 *data, U32 size);
 // Appends data to the end of a file’s cluster chain, extending it if needed.
 
 U32 FILE_GET_SIZE(DIR_ENTRY *entry);
@@ -215,12 +234,9 @@ U32 FILE_GET_SIZE(DIR_ENTRY *entry);
 
 // ----- Path handling -----
 
-U32 PATH_RESOLVE(const char *path);
-// Resolves a full path (e.g. "/DIR1/DIR2/FILE.TXT") to its cluster number.
+BOOLEAN PATH_RESOLVE_ENTRY(U8 *path, FAT_LFN_ENTRY *out_entry);
+// Resolves a full path (e.g. "/DIR1/DIR2/FILE.TXT") to its entry. (FILE.TXT in this case)
 // Returns 0 if not found.
-
-BOOLEAN PATH_CREATE_DIRS(const char *path);
-// Recursively creates all intermediate directories along the given path (mkdir -p behavior).
 
 // ----- Directory entry utilities -----
 
@@ -229,13 +245,6 @@ BOOL DIR_ENTRY_IS_FREE(DIR_ENTRY *entry);
 
 BOOL DIR_ENTRY_IS_DIR(DIR_ENTRY *entry);
 // Returns TRUE if entry represents a directory (ATTRIB has FAT_ATTRB_DIR).
-
-U32 DIR_ENTRY_CLUSTER(DIR_ENTRY *entry);
-// Combines HIGH_CLUSTER_BITS and LOW_CLUSTER_BITS to return full 32-bit cluster number.
-
-VOID DIR_ENTRY_SET_CLUSTER(DIR_ENTRY *entry, U32 clust);
-// Splits 32-bit cluster value into high and low parts and writes them to entry.
-
 
 
 #endif // FAT_ONLY_DEFINES

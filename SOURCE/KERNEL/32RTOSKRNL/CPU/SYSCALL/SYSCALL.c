@@ -204,9 +204,9 @@ U32 SYS_KFREE(U32 pointer, U32 unused2, U32 unused3, U32 unused4, U32 unused5) {
     KFREE((void *)pointer);
     return 0;
 }
-U32 SYS_KREALLOC(U32 pointer, U32 oldSize, U32 newSize, U32 unused4, U32 unused5) {
+U32 SYS_KREALLOC(U32 pointer, U32 newSize, U32 unused3, U32 unused4, U32 unused5) {
     (void)unused4; (void)unused5;
-    return (U32)KREALLOC((void *)pointer, oldSize, newSize);
+    return (U32)KREALLOC((void *)pointer, newSize);
 }
 U32 SYS_KCALLOC(U32 num, U32 size, U32 unused3, U32 unused4, U32 unused5) {
     (void)unused3; (void)unused4; (void)unused5;
